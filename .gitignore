@@ -1,3 +1,12 @@
+# Frontend dependencies and build artifacts
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env.local
+/frontend/.env.*.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
 # Python
 __pycache__/
 *.py[cod]
@@ -22,21 +31,17 @@ wheels/
 MANIFEST
 
 # Virtual environments
-venv/
-venv-*/
+venv-storybench/
+.venv/
 ENV/
 env/
-.venv
+venv/
 
-# Environment variables
-.env
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
@@ -47,19 +52,17 @@ env/
 ehthumbs.db
 Thumbs.db
 
-# Project specific - output files but not directory structure
-output/*.json
-models/*.gguf
-models/*.binlogs/
+# Project specific
+.env
+output/
+models/
 *.log
-
-# Old reference codebase
-old_codebase/
 
 # Testing
 .coverage
 .pytest_cache/
 .tox/
+.coverage.*
 htmlcov/
 
 # Documentation
