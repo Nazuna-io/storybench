@@ -6,127 +6,335 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="card">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div class="card fade-in-up">
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <span class="text-2xl">🎯</span>
           </div>
           <div class="ml-4">
             <h3 class="text-sm font-medium text-gray-500">Total Evaluations</h3>
-            <p class="text-2xl font-bold text-gray-900">{{ totalEvaluations }}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ totalEvaluations }}</p>
           </div>
         </div>
       </div>
       
-      <div class="card">
+      <div class="card fade-in-up">
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <span class="text-2xl">🤖</span>
           </div>
           <div class="ml-4">
             <h3 class="text-sm font-medium text-gray-500">Models Tested</h3>
-            <p class="text-2xl font-bold text-gray-900">{{ modelsTested }}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ modelsTested }}</p>
           </div>
         </div>
       </div>
       
-      <div class="card">
+      <div class="card fade-in-up sm:col-span-2 lg:col-span-1">
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <span class="text-2xl">⭐</span>
           </div>
           <div class="ml-4">
             <h3 class="text-sm font-medium text-gray-500">Avg Score</h3>
-            <p class="text-2xl font-bold text-gray-900">{{ averageScore }}</p>
+            <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ averageScore }}</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Results Table -->
-    <div class="card">
-      <div class="mb-4">
+    <div class="card fade-in-up">
+      <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
         <h2 class="text-lg font-semibold text-gray-900">Recent Results</h2>
+        
+        <!-- Search and Filter Controls -->
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <!-- Search Input -->
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search models..."
+              class="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            >
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Status Filter -->
+          <select
+            v-model="statusFilter"
+            class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+          >
+            <option value="">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="in_progress">In Progress</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
       </div>
       
-      <div v-if="loading" class="text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600">Loading results...</p>
+      <div v-if="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+        <p class="text-gray-600 animate-pulse">Loading results...</p>
       </div>
       
-      <div v-else-if="results.length === 0" class="text-center py-8">
-        <span class="text-4xl">📊</span>
-        <h3 class="mt-2 text-lg font-medium text-gray-900">No Results Yet</h3>
-        <p class="text-gray-600 mb-4">Run your first evaluation to see results here.</p>
-        <router-link to="/evaluation" class="btn btn-primary">
+      <div v-else-if="results.length === 0" class="text-center py-12">
+        <div class="mb-4">
+          <span class="text-6xl">📊</span>
+        </div>
+        <h3 class="text-xl font-medium text-gray-900 mb-2">No Results Yet</h3>
+        <p class="text-gray-600 mb-6 max-w-md mx-auto">Run your first evaluation to see results here. Results will show model performance metrics and detailed analysis.</p>
+        <router-link to="/evaluation" class="btn btn-primary inline-flex items-center">
+          <span class="mr-2">▶️</span>
           Start Evaluation
         </router-link>
       </div>
       
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Model
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Score
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="result in results" :key="result.id">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ result.model_name }}</div>
-                <div class="text-sm text-gray-500">{{ result.config_version }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ formatDate(result.timestamp) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span 
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="getStatusClass(result.status)"
-                >
-                  {{ result.status }}
+      <div v-else>
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Model
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Score
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="result in results" :key="result.id" class="hover:bg-gray-50 transition-colors duration-150 table-row">>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ result.model_name }}</div>
+                  <div class="text-sm text-gray-500">{{ result.config_version }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ formatDate(result.timestamp) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span 
+                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors duration-150"
+                    :class="getStatusClass(result.status)"
+                  >
+                    {{ result.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div class="flex items-center">
+                    <span class="font-medium">{{ result.scores?.overall ? result.scores.overall.toFixed(1) : '-' }}</span>
+                    <div v-if="result.scores?.overall" class="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        class="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        :style="`width: ${result.scores.overall * 10}%`"
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button 
+                    @click="showDetail(result)"
+                    class="text-primary-600 hover:text-primary-900 transition-colors duration-150"
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Mobile Card View -->
+        <div class="md:hidden space-y-4">
+          <div 
+            v-for="result in results" 
+            :key="result.id"
+            class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-sm font-medium text-gray-900">{{ result.model_name }}</h3>
+                <p class="text-xs text-gray-500">{{ result.config_version }}</p>
+              </div>
+              <span 
+                class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                :class="getStatusClass(result.status)"
+              >
+                {{ result.status }}
+              </span>
+            </div>
+            
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-600">Score:</span>
+              <div class="flex items-center">
+                <span class="text-sm font-medium text-gray-900 mr-2">
+                  {{ result.scores?.overall ? result.scores.overall.toFixed(1) : '-' }}
                 </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ result.scores?.overall ? result.scores.overall.toFixed(1) : '-' }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button class="text-primary-600 hover:text-primary-900">
-                  View Details
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <div v-if="result.scores?.overall" class="w-12 bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                    :style="`width: ${result.scores.overall * 10}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-500">{{ formatDate(result.timestamp) }}</span>
+              <button 
+                @click="showDetail(result)"
+                class="text-primary-600 hover:text-primary-900 text-sm font-medium transition-colors duration-150"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pagination -->
+      <div v-if="filteredResults.length > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+        <div class="text-sm text-gray-700">
+          Showing {{ startIndex + 1 }} to {{ Math.min(startIndex + pageSize, filteredResults.length) }} of {{ filteredResults.length }} results
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <button
+            @click="currentPage--"
+            :disabled="currentPage === 1"
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          
+          <div class="flex space-x-1">
+            <button
+              v-for="page in visiblePages"
+              :key="page"
+              @click="currentPage = page"
+              :class="[
+                'px-3 py-2 text-sm font-medium rounded-md',
+                page === currentPage 
+                  ? 'bg-primary-600 text-white' 
+                  : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+              ]"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button
+            @click="currentPage++"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
+    
+    <!-- Detail Modal -->
+    <ResultDetailModal
+      :show="showDetailModal"
+      :result="selectedResult"
+      @close="closeDetail"
+    />
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import ResultDetailModal from '@/components/ResultDetailModal.vue'
 
 export default {
   name: 'Results',
+  components: {
+    ResultDetailModal
+  },
   setup() {
     const loading = ref(false)
     const results = ref([])
+    const searchQuery = ref('')
+    const statusFilter = ref('')
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+    const showDetailModal = ref(false)
+    const selectedResult = ref(null)
     
+    // Computed properties for filtering and pagination
+    const filteredResults = computed(() => {
+      let filtered = results.value
+      
+      // Apply search filter
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(result => 
+          result.model_name.toLowerCase().includes(query) ||
+          result.config_version.toLowerCase().includes(query)
+        )
+      }
+      
+      // Apply status filter
+      if (statusFilter.value) {
+        filtered = filtered.filter(result => result.status === statusFilter.value)
+      }
+      
+      return filtered
+    })
+    
+    const totalPages = computed(() => Math.ceil(filteredResults.value.length / pageSize.value))
+    
+    const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
+    
+    const paginatedResults = computed(() => {
+      const start = startIndex.value
+      return filteredResults.value.slice(start, start + pageSize.value)
+    })
+    
+    const visiblePages = computed(() => {
+      const pages = []
+      const total = totalPages.value
+      const current = currentPage.value
+      
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) {
+          pages.push(i)
+        }
+      } else {
+        if (current <= 4) {
+          for (let i = 1; i <= 5; i++) pages.push(i)
+          pages.push('...', total)
+        } else if (current >= total - 3) {
+          pages.push(1, '...')
+          for (let i = total - 4; i <= total; i++) pages.push(i)
+        } else {
+          pages.push(1, '...')
+          for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+          pages.push('...', total)
+        }
+      }
+      
+      return pages.filter(page => page !== '...' || !pages.includes('...'))
+    })
+    
+    // Statistics
     const totalEvaluations = computed(() => results.value.length)
     const modelsTested = computed(() => 
       new Set(results.value.map(r => r.model_name)).size
@@ -134,6 +342,11 @@ export default {
     const averageScore = computed(() => {
       const scores = results.value.filter(r => r.scores?.overall).map(r => r.scores.overall)
       return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-'
+    })
+    
+    // Reset page when filters change
+    watch([searchQuery, statusFilter], () => {
+      currentPage.value = 1
     })
     
     const formatDate = (dateString) => {
@@ -147,15 +360,16 @@ export default {
     }
     
     const getStatusClass = (status) => {
+      const baseClasses = 'inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors duration-150'
       switch (status) {
         case 'completed':
-          return 'bg-green-100 text-green-800'
+          return `${baseClasses} bg-green-100 text-green-800`
         case 'in_progress':
-          return 'bg-yellow-100 text-yellow-800'
+          return `${baseClasses} bg-yellow-100 text-yellow-800 status-in-progress`
         case 'failed':
-          return 'bg-red-100 text-red-800'
+          return `${baseClasses} bg-red-100 text-red-800`
         default:
-          return 'bg-gray-100 text-gray-800'
+          return `${baseClasses} bg-gray-100 text-gray-800`
       }
     }
     
@@ -178,18 +392,40 @@ export default {
       }
     }
     
+    const showDetail = (result) => {
+      selectedResult.value = result
+      showDetailModal.value = true
+    }
+    
+    const closeDetail = () => {
+      showDetailModal.value = false
+      selectedResult.value = null
+    }
+    
     onMounted(() => {
       loadResults()
     })
     
     return {
       loading,
-      results,
+      results: paginatedResults,
+      searchQuery,
+      statusFilter,
+      currentPage,
+      pageSize,
+      totalPages,
+      startIndex,
+      visiblePages,
+      filteredResults,
       totalEvaluations,
       modelsTested,
       averageScore,
+      showDetailModal,
+      selectedResult,
       formatDate,
-      getStatusClass
+      getStatusClass,
+      showDetail,
+      closeDetail
     }
   }
 }

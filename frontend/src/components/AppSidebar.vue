@@ -1,5 +1,23 @@
 <template>
-  <aside class="w-64 bg-white shadow-sm border-r border-gray-200 min-h-[calc(100vh-4rem)]">
+  <aside 
+    class="fixed inset-y-16 left-0 z-50 w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:z-auto lg:shadow-sm"
+    :class="{
+      'translate-x-0': show,
+      '-translate-x-full': !show && isMobile
+    }"
+  >
+    <!-- Mobile close button -->
+    <div v-if="isMobile" class="lg:hidden flex justify-end p-4 border-b border-gray-200">
+      <button
+        @click="$emit('close')"
+        class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+      >
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
     <nav class="p-4">
       <ul class="space-y-2">
         <li>
@@ -7,6 +25,7 @@
             to="/"
             class="nav-link"
             :class="{ 'nav-link-active': $route.name === 'results' }"
+            @click="handleNavClick"
           >
             <span class="nav-icon">📈</span>
             Results
@@ -18,6 +37,7 @@
             to="/evaluation"
             class="nav-link"
             :class="{ 'nav-link-active': $route.name === 'evaluation' }"
+            @click="handleNavClick"
           >
             <span class="nav-icon">▶️</span>
             Run Evaluation
@@ -32,6 +52,7 @@
                 to="/config"
                 class="nav-link"
                 :class="{ 'nav-link-active': $route.name === 'dashboard' }"
+                @click="handleNavClick"
               >
                 <span class="nav-icon">📊</span>
                 Dashboard
@@ -42,9 +63,11 @@
                 to="/config/models"
                 class="nav-link"
                 :class="{ 'nav-link-active': $route.name === 'models-config' }"
+                @click="handleNavClick"
               >
                 <span class="nav-icon">🤖</span>
-                Models & API Keys
+                <span class="hidden sm:inline">Models & API Keys</span>
+                <span class="sm:hidden">Models</span>
               </router-link>
             </li>
             <li>
@@ -52,6 +75,7 @@
                 to="/config/prompts"
                 class="nav-link"
                 :class="{ 'nav-link-active': $route.name === 'prompts-config' }"
+                @click="handleNavClick"
               >
                 <span class="nav-icon">📝</span>
                 Prompts
@@ -66,9 +90,30 @@
 
 <script>
 export default {
-  name: 'AppSidebar'
+  name: 'AppSidebar',
+  props: {
+    show: {
+      type: Boolean,
+      default: true
+    },
+    isMobile: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['close'],
+  setup(props, { emit }) {
+    const handleNavClick = () => {
+      if (props.isMobile) {
+        emit('close')
+      }
+    }
+    
+    return {
+      handleNavClick
+    }
+  }
 }
-</script>
 
 <style scoped>
 .nav-link {
