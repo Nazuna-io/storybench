@@ -1,0 +1,30 @@
+version: 1
+criteria:
+  creativity:
+    name: "Creativity"
+    description: "Originality, avoidance of tropes, innovative perspectives"
+    scale: 5
+  coherence:
+    name: "Coherence"
+    description: "Consistency across the sequence, logical development of ideas"
+    scale: 5
+  character_depth:
+    name: "Character Depth"
+    description: "Psychological complexity, authentic motivations"
+    scale: 5
+  dialogue_quality:
+    name: "Dialogue Quality"
+    description: "Naturalistic speech, character revelation through dialogue"
+    scale: 5
+  visual_imagination:
+    name: "Visual Imagination"
+    description: "Distinctiveness and vividness of visual elements"
+    scale: 5
+  conceptual_depth:
+    name: "Conceptual Depth"
+    description: "Sophistication of themes and ideas"
+    scale: 5
+  adaptability:
+    name: "Adaptability"
+    description: "Success in responding to different aspects of the creative challenge"
+    scale: 5

@@ -1,0 +1,531 @@
+# Creative Evaluation Scoring Template
+
+## Instructions
+Score each model on a scale of 1-10 for each metric after reviewing their outputs.
+Provide brief notes explaining your scores, focusing on concrete examples.
+
+
+### CommercialConcept_run1
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### CommercialConcept_run2
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### CommercialConcept_run3
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### CrossGenre_run1
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### CrossGenre_run2
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### CrossGenre_run3
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### FilmNarrative_run1
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### FilmNarrative_run2
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### FilmNarrative_run3
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### LiteraryNarrative_run1
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### LiteraryNarrative_run2
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### LiteraryNarrative_run3
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### RegionalThriller_run1
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### RegionalThriller_run2
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### RegionalThriller_run3
+
+**Creativity (1-10): Originality, avoidance of tropes, innovative perspectives**
+Score: __/10
+Notes: 
+
+**Coherence (1-10): Consistency across the sequence, logical development of ideas**
+Score: __/10
+Notes: 
+
+**Character Depth (1-10): Psychological complexity, authentic motivations**
+Score: __/10
+Notes: 
+
+**Dialogue Quality (1-10): Naturalistic speech, character revelation through dialogue**
+Score: __/10
+Notes: 
+
+**Visual Imagination (1-10): Distinctiveness and vividness of visual elements**
+Score: __/10
+Notes: 
+
+**Conceptual Depth (1-10): Sophistication of themes and ideas**
+Score: __/10
+Notes: 
+
+**Adaptability (1-10): Success in responding to different aspects of the creative challenge**
+Score: __/10
+Notes: 
+
+### Overall Sequence Score: __/70
+
+---
+
+### Model Overall Score: __/350
+
+### Strengths:
+- 
+
+### Weaknesses:
+- 
+
+---
+
+
+## Notes on Scoring Process
+
+*Add any observations about the evaluation process here*
