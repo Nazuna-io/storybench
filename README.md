@@ -10,6 +10,8 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 - **Progress Tracking**: Real-time progress with incremental saves
 - **Configuration Versioning**: Handles config changes gracefully
 - **Automated Evaluation**: Uses LLMs to score creativity metrics
+- **Enhanced API Error Handling**: Robust retry mechanism with exponential backoff for API-based model evaluations.
+- **Prompt Validation**: Validates structure and content of `prompts.json` during configuration loading.
 
 ## Quick Start
 

@@ -210,9 +210,10 @@ async def _process_model(evaluator, cfg, tracker, config_hash, sequences, prompt
                         
                     # Generate response
                     response = await evaluator.generate_response(
-                        prompt_data["text"],
+                        prompt=prompt_data["text"],
                         temperature=cfg.global_settings.temperature,
-                        max_tokens=cfg.global_settings.max_tokens
+                        max_tokens=cfg.global_settings.max_tokens,
+                        max_retries=cfg.evaluation.max_retries
                     )
                     
                     # Add prompt text to response
