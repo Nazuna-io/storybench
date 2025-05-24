@@ -6,16 +6,37 @@
           <router-link
             to="/"
             class="nav-link"
-            :class="{ 'nav-link-active': $route.name === 'dashboard' }"
+            :class="{ 'nav-link-active': $route.name === 'results' }"
           >
-            <span class="nav-icon">📊</span>
-            Dashboard
+            <span class="nav-icon">📈</span>
+            Results
+          </router-link>
+        </li>
+        
+        <li>
+          <router-link
+            to="/evaluation"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.name === 'evaluation' }"
+          >
+            <span class="nav-icon">▶️</span>
+            Run Evaluation
           </router-link>
         </li>
         
         <li class="pt-4">
           <h3 class="nav-section-title">Configuration</h3>
           <ul class="mt-2 space-y-1">
+            <li>
+              <router-link
+                to="/config"
+                class="nav-link"
+                :class="{ 'nav-link-active': $route.name === 'dashboard' }"
+              >
+                <span class="nav-icon">📊</span>
+                Dashboard
+              </router-link>
+            </li>
             <li>
               <router-link
                 to="/config/models"
@@ -34,32 +55,6 @@
               >
                 <span class="nav-icon">📝</span>
                 Prompts
-              </router-link>
-            </li>
-          </ul>
-        </li>
-        
-        <li class="pt-4">
-          <h3 class="nav-section-title">Evaluation</h3>
-          <ul class="mt-2 space-y-1">
-            <li>
-              <router-link
-                to="/evaluation"
-                class="nav-link"
-                :class="{ 'nav-link-active': $route.name === 'evaluation' }"
-              >
-                <span class="nav-icon">▶️</span>
-                Run Evaluation
-              </router-link>
-            </li>
-            <li>
-              <router-link
-                to="/results"
-                class="nav-link"
-                :class="{ 'nav-link-active': $route.name === 'results' }"
-              >
-                <span class="nav-icon">📈</span>
-                Results
               </router-link>
             </li>
           </ul>

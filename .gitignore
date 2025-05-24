@@ -1,3 +1,13 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.txt
+secrets.json
+api_keys.txt
+
 # Frontend dependencies and build artifacts
 /frontend/node_modules/
 /frontend/dist/

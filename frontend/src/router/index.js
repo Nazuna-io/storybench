@@ -10,10 +10,18 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'results',
+      component: Results,
+      meta: {
+        title: 'Results'
+      }
+    },
+    {
+      path: '/config',
       name: 'dashboard',
       component: Dashboard,
       meta: {
-        title: 'Dashboard'
+        title: 'Configuration Dashboard'
       }
     },
     {
@@ -38,14 +46,6 @@ const router = createRouter({
       component: EvaluationRunner,
       meta: {
         title: 'Run Evaluation'
-      }
-    },
-    {
-      path: '/results',
-      name: 'results',
-      component: Results,
-      meta: {
-        title: 'Results'
       }
     }
   ]
