@@ -40,7 +40,7 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 
 ## Results
 
-Results are saved in the `results/` directory as JSON files, one per model with automatic progress tracking and resume capability.
+Results are saved in the `output/` directory as JSON files, one per model with automatic progress tracking and resume capability.
 
 ## Development
 
@@ -55,7 +55,7 @@ pytest
 storybench/
 ├── src/storybench/          # Main package
 ├── config/                  # Configuration files  
-├── results/                 # Evaluation outputs
+├── output/                  # Evaluation outputs (gitignored)
 ├── tests/                   # Test suite
-└── old_codebase/           # Reference implementation
+└── models/                  # Downloaded local models (gitignored)
 ```

@@ -10,7 +10,7 @@ from datetime import datetime
 class ProgressTracker:
     """Tracks progress and enables resume functionality."""
     
-    def __init__(self, results_dir: str = "results"):
+    def __init__(self, results_dir: str = "output"):
         """Initialize progress tracker."""
         self.results_dir = Path(results_dir)
         self.results_dir.mkdir(exist_ok=True)

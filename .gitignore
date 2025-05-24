@@ -46,12 +46,15 @@ env/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
 # Project specific
-results/*.json
+output/
 models/*.gguf
-models/*.bin
-logs/
+models/*.binlogs/
 *.log
+
+# Old reference codebase
+old_codebase/
 
 # Testing
 .coverage
