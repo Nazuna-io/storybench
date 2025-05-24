@@ -69,4 +69,5 @@ class EvaluationStartRequest(BaseModel):
 class ValidationRequest(BaseModel):
     """Request model for configuration validation."""
     test_api_connections: bool = Field(True, description="Test API connectivity")
-    validate_local_models: bool = Field(True, description="Validate local model availability")
+    validate_local_models: bool = Field(False, description="Validate local model availability (disabled for API-only mode)")
+    lightweight_test: bool = Field(True, description="Use lightweight API tests (faster) vs full evaluator setup")
