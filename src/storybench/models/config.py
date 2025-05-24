@@ -61,8 +61,7 @@ class Config:
         config._load_models_config()
         config._load_prompts()
         config._load_evaluation_criteria()
-        return config
-        
+        return config        
     def _load_models_config(self) -> None:
         """Load models configuration from YAML."""
         models_path = self.config_path.parent / "models.yaml"
@@ -82,7 +81,8 @@ class Config:
             
         # Load evaluation settings
         eval_data = data.get("evaluation", {})
-        self.evaluation = EvaluationConfig(**eval_data)        
+        self.evaluation = EvaluationConfig(**eval_data)
+        
     def _load_prompts(self) -> None:
         """Load prompts from JSON file."""
         prompts_path = self.config_path.parent / "prompts.json"
@@ -96,10 +96,25 @@ class Config:
             self.evaluation_criteria = yaml.safe_load(f)
             
     def get_version_hash(self) -> str:
-        """Get hash of current configuration for versioning."""
-        config_str = f"{self.version}{self.global_settings}{len(self.models)}"
-        return hashlib.md5(config_str.encode()).hexdigest()[:8]
+        """Get hash of current configuration for versioning.
         
+        Only includes factors that affect evaluation results:
+        - Global settings (temperature, max_tokens, num_runs)
+        - Prompts content
+        - Version number
+        
+        Does NOT include number of models (adding models shouldn't invalidate previous results).
+        """
+        # Include only evaluation-affecting parameters
+        config_str = (
+            f"{self.version}"
+            f"{self.global_settings.temperature}"
+            f"{self.global_settings.max_tokens}" 
+            f"{self.global_settings.num_runs}"
+            f"{len(self.prompts)}"
+            f"{sum(len(prompts) for prompts in self.prompts.values())}"
+        )
+        return hashlib.md5(config_str.encode()).hexdigest()[:8]        
     def validate(self) -> List[str]:
         """Validate configuration and return list of errors."""
         errors = []

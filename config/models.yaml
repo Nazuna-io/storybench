@@ -17,10 +17,10 @@ models:
     provider: "anthropic"
     model_name: "claude-sonnet-4-20250514"
     
-  # - name: "Gemini-Pro"
-  #   type: "api"
-  #   provider: "gemini"
-  #   model_name: "gemini-pro"
+  - name: "Gemini-2.5-Pro"
+    type: "api"
+    provider: "gemini"
+    model_name: "gemini-2.5-pro-preview-05-06"
     
   # Local GGUF Models (commented out for initial API focus)
   # - name: "Llama-7B-Chat"
@@ -34,6 +34,6 @@ models:
   #   subdirectory: "8bit"
 
 evaluation:
-  auto_evaluate: true
+  auto_evaluate: false
   evaluator_models: ["claude-3-sonnet", "gemini-pro"]
   max_retries: 5
