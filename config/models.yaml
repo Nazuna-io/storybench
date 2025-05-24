@@ -7,20 +7,20 @@ global_settings:
 
 models:
   # API Models
-  - name: "GPT-4"
-    type: "api"
-    provider: "openai"
-    model_name: "gpt-4"
+  # - name: "GPT-4"
+  #   type: "api"
+  #   provider: "openai"
+  #   model_name: "gpt-4"
     
-  - name: "Claude-3-Sonnet"
+  - name: "Claude-4-Sonnet"
     type: "api"
     provider: "anthropic"
-    model_name: "claude-3-sonnet-20240229"
+    model_name: "claude-sonnet-4-20250514"
     
-  - name: "Gemini-Pro"
-    type: "api"
-    provider: "gemini"
-    model_name: "gemini-pro"
+  # - name: "Gemini-Pro"
+  #   type: "api"
+  #   provider: "gemini"
+  #   model_name: "gemini-pro"
     
   # Local GGUF Models (commented out for initial API focus)
   # - name: "Llama-7B-Chat"
