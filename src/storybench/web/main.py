@@ -1,0 +1,67 @@
+"""FastAPI main application for Storybench Web UI."""
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+from pathlib import Path
+
+from .api import models, prompts, evaluations, results, validation
+
+# Create FastAPI app
+app = FastAPI(
+    title="Storybench Web UI",
+    description="Web interface for the Storybench LLM creativity evaluation system",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vue dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API routers
+app.include_router(models.router, prefix="/api/config", tags=["Configuration"])
+app.include_router(prompts.router, prefix="/api/config", tags=["Configuration"])
+app.include_router(validation.router, prefix="/api/config", tags=["Configuration"])
+app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluations"])
+app.include_router(results.router, prefix="/api/results", tags=["Results"])
+
+# Serve static files (frontend build) when running in production
+frontend_path = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"
+if frontend_path.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_path / "static")), name="static")
+    
+    @app.get("/")
+    async def read_index():
+        return FileResponse(str(frontend_path / "index.html"))
+    
+    @app.get("/{path:path}")
+    async def read_spa(path: str):
+        # Serve static files or fallback to index.html for SPA routing
+        file_path = frontend_path / path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(frontend_path / "index.html"))
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "storybench-web"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
+def main():
+    """Entry point for storybench-web CLI command."""
+    import uvicorn
+    uvicorn.run("storybench.web.main:app", host="0.0.0.0", port=8000, reload=True)

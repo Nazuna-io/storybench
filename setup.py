@@ -24,6 +24,11 @@ setup(
         "tqdm>=4.65.0",
         "click>=8.1.0",
         "python-dotenv>=1.0.0",
+        # Web interface dependencies
+        "fastapi>=0.104.0",
+        "uvicorn[standard]>=0.24.0",
+        "aiofiles>=23.2.0",
+        "pydantic>=2.5.0",
     ],
     extras_require={
         "dev": [
@@ -40,6 +45,7 @@ setup(
     entry_points={
         "console_scripts": [
             "storybench=storybench.cli:cli",
+            "storybench-web=storybench.web.main:main",
         ],
     },
     classifiers=[

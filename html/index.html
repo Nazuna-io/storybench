@@ -1,0 +1,259 @@
+<html>
+  <head>
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" />
+    <link
+      rel="stylesheet"
+      as="style"
+      onload="this.rel='stylesheet'"
+      href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900"
+    />
+
+    <title>Stitch Design</title>
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  </head>
+  <body>
+    <div class="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+      <div class="layout-container flex h-full grow flex-col">
+        <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
+          <div class="flex items-center gap-4 text-[#0d141c]">
+            <div class="size-4">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_6_330)">
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
+                    fill="currentColor"
+                  ></path>
+                </g>
+                <defs>
+                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"></rect></clipPath>
+                </defs>
+              </svg>
+            </div>
+            <h2 class="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">LLM Evaluator</h2>
+          </div>
+          <div class="flex flex-1 justify-end gap-8">
+            <label class="flex flex-col min-w-40 !h-10 max-w-64">
+              <div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+                <div
+                  class="text-[#49739c] flex border-none bg-[#e7edf4] items-center justify-center pl-4 rounded-l-lg border-r-0"
+                  data-icon="MagnifyingGlass"
+                  data-size="24px"
+                  data-weight="regular"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                    <path
+                      d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
+                    ></path>
+                  </svg>
+                </div>
+                <input
+                  placeholder="Search"
+                  class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border-none bg-[#e7edf4] focus:border-none h-full placeholder:text-[#49739c] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal"
+                  value=""
+                />
+              </div>
+            </label>
+            <div
+              class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
+              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDIGj1mtckhPODEvVoRHzWSoEKDGP2kmRXlSf0lWyuUY2pxmIoTSFNIXvaTqorlVrRb8QeHpWedoTzWus8NgyDlrR8h8ohqfcfWx2tXVWA2sud0DHXci__O7oGIaUB8ZfkTGunoMYZa6wzNhDjwPOfp2OQthmTXYFsazHeRhuMgIltUyHScJaB73gBPAPpPyPK9cqrgZw4BLvsItwxgMHeM1vMMUGabfvr9nd0g3ZiZRu0JfeOxPsnu_68LjCjsfW6ZBXK14plT13Y");'
+            ></div>
+          </div>
+        </header>
+        <div class="px-40 flex flex-1 justify-center py-5">
+          <div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+            <div class="flex flex-wrap justify-between gap-3 p-4">
+              <p class="text-[#0d141c] tracking-light text-[32px] font-bold leading-tight min-w-72">LLM Creativity Evaluation Results</p>
+            </div>
+            <div class="px-4 py-3">
+              <label class="flex flex-col min-w-40 h-12 w-full">
+                <div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+                  <div
+                    class="text-[#49739c] flex border-none bg-[#e7edf4] items-center justify-center pl-4 rounded-l-lg border-r-0"
+                    data-icon="MagnifyingGlass"
+                    data-size="24px"
+                    data-weight="regular"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                      <path
+                        d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <input
+                    placeholder="Search LLMs"
+                    class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border-none bg-[#e7edf4] focus:border-none h-full placeholder:text-[#49739c] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal"
+                    value=""
+                  />
+                </div>
+              </label>
+            </div>
+            <div class="px-4 py-3 @container">
+              <div class="flex overflow-hidden rounded-lg border border-[#cedbe8] bg-slate-50">
+                <table class="flex-1">
+                  <thead>
+                    <tr class="bg-slate-50">
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        LLM Name
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Overall Creativity Score
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Creativity
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Coherence
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Character Depth
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Dialogue Quality
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Visual Imagination
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Conceptual Depth
+                      </th>
+                      <th class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 px-4 py-3 text-left text-[#0d141c] w-[400px] text-sm font-medium leading-normal">
+                        Adaptability
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model A</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model B</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model C</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.2</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model D</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.5</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model E</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model F</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">5.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.8</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model G</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">2.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.2</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model H</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.6</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model I</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.0</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.8</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.7</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">3.9</td>
+                    </tr>
+                    <tr class="border-t border-t-[#cedbe8]">
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120 h-[72px] px-4 py-2 w-[400px] text-[#0d141c] text-sm font-normal leading-normal">Model J</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.4</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.2</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.5</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.6</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.1</td>
+                      <td class="table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080 h-[72px] px-4 py-2 w-[400px] text-[#49739c] text-sm font-normal leading-normal">4.3</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <style>
+                          @container(max-width:120px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-120{display: none;}}
+                @container(max-width:240px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-240{display: none;}}
+                @container(max-width:360px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-360{display: none;}}
+                @container(max-width:480px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-480{display: none;}}
+                @container(max-width:600px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-600{display: none;}}
+                @container(max-width:720px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-720{display: none;}}
+                @container(max-width:840px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-840{display: none;}}
+                @container(max-width:960px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-960{display: none;}}
+                @container(max-width:1080px){.table-a5bb9785-37d5-465c-abab-6cb94a9a39b3-column-1080{display: none;}}
+              </style>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
