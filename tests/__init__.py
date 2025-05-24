@@ -1,1 +1,1 @@
-"""Test modules for storybench."""
+# Storybench test package

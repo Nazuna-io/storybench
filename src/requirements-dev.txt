@@ -6,3 +6,9 @@ black>=23.0.0
 flake8>=6.0.0
 pre-commit>=3.3.0
 mypy>=1.4.0
+# Web UI testing dependencies
+selenium>=4.22.0
+pytest-selenium>=4.1.0
+pytest-html>=4.0.0
+webdriver-manager>=4.0.1
+requests>=2.26.0

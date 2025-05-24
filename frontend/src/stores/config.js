@@ -93,8 +93,21 @@ export const useConfigStore = defineStore('config', () => {
     loading.value = true
     error.value = null
     try {
-      await api.put('/config/prompts', promptsData)
-      prompts.value = promptsData
+      // Convert to the format expected by the API
+      const requestData = {
+        prompts: {}
+      }
+      
+      // Transform the data to match PromptRequest format
+      Object.entries(promptsData).forEach(([sequence, prompts]) => {
+        requestData.prompts[sequence] = prompts.map(prompt => ({
+          name: prompt.name,
+          text: prompt.text
+        }))
+      })
+      
+      await api.put('/config/prompts', requestData)
+      prompts.value = { prompts: promptsData }
       return true
     } catch (err) {
       error.value = err.response?.data?.detail || 'Failed to update prompts'
@@ -125,6 +138,39 @@ export const useConfigStore = defineStore('config', () => {
     }
   }
 
+  const validateApiKey = async (provider, key) => {
+    try {
+      const response = await api.post('/config/validate', {
+        test_api_connections: true,
+        api_keys: { [provider]: key }
+      })
+      return response.data.api_validation?.[provider] || { valid: false, error: 'No response' }
+    } catch (err) {
+      return { valid: false, error: err.response?.data?.detail || 'Validation failed' }
+    }
+  }
+
+  const getModelsConfig = async () => {
+    if (!modelsConfig.value) {
+      await loadModelsConfig()
+    }
+    return modelsConfig.value
+  }
+
+  const getApiKeys = async () => {
+    if (!apiKeys.value) {
+      await loadApiKeys()
+    }
+    return apiKeys.value
+  }
+
+  const getPrompts = async () => {
+    if (!prompts.value) {
+      await loadPrompts()
+    }
+    return prompts.value.prompts || prompts.value
+  }
+
   const clearError = () => {
     error.value = null
   }
@@ -147,6 +193,10 @@ export const useConfigStore = defineStore('config', () => {
     loadPrompts,
     updatePrompts,
     validateConfiguration,
+    validateApiKey,
+    getModelsConfig,
+    getApiKeys,
+    getPrompts,
     clearError
   }
 })
