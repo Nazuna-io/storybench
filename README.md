@@ -49,6 +49,12 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## TODO
+
+- [ ] **Auto-evaluation**: Currently the system collects responses to prompts and outputs data files, but does not automatically evaluate response quality using LLMs
+- [ ] **Local LLM Testing**: Local LLM capability needs proper setup and testing to ensure it works reliably
+- [ ] **Web UI**: Add a web-based user interface for easier configuration and monitoring of evaluations
+
 ## Project Structure
 
 ```
