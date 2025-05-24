@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-from .api import models, prompts, evaluations, results, validation
+from .api import models, prompts, evaluations, results, validation, sse
 
 # Create FastAPI app
 app = FastAPI(
@@ -21,7 +21,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vue dev server
+    allow_origins=["http://localhost:5173", "http://localhost:5175", "http://localhost:3000"],  # Vue dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +33,12 @@ app.include_router(prompts.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(validation.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluations"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
+app.include_router(sse.router, prefix="/api/sse", tags=["Server-Sent Events"])
+
+# Setup SSE callbacks for real-time updates
+from .api.sse import setup_sse_callbacks
+from .api.evaluations import _eval_service
+setup_sse_callbacks(_eval_service)
 
 # Serve static files (frontend build) when running in production
 frontend_path = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"

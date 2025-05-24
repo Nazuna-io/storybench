@@ -6,6 +6,11 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 
 - **Modular Architecture**: Easy to add new model types and evaluators
 - **API & Local Support**: Works with API-based models (OpenAI, Anthropic, Google) and local GGUF models
+- **Web UI**: Complete web interface for configuration, evaluation, and results (Phase 5 ✅)
+- **Real-time Monitoring**: Live progress tracking with Server-Sent Events
+- **Resume Functionality**: Smart resume from interruption points with progress detection
+- **Background Processing**: Non-blocking evaluation execution
+- **Results Dashboard**: Interactive results viewing with actual evaluation data
 - **Robust Resume**: Can recover from crashes and continue evaluations
 - **Progress Tracking**: Real-time progress with incremental saves
 - **Configuration Versioning**: Handles config changes gracefully
@@ -15,9 +20,29 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 
 ## Quick Start
 
+### Web UI (Recommended)
 1. **Setup Environment**
    ```bash
    python3.10 -m venv venv-storybench
+   source venv-storybench/bin/activate
+   pip install -r src/requirements-dev.txt
+   ```
+
+2. **Start Servers**
+   ```bash
+   # Terminal 1: Backend
+   uvicorn storybench.web.main:app --host 0.0.0.0 --port 8000 --reload
+   
+   # Terminal 2: Frontend
+   cd frontend && npm install && npm run dev
+   ```
+
+3. **Access Web UI**: Open http://localhost:5175
+   - 📊 **Results**: View evaluation results and progress
+   - ⚙️ **Configuration**: Manage models and prompts  
+   - 🚀 **Evaluation**: Run evaluations with real-time monitoring
+
+### CLI Interface
    source venv-storybench/bin/activate  # On Windows: venv-storybench\Scripts\activate
    pip install -e .
    ```

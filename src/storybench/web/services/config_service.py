@@ -85,3 +85,7 @@ class ConfigService:
             return config.get_version_hash()
         except Exception:
             return "unknown"
+            
+    async def load_config(self) -> Config:
+        """Load the current configuration."""
+        return Config.load_config("config/models.yaml")

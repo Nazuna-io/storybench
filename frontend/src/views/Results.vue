@@ -103,7 +103,7 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ result.overall_score ? result.overall_score.toFixed(1) : '-' }}
+                {{ result.scores?.overall ? result.scores.overall.toFixed(1) : '-' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button class="text-primary-600 hover:text-primary-900">
@@ -127,32 +127,12 @@ export default {
     const loading = ref(false)
     const results = ref([])
     
-    // Mock data for now - will be replaced with API calls in Phase 4
-    const mockResults = [
-      {
-        id: 1,
-        model_name: 'Claude-4-Sonnet',
-        config_version: 'abc123',
-        timestamp: '2025-05-24T09:30:00Z',
-        status: 'completed',
-        overall_score: 8.5
-      },
-      {
-        id: 2,
-        model_name: 'Gemini-2.5-Pro',
-        config_version: 'abc123',
-        timestamp: '2025-05-24T08:15:00Z',
-        status: 'completed',
-        overall_score: 7.2
-      }
-    ]
-    
     const totalEvaluations = computed(() => results.value.length)
     const modelsTested = computed(() => 
       new Set(results.value.map(r => r.model_name)).size
     )
     const averageScore = computed(() => {
-      const scores = results.value.filter(r => r.overall_score).map(r => r.overall_score)
+      const scores = results.value.filter(r => r.scores?.overall).map(r => r.scores.overall)
       return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-'
     })
     
@@ -182,15 +162,17 @@ export default {
     const loadResults = async () => {
       loading.value = true
       try {
-        // TODO: Replace with actual API call in Phase 4
-        // const response = await api.get('/results')
-        // results.value = response.data.results
-        
-        // For now, use mock data
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate loading
-        results.value = mockResults
+        const response = await fetch('http://localhost:8000/api/results')
+        if (response.ok) {
+          const data = await response.json()
+          results.value = data.results || []
+        } else {
+          console.error('Failed to load results:', response.statusText)
+          results.value = []
+        }
       } catch (error) {
         console.error('Failed to load results:', error)
+        results.value = []
       } finally {
         loading.value = false
       }

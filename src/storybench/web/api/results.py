@@ -5,40 +5,47 @@ from typing import Optional
 
 from ..models.responses import ResultsListResponse, DetailedResult, ResultSummary, EvaluationScores
 from ..services.config_service import ConfigService
+from ..services.results_service import ResultsService
 from ..repositories.file_repository import FileRepository
 
 
 router = APIRouter()
 
-# Dependency to get config service
+# Dependency to get services
 def get_config_service() -> ConfigService:
     """Get config service instance."""
     repository = FileRepository()
     return ConfigService(repository)
 
+def get_results_service() -> ResultsService:
+    """Get results service instance."""
+    return ResultsService()
+
 
 @router.get("", response_model=ResultsListResponse)
 async def get_results(
     config_version: Optional[str] = Query(None, description="Filter by configuration version"),
-    config_service: ConfigService = Depends(get_config_service)
+    results_service: ResultsService = Depends(get_results_service)
 ):
     """Get all evaluation results with optional filtering."""
     try:
-        # Placeholder implementation for Phase 4
+        results = await results_service.get_all_results(config_version)
+        versions = await results_service.get_available_versions()
+        
         return ResultsListResponse(
-            results=[],
-            versions=[],
-            total_count=0
+            results=results,
+            versions=versions,
+            total_count=len(results)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load results: {str(e)}")
 
 
 @router.get("/versions")
-async def get_result_versions(config_service: ConfigService = Depends(get_config_service)):
+async def get_result_versions(results_service: ResultsService = Depends(get_results_service)):
     """Get list of available configuration versions."""
     try:
-        versions = await config_service.repository.get_result_versions()
+        versions = await results_service.get_available_versions()
         return {"versions": versions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load versions: {str(e)}")
@@ -48,11 +55,15 @@ async def get_result_versions(config_service: ConfigService = Depends(get_config
 async def get_model_results(
     model_name: str,
     config_version: Optional[str] = Query(None, description="Specific configuration version"),
-    config_service: ConfigService = Depends(get_config_service)
+    results_service: ResultsService = Depends(get_results_service)
 ):
     """Get detailed results for a specific model."""
     try:
-        # Placeholder implementation for Phase 4
-        raise HTTPException(status_code=404, detail="Results not found")
+        result = await results_service.get_detailed_result(model_name, config_version)
+        if not result:
+            raise HTTPException(status_code=404, detail="Results not found")
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model results: {str(e)}")
