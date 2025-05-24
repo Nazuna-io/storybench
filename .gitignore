@@ -47,8 +47,8 @@ env/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-output/
+# Project specific - output files but not directory structure
+output/*.json
 models/*.gguf
 models/*.binlogs/
 *.log
