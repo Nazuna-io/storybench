@@ -114,6 +114,7 @@ export default {
     }
   }
 }
+</script>
 
 <style scoped>
 .nav-link {

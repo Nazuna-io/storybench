@@ -93,8 +93,12 @@
             <span v-else>🛑 Stop</span>
           </button>
         </div>
-      </div>
-    </div>            <div><strong>Current Model:</strong> {{ progress.current_model }}</div>
+        
+        <!-- Progress Details -->
+        <div v-if="isRunning && progress.current_model" class="mt-4 p-4 bg-gray-50 rounded-lg">
+          <h3 class="font-medium text-gray-900 mb-2">Progress Details</h3>
+          <div class="space-y-1 text-sm text-gray-600">
+            <div><strong>Current Model:</strong> {{ progress.current_model }}</div>
             <div v-if="progress.current_sequence"><strong>Sequence:</strong> {{ progress.current_sequence }}</div>
             <div v-if="progress.current_run"><strong>Run:</strong> {{ progress.current_run }}</div>
           </div>
