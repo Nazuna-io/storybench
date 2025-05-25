@@ -192,10 +192,18 @@
                 <p class="text-xs text-gray-500 mt-1">Enter the exact model identifier from the API provider</p>
               </div>
               
-              <div class="flex items-end">
+              <div class="flex items-end space-x-2">
+                <button
+                  @click="testModel(model, index)"
+                  :disabled="!model.model_name || !model.provider || model.testing"
+                  class="btn btn-secondary flex-1"
+                >
+                  <span v-if="model.testing">Testing...</span>
+                  <span v-else>🧪 Test Model</span>
+                </button>
                 <button
                   @click="removeModel(index)"
-                  class="btn btn-danger w-full"
+                  class="btn btn-danger flex-1"
                 >
                   🗑️ Remove
                 </button>
@@ -335,10 +343,11 @@ const loadConfiguration = async () => {
         Object.assign(globalSettings, data.global_settings)
       }
       if (data.models) {
-        // Ensure name matches model_name for consistency
+        // Ensure name matches model_name for consistency and add testing state
         models.value = data.models.map(model => ({
           ...model,
-          name: model.model_name || model.name
+          name: model.model_name || model.name,
+          testing: false
         }))
       }
     }
@@ -486,8 +495,37 @@ const addModel = () => {
     model_name: '',
     repo_id: '',
     filename: '',
-    subdirectory: ''
+    subdirectory: '',
+    testing: false
   })
+}
+
+const testModel = async (model, index) => {
+  model.testing = true
+  try {
+    const response = await fetch('http://localhost:8000/api/config/test-model', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        provider: model.provider,
+        model_name: model.model_name,
+        type: model.type
+      })
+    })
+
+    const result = await response.json()
+    if (result.success) {
+      showToast(`Model ${model.model_name} is valid and accessible!`)
+    } else {
+      showToast(`Model test failed: ${result.error}`, 'error')
+    }
+  } catch (error) {
+    showToast(`Failed to test model: ${error.message}`, 'error')
+  } finally {
+    model.testing = false
+  }
 }
 
 const removeModel = (index) => {

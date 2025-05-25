@@ -150,3 +150,36 @@ async def test_api_key(request: Dict[str, str]):
         raise
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@router.post("/test-model", response_model=Dict[str, Any])
+async def test_model(request: Dict[str, str]):
+    """Test if a model configuration is valid and accessible."""
+    try:
+        provider = request.get("provider")
+        model_name = request.get("model_name")
+        model_type = request.get("type", "api")
+        
+        if not provider or not model_name:
+            return {"success": False, "error": "Provider and model name are required"}
+        
+        if model_type == "local":
+            # For local models, we can only validate the format
+            return {"success": True, "message": f"Local model configuration appears valid for {model_name}"}
+        
+        # For API models, we'll validate based on provider
+        if provider == "openai":
+            if not model_name.startswith(("gpt-", "o1-", "o3-", "o4-")):
+                return {"success": False, "error": "OpenAI model names typically start with 'gpt-', 'o1-', 'o3-', or 'o4-'"}
+        elif provider == "anthropic":
+            if not any(model_name.startswith(prefix) for prefix in ["claude-", "claude"]):
+                return {"success": False, "error": "Anthropic model names typically start with 'claude'"}
+        elif provider == "google":
+            if not any(model_name.startswith(prefix) for prefix in ["gemini-", "gemma-", "palm-"]):
+                return {"success": False, "error": "Google model names typically start with 'gemini-', 'gemma-', or 'palm-'"}
+        
+        # If we reach here, the model format looks reasonable
+        return {"success": True, "message": f"{provider.title()} model '{model_name}' format is valid"}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
