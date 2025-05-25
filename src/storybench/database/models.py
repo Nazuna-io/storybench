@@ -67,8 +67,8 @@ class ResponseStatus(str, Enum):
 
 class GlobalSettings(BaseModel):
     """Global evaluation settings."""
-    temperature: float = Field(default=0.7)
-    max_tokens: int = Field(default=2000)
+    temperature: float = Field(default=1.0)
+    max_tokens: int = Field(default=8192)
     num_runs: int = Field(default=3)
     vram_limit_percent: Optional[float] = Field(default=90.0)
 
@@ -189,6 +189,7 @@ class Models(BaseModel):
     config_hash: str 
     version: int = Field(default=1) 
     models: List[ModelConfigItem] 
+    global_settings: GlobalSettings = Field(default_factory=GlobalSettings)
     evaluation: EvaluationRunConfig = Field(default_factory=EvaluationRunConfig) 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = Field(default=True) 
@@ -287,3 +288,17 @@ class ResponseLLMEvaluation(BaseModel):
     
     raw_evaluator_output: Optional[str] = None # For debugging, store the raw JSON/text from the evaluator LLM
     error_message: Optional[str] = None # If the evaluation attempt failed for this LLM
+
+class ApiKeys(BaseModel):
+    """API keys configuration document with encryption."""
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
+    provider: str  # e.g., "openai", "anthropic", etc.
+    encrypted_key: str  # Encrypted API key
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = Field(default=True)
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True
+    )

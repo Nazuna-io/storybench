@@ -81,6 +81,17 @@
                 Prompts
               </router-link>
             </li>
+            <li>
+              <router-link
+                to="/config/criteria"
+                class="nav-link"
+                :class="{ 'nav-link-active': $route.name === 'criteria-config' }"
+                @click="handleNavClick"
+              >
+                <span class="nav-icon">📋</span>
+                Evaluation Criteria
+              </router-link>
+            </li>
           </ul>
         </li>
       </ul>

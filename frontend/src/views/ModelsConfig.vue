@@ -18,7 +18,18 @@
       
       <!-- Global Settings Card -->
       <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Global Settings</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Global Settings</h2>
+          <button
+            @click="saveGlobalSettings"
+            :disabled="saving || hasValidationErrors"
+            class="btn btn-primary"
+          >
+            <span v-if="saving">Saving...</span>
+            <span v-else>💾 Save Settings</span>
+          </button>
+        </div>
+        
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
@@ -34,6 +45,7 @@
             <p v-if="validationErrors.temperature" class="text-sm text-red-600 mt-1">
               {{ validationErrors.temperature }}
             </p>
+            <p class="text-xs text-gray-500 mt-1">Controls randomness (0.0-2.0)</p>
           </div>
           
           <div>
@@ -49,6 +61,7 @@
             <p v-if="validationErrors.max_tokens" class="text-sm text-red-600 mt-1">
               {{ validationErrors.max_tokens }}
             </p>
+            <p class="text-xs text-gray-500 mt-1">Maximum response length</p>
           </div>
           
           <div>
@@ -64,6 +77,7 @@
             <p v-if="validationErrors.num_runs" class="text-sm text-red-600 mt-1">
               {{ validationErrors.num_runs }}
             </p>
+            <p class="text-xs text-gray-500 mt-1">Evaluation repetitions</p>
           </div>
           
           <div>
@@ -79,16 +93,73 @@
             <p v-if="validationErrors.vram_limit_percent" class="text-sm text-red-600 mt-1">
               {{ validationErrors.vram_limit_percent }}
             </p>
+            <p class="text-xs text-gray-500 mt-1">Memory usage limit</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys Management Card -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">API Keys</h2>
+          <div class="flex space-x-2">
+            <button
+              @click="toggleApiKeysVisibility"
+              class="btn btn-secondary"
+            >
+              {{ apiKeysVisible ? '🙈 Hide Keys' : '👁️ Show Keys' }}
+            </button>
+            <button
+              @click="saveApiKeys"
+              :disabled="saving"
+              class="btn btn-primary"
+            >
+              <span v-if="saving">Saving...</span>
+              <span v-else>💾 Save API Keys</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div v-for="provider in apiProviders" :key="provider.name" class="flex items-center space-x-4">
+            <div class="w-24 flex-shrink-0">
+              <label class="block text-sm font-medium text-gray-700">{{ provider.label }}</label>
+            </div>
+            <div class="flex-1">
+              <input
+                v-model="provider.key"
+                :type="apiKeysVisible ? 'text' : 'password'"
+                :placeholder="`Enter ${provider.label} API key`"
+                class="input-field"
+              />
+            </div>
+            <div class="flex space-x-2">
+              <button
+                @click="testApiKey(provider)"
+                :disabled="!provider.key || provider.testing"
+                class="btn btn-sm btn-secondary"
+              >
+                <span v-if="provider.testing">Testing...</span>
+                <span v-else>🧪 Test</span>
+              </button>
+              <button
+                @click="removeProvider(provider.name)"
+                v-if="provider.removable"
+                class="btn btn-sm btn-danger"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Success Toast -->
-      <div v-if="showSuccessToast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center">
+      <div v-if="showSuccessToast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
-        Configuration saved successfully!
+        {{ successMessage }}
       </div>
     </div>
   </div>
@@ -96,43 +167,65 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useConfigStore } from '@/stores/config'
-
-const configStore = useConfigStore()
 
 // Reactive state
 const loading = ref(true)
 const saving = ref(false)
-const validating = ref(false)
 const apiKeysVisible = ref(false)
 const showSuccessToast = ref(false)
+const successMessage = ref('')
 
 // Configuration data
 const globalSettings = reactive({
-  temperature: 0.9,
-  max_tokens: 4096,
+  temperature: 1.0,
+  max_tokens: 8192,
   num_runs: 3,
-  vram_limit_percent: 80
+  vram_limit_percent: 90
 })
+
+const apiProviders = ref([
+  { name: 'openai', label: 'OpenAI', key: '', testing: false, removable: false },
+  { name: 'anthropic', label: 'Anthropic', key: '', testing: false, removable: false },
+  { name: 'google', label: 'Google', key: '', testing: false, removable: false },
+  { name: 'grok', label: 'Grok', key: '', testing: false, removable: false }
+])
 
 // Validation state
 const validationErrors = reactive({})
-const validationResult = ref(null)
+
+// Computed properties
+const hasValidationErrors = computed(() => {
+  return Object.values(validationErrors).some(error => error !== null)
+})
 
 // Methods
 const loadConfiguration = async () => {
   try {
     loading.value = true
     
-    // Load models configuration
-    const modelsConfig = await configStore.getModelsConfig()
-    
-    if (modelsConfig.global_settings) {
-      Object.assign(globalSettings, modelsConfig.global_settings)
+    // Load global settings
+    const response = await fetch('http://localhost:8000/api/config/models')
+    if (response.ok) {
+      const data = await response.json()
+      if (data.global_settings) {
+        Object.assign(globalSettings, data.global_settings)
+      }
+    }
+
+    // Load API keys
+    const keysResponse = await fetch('http://localhost:8000/api/config/api-keys')
+    if (keysResponse.ok) {
+      const keysData = await keysResponse.json()
+      apiProviders.value.forEach(provider => {
+        if (keysData[provider.name]) {
+          provider.key = keysData[provider.name]
+        }
+      })
     }
     
   } catch (error) {
     console.error('Failed to load configuration:', error)
+    showToast('Failed to load configuration', 'error')
   } finally {
     loading.value = false
   }
@@ -152,6 +245,115 @@ const validateGlobalSettings = () => {
     ? 'VRAM limit must be between 10% and 100%' : null
 }
 
+const saveGlobalSettings = async () => {
+  validateGlobalSettings()
+  if (hasValidationErrors.value) {
+    return
+  }
+
+  try {
+    saving.value = true
+    const response = await fetch('http://localhost:8000/api/config/models', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        global_settings: globalSettings
+      })
+    })
+
+    if (response.ok) {
+      showToast('Global settings saved successfully!')
+    } else {
+      throw new Error('Failed to save settings')
+    }
+  } catch (error) {
+    console.error('Failed to save global settings:', error)
+    showToast('Failed to save settings', 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const toggleApiKeysVisibility = () => {
+  apiKeysVisible.value = !apiKeysVisible.value
+}
+
+const saveApiKeys = async () => {
+  try {
+    saving.value = true
+    const keys = {}
+    apiProviders.value.forEach(provider => {
+      if (provider.key) {
+        keys[provider.name] = provider.key
+      }
+    })
+
+    const response = await fetch('http://localhost:8000/api/config/api-keys', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(keys)
+    })
+
+    if (response.ok) {
+      showToast('API keys saved successfully!')
+    } else {
+      throw new Error('Failed to save API keys')
+    }
+  } catch (error) {
+    console.error('Failed to save API keys:', error)
+    showToast('Failed to save API keys', 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const testApiKey = async (provider) => {
+  provider.testing = true
+  try {
+    const response = await fetch('http://localhost:8000/api/config/test-api-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        provider: provider.name,
+        api_key: provider.key
+      })
+    })
+
+    const result = await response.json()
+    if (result.success) {
+      showToast(`${provider.label} API key is valid!`)
+    } else {
+      showToast(`${provider.label} API key test failed: ${result.error}`, 'error')
+    }
+  } catch (error) {
+    showToast(`Failed to test ${provider.label} API key`, 'error')
+  } finally {
+    provider.testing = false
+  }
+}
+
+const removeProvider = (providerName) => {
+  const index = apiProviders.value.findIndex(p => p.name === providerName)
+  if (index > -1) {
+    apiProviders.value.splice(index, 1)
+    showToast('Provider removed successfully!')
+  }
+}
+
+const showToast = (message, type = 'success') => {
+  successMessage.value = message
+  showSuccessToast.value = true
+  setTimeout(() => {
+    showSuccessToast.value = false
+  }, 3000)
+}
+
 // Lifecycle
 onMounted(() => {
   loadConfiguration()
@@ -166,5 +368,25 @@ onMounted(() => {
 
 .card {
   @apply bg-white shadow rounded-lg border border-gray-200 p-6;
+}
+
+.btn {
+  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+.btn-sm {
+  @apply px-3 py-1 text-xs;
 }
 </style>

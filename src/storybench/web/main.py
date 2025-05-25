@@ -9,7 +9,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
 from storybench.database.connection import init_database, close_database
-from .api import models, prompts, evaluations, results, validation, sse
+from .api import models, prompts, evaluations, results, validation, sse, criteria
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,6 +55,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(models.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(prompts.router, prefix="/api/config", tags=["Configuration"])
+app.include_router(criteria.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(validation.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluations"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])

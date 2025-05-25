@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/views/Dashboard.vue'
 import ModelsConfig from '@/views/ModelsConfig.vue'
 import PromptsConfig from '@/views/PromptsConfig.vue'
+import CriteriaConfig from '@/views/CriteriaConfig.vue'
 import EvaluationRunner from '@/views/EvaluationRunner.vue'
 import Results from '@/views/Results.vue'
 
@@ -38,6 +39,14 @@ const router = createRouter({
       component: PromptsConfig,
       meta: {
         title: 'Prompts Management'
+      }
+    },
+    {
+      path: '/config/criteria',
+      name: 'criteria-config',
+      component: CriteriaConfig,
+      meta: {
+        title: 'Evaluation Criteria'
       }
     },
     {
