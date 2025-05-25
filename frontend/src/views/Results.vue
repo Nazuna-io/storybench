@@ -112,7 +112,28 @@
                   Status
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Score
+                  Overall Score
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Creativity
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Coherence
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Character
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Dialogue
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Visual
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Depth
+                </th>
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Adapt.
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -120,7 +141,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="result in results" :key="result.id" class="hover:bg-gray-50 transition-colors duration-150 table-row">>
+              <tr v-for="result in results" :key="result.id" class="hover:bg-gray-50 transition-colors duration-150 table-row">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">{{ result.model_name }}</div>
                   <div class="text-sm text-gray-500">{{ result.config_version }}</div>
@@ -142,10 +163,31 @@
                     <div v-if="result.scores?.overall" class="ml-2 w-16 bg-gray-200 rounded-full h-2">
                       <div 
                         class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                        :style="`width: ${result.scores.overall * 10}%`"
+                        :style="`width: ${result.scores.overall * 20}%`"
                       ></div>
                     </div>
                   </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'creativity') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'coherence') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'character_depth') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'dialogue_quality') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'visual_imagination') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'conceptual_depth') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  {{ getScoreValue(result, 'adaptability') }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button 
@@ -181,7 +223,7 @@
             </div>
             
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm text-gray-600">Score:</span>
+              <span class="text-sm text-gray-600">Overall Score:</span>
               <div class="flex items-center">
                 <span class="text-sm font-medium text-gray-900 mr-2">
                   {{ result.scores?.overall ? result.scores.overall.toFixed(1) : '-' }}
@@ -189,9 +231,24 @@
                 <div v-if="result.scores?.overall" class="w-12 bg-gray-200 rounded-full h-2">
                   <div 
                     class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    :style="`width: ${result.scores.overall * 10}%`"
+                    :style="`width: ${result.scores.overall * 20}%`"
                   ></div>
                 </div>
+              </div>
+            </div>
+            
+            <div v-if="result.scores?.detailed" class="grid grid-cols-3 gap-2 mb-3 text-xs">
+              <div class="text-center">
+                <div class="text-gray-500">Creativity</div>
+                <div class="font-medium">{{ getScoreValue(result, 'creativity') }}</div>
+              </div>
+              <div class="text-center">
+                <div class="text-gray-500">Coherence</div>
+                <div class="font-medium">{{ getScoreValue(result, 'coherence') }}</div>
+              </div>
+              <div class="text-center">
+                <div class="text-gray-500">Character</div>
+                <div class="font-medium">{{ getScoreValue(result, 'character_depth') }}</div>
               </div>
             </div>
             
@@ -349,6 +406,10 @@ export default {
       currentPage.value = 1
     })
     
+    const getScoreValue = (result, criterion) => {
+      return result.scores?.detailed?.[criterion] ? result.scores.detailed[criterion].toFixed(1) : '-'
+    }
+    
     const formatDate = (dateString) => {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -424,6 +485,7 @@ export default {
       selectedResult,
       formatDate,
       getStatusClass,
+      getScoreValue,
       showDetail,
       closeDetail
     }
