@@ -542,7 +542,8 @@ const saveModels = async () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        global_settings: globalSettings
+        global_settings: globalSettings,
+        models: models.value
       })
     })
 
