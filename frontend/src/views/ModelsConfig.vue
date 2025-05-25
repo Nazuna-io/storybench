@@ -169,17 +169,7 @@
         <!-- Models List -->
         <div v-if="models.length > 0" class="space-y-4">
           <div v-for="(model, index) in models" :key="index" class="border border-gray-200 rounded-lg p-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
-                <input
-                  v-model="model.name"
-                  type="text"
-                  placeholder="e.g., GPT-4o"
-                  class="input-field"
-                />
-              </div>
-              
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Provider</label>
                 <select v-model="model.provider" class="input-field">
@@ -194,10 +184,12 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Model ID</label>
                 <input
                   v-model="model.model_name"
+                  @input="model.name = model.model_name"
                   type="text"
-                  placeholder="e.g., gpt-4o"
+                  placeholder="e.g., gpt-4o, claude-3-5-sonnet-20241022"
                   class="input-field"
                 />
+                <p class="text-xs text-gray-500 mt-1">Enter the exact model identifier from the API provider</p>
               </div>
               
               <div class="flex items-end">
@@ -343,7 +335,11 @@ const loadConfiguration = async () => {
         Object.assign(globalSettings, data.global_settings)
       }
       if (data.models) {
-        models.value = data.models
+        // Ensure name matches model_name for consistency
+        models.value = data.models.map(model => ({
+          ...model,
+          name: model.model_name || model.name
+        }))
       }
     }
 
