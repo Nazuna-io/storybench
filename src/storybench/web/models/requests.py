@@ -1,12 +1,14 @@
 """Pydantic models for API requests."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, List, Optional, Literal, Any
 from datetime import datetime
 
 
 class ModelConfigRequest(BaseModel):
     """Request model for updating model configuration."""
+    model_config = ConfigDict(protected_namespaces=())
+    
     name: str = Field(..., description="Model name")
     type: Literal["api", "local"] = Field(..., description="Model type")
     provider: Optional[str] = Field(None, description="API provider (for API models)")
@@ -62,6 +64,8 @@ class PromptsUpdateRequest(BaseModel):
 
 class EvaluationStartRequest(BaseModel):
     """Request model for starting an evaluation."""
+    model_config = ConfigDict(protected_namespaces=())
+    
     model_names: Optional[List[str]] = Field(None, description="Models to evaluate (all if not specified)")
     resume: bool = Field(True, description="Resume from previous run if possible")
 

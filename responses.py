@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, List, Optional, Any, Literal
 from datetime import datetime
 
-
 class ModelConfigResponse(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
     """Response model for model configuration."""

@@ -6,6 +6,7 @@ from .model_repo import ModelRepository
 from .prompt_repo import PromptRepository
 from .response_repo import ResponseRepository
 from .criteria_repo import CriteriaRepository
+from .response_llm_evaluation_repository import ResponseLLMEvaluationRepository
 
 __all__ = [
     "BaseRepository",
@@ -14,4 +15,5 @@ __all__ = [
     "PromptRepository",
     "ResponseRepository",
     "CriteriaRepository",
+    "ResponseLLMEvaluationRepository",
 ]

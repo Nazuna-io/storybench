@@ -6,8 +6,32 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from pathlib import Path
-
+from contextlib import asynccontextmanager
+# Make sure this import path is correct for your project structure
+from storybench.database.connection import init_database, close_database
 from .api import models, prompts, evaluations, results, validation, sse
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Code to run on startup
+    print("INFO:     Initializing database connection...")
+    try:
+        await init_database()
+        print("INFO:     Database connection initialized.")
+    except Exception as e:
+        print(f"ERROR:    Failed to initialize database: {type(e).__name__}: {e}")
+        print(f"ERROR:    Full exception details: {repr(e)}")
+        # Re-raise the exception to prevent the app from starting with a broken database
+        raise
+    yield
+    # Code to run on shutdown
+    print("INFO:     Closing database connection...")
+    try:
+        await close_database()
+        print("INFO:     Database connection closed.")
+    except Exception as e:
+        print(f"ERROR:    Failed to close database: {type(e).__name__}: {e}")
+        print(f"ERROR:    Full exception details: {repr(e)}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -15,7 +39,8 @@ app = FastAPI(
     description="Web interface for the Storybench LLM creativity evaluation system",
     version="1.0.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    lifespan=lifespan  # Add this line
 )
 
 # Add CORS middleware

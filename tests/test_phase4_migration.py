@@ -7,7 +7,8 @@ import os
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Adjust path to go up one level from 'tests' then into 'src'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 from dotenv import load_dotenv
 
@@ -51,7 +52,7 @@ async def test_migration():
             return False
             
         # Test validation
-        print("\\n🔍 Testing data validation...")
+        print("\n🔍 Testing data validation...")
         validation = await importer.validate_import_integrity()
         
         print(f"📈 Validation Results:")
@@ -70,7 +71,7 @@ async def test_migration():
                 print(f"    • {anomaly}")
         
         # Test export functionality
-        print("\\n📤 Testing export functionality...")
+        print("\n📤 Testing export functionality...")
         export_dir = "./test_export"
         export_path = await importer.export_for_analysis(export_dir)
         
@@ -94,7 +95,7 @@ async def test_migration():
                 print(f"    - Model: {metadata.get('model_name', 'unknown')}")
                 print(f"    - Timestamp: {metadata.get('timestamp', 'unknown')}")
                 
-        print("\\n✅ Phase 4 migration test completed successfully!")
+        print("\n✅ Phase 4 migration test completed successfully!")
         return True
         
     except Exception as e:
@@ -106,7 +107,7 @@ async def test_migration():
 
 async def cleanup_test_data():
     """Clean up test data from database."""
-    print("\\n🧹 Cleaning up test data...")
+    print("\n🧹 Cleaning up test data...")
     
     try:
         load_dotenv()
@@ -136,14 +137,14 @@ if __name__ == "__main__":
         success = await test_migration()
         
         if success:
-            print("\\n🎉 All tests passed!")
+            print("\n🎉 All tests passed!")
             
             # Ask if user wants to keep test data
-            response = input("\\nKeep test data in database? (y/N): ").lower().strip()
+            response = input("\nKeep test data in database? (y/N): ").lower().strip()
             if response != 'y':
                 await cleanup_test_data()
         else:
-            print("\\n💥 Tests failed!")
+            print("\n💥 Tests failed!")
             await cleanup_test_data()
             sys.exit(1)
     

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pytest
+pytest-asyncio
+mongomock
+mongomock-motor
+motor
+pydantic
+
+# Add other specific dependencies your project uses, e.g.:
+# openai
+# anthropic
+# tiktoken

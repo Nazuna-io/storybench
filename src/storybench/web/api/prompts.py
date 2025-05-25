@@ -26,7 +26,10 @@ async def get_prompts(config_service: ConfigService = Depends(get_config_service
             raise HTTPException(status_code=404, detail="No active prompts configuration found")
             
         response_data = {
-            "prompts": prompts_config.sequences,
+            "prompts": {
+                sequence_name: [prompt.model_dump() for prompt in prompt_list]
+                for sequence_name, prompt_list in prompts_config.sequences.items()
+            },
             "config_hash": prompts_config.config_hash,
             "version": prompts_config.version,
             "created_at": prompts_config.created_at.isoformat()
@@ -50,7 +53,10 @@ async def update_prompts(
         prompts_config = await config_service.save_prompts_config(prompts_data)
         
         response_data = {
-            "prompts": prompts_config.sequences,
+            "prompts": {
+                sequence_name: [prompt.model_dump() for prompt in prompt_list]
+                for sequence_name, prompt_list in prompts_config.sequences.items()
+            },
             "config_hash": prompts_config.config_hash,
             "version": prompts_config.version,
             "created_at": prompts_config.created_at.isoformat()

@@ -67,7 +67,7 @@ Thumbs.db
 output/
 output_backup_*/
 test_export/
-models/
+# models/
 *.log
 frontend.log
 start_server.py

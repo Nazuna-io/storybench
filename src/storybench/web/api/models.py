@@ -29,8 +29,12 @@ async def get_models_config(config_service: ConfigService = Depends(get_config_s
             
         # Convert to response format
         response_data = {
-            "models": models_config.models,
-            "evaluation": models_config.evaluation.dict(),
+            "models": [model.model_dump(mode='json') for model in models_config.models],
+            "evaluation": {
+                "auto_evaluate": models_config.evaluation.auto_evaluate_generated_responses,
+                "evaluator_models": models_config.evaluation.evaluator_llm_names,
+                "max_retries": models_config.evaluation.max_retries_on_evaluation_failure
+            },
             "config_hash": models_config.config_hash,
             "version": models_config.version,
             "created_at": models_config.created_at.isoformat()
@@ -59,8 +63,12 @@ async def update_models_config(
         
         # Convert to response format
         response_data = {
-            "models": models_config.models,
-            "evaluation": models_config.evaluation.dict(),
+            "models": [model.model_dump(mode='json') for model in models_config.models],
+            "evaluation": {
+                "auto_evaluate": models_config.evaluation.auto_evaluate_generated_responses,
+                "evaluator_models": models_config.evaluation.evaluator_llm_names,
+                "max_retries": models_config.evaluation.max_retries_on_evaluation_failure
+            },
             "config_hash": models_config.config_hash,
             "version": models_config.version,
             "created_at": models_config.created_at.isoformat()

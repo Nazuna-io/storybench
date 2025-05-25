@@ -5,6 +5,9 @@ import aiohttp
 import json
 
 
+import pytest
+
+@pytest.mark.asyncio
 async def test_api_endpoint():
     """Test the validation API endpoint."""
     print("🌐 Testing FastAPI Validation Endpoint...")
@@ -20,7 +23,7 @@ async def test_api_endpoint():
         async with aiohttp.ClientSession() as session:
             # Test validation endpoint
             async with session.post(
-                "http://localhost:8000/api/config/validate",
+                "http://localhost:8081/api/config/validate",
                 json=validation_request,
                 headers={"Content-Type": "application/json"}
             ) as response:

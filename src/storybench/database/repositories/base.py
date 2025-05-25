@@ -40,19 +40,42 @@ class BaseRepository(Generic[T], ABC):
             document: Document to create
             
         Returns:
-            Created document with ID
+            Created document (Pydantic model instance)
         """
         try:
-            document_dict = document.dict(by_alias=True, exclude_unset=True)
+            # For Pydantic V2, use model_dump instead of dict
+            document_dict = document.model_dump(by_alias=True)  # exclude_unset defaults to False
             
-            # Remove None _id if present
-            if document_dict.get("_id") is None:
-                document_dict.pop("_id", None)
-                
+            # If _id is part of the model and is None (e.g. from default_factory but not yet set),
+            # Pydantic might include it as None. Motor typically expects _id to be absent for auto-generation
+            # or present with a value.
+            if "_id" in document_dict and document_dict["_id"] is None:
+                document_dict.pop("_id")
+            # No need to explicitly handle document.id here if model_dump(by_alias=True) correctly maps 'id' to '_id'.
+            # If 'id' is a PyObjectId and already generated, it will be included (and possibly stringified by json_encoders
+            # if model_dump is used for serialization to JSON, but here it's for a Python dict for Motor).
+
             result = await self.collection.insert_one(document_dict)
             
-            # Return just the ObjectId for simple use
-            return result.inserted_id
+            # Fetch the newly created document by its ID to return the full model instance
+            # The type of result.inserted_id will be ObjectId if _id was not in document_dict, 
+            # or the type of document_dict["_id"] if it was present.
+            # find_by_id expects an ObjectId.
+            inserted_id = result.inserted_id
+            if not isinstance(inserted_id, ObjectId):
+                # This can happen if _id was a string in document_dict (e.g. from a model_dump with json_encoders)
+                # However, PyObjectId's __get_pydantic_core_schema__ should ensure it's an ObjectId in the model instance.
+                # If model_dump(by_alias=True) converts PyObjectId to string for _id, then find_by_id needs to handle string IDs
+                # or we ensure inserted_id is always ObjectId here.
+                # For now, assume find_by_id correctly handles the type of ID it receives or that inserted_id is ObjectId.
+                # Let's assume result.inserted_id is compatible with find_by_id's ObjectId requirement.
+                pass # If find_by_id strictly needs ObjectId, conversion might be needed if inserted_id is str.
+
+            created_document = await self.find_by_id(inserted_id)
+            if created_document is None:
+                # This should ideally not happen if insert_one succeeded and find_by_id is correct
+                raise Exception(f"Failed to retrieve document after insertion with id {result.inserted_id}")
+            return created_document
             
         except Exception as e:
             logger.error(f"Error creating document in {self.collection_name}: {e}")
