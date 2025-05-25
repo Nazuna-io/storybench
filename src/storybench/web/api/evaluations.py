@@ -43,10 +43,11 @@ async def start_evaluation(
             raise HTTPException(status_code=400, detail="Missing required configurations")
             
         # Extract data for evaluation
-        models = [model["name"] for model in models_config.models]
-        sequences = prompts_config.sequences
-        criteria = criteria_config.criteria
-        global_settings = models_config.evaluation.dict()
+        models = [model.name for model in models_config.models]
+        sequences = {name: [prompt.model_dump() for prompt in prompt_list] 
+                    for name, prompt_list in prompts_config.sequences.items()}
+        criteria = {name: criterion.model_dump() for name, criterion in criteria_config.criteria.items()}
+        global_settings = models_config.evaluation.model_dump()
         
         # Start evaluation
         evaluation = await runner.start_evaluation(
