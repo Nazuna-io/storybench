@@ -7,10 +7,10 @@ global_settings:
 
 models:
   # API Models
-  # - name: "GPT-4"
-  #   type: "api"
-  #   provider: "openai"
-  #   model_name: "gpt-4"
+  - name: "GPT-4o"
+    type: "api"
+    provider: "openai"
+    model_name: "gpt-4o"
     
   - name: "Claude-4-Sonnet"
     type: "api"

@@ -3,11 +3,18 @@
 import asyncio
 import click
 import os
+import json
 from pathlib import Path
+from datetime import datetime
 from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
+
 from .models.config import Config
 from .models.progress import ProgressTracker
 from .evaluators.factory import EvaluatorFactory
+from .database.services.evaluation_runner import DatabaseEvaluationRunner
+from .database.services.sequence_evaluation_service import SequenceEvaluationService
+from .database.repositories.criteria_repo import CriteriaRepository
 from tqdm import tqdm
 
 
@@ -483,6 +490,165 @@ def export(export_dir, evaluation_ids):
             raise
             
     asyncio.run(run_export())
+
+
+@cli.command()
+@click.option('--config', '-c', default='config/models.yaml', 
+              help='Path to configuration file')
+@click.option('--auto-evaluate', is_flag=True, help='Automatically run LLM evaluation after response generation')
+@click.option('--models', help='Comma-separated list of model names to run (default: all)')
+@click.option('--sequences', help='Comma-separated list of sequence names to run (default: all)')
+def run_full_pipeline(config, auto_evaluate, models, sequences):
+    """Run the complete end-to-end evaluation pipeline with database storage."""
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Check required environment variables
+    mongodb_uri = os.getenv("MONGODB_URI")
+    if not mongodb_uri:
+        click.echo("❌ MONGODB_URI environment variable is required")
+        return
+    
+    if auto_evaluate and not os.getenv("OPENAI_API_KEY"):
+        click.echo("❌ OPENAI_API_KEY environment variable is required for auto-evaluation")
+        return
+    
+    try:
+        asyncio.run(_run_full_pipeline(config, auto_evaluate, models, sequences))
+    except Exception as e:
+        click.echo(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def _run_full_pipeline(config_path, auto_evaluate, models_filter, sequences_filter):
+    """Run the complete pipeline: generate responses -> evaluate -> store results."""
+    
+    # Connect to database
+    mongodb_uri = os.getenv("MONGODB_URI")
+    client = AsyncIOMotorClient(mongodb_uri)
+    database = client["storybench"]
+    
+    try:
+        click.echo("🔗 Connected to database")
+        
+        # Initialize services
+        evaluation_runner = DatabaseEvaluationRunner(database)
+        
+        # Parse filters
+        models_list = [m.strip() for m in models_filter.split(',')] if models_filter else None
+        sequences_list = [s.strip() for s in sequences_filter.split(',')] if sequences_filter else None
+        
+        click.echo(f"🚀 Starting full pipeline...")
+        if models_list:
+            click.echo(f"   Models: {', '.join(models_list)}")
+        if sequences_list:
+            click.echo(f"   Sequences: {', '.join(sequences_list)}")
+        
+        # Step 1: Generate responses
+        click.echo(f"\n📝 Step 1: Generating responses...")
+        
+        response_results = await evaluation_runner.run_evaluation(
+            models_filter=models_list,
+            sequences_filter=sequences_list,
+            auto_evaluate=False  # We'll do evaluation separately
+        )
+        
+        click.echo(f"✅ Response generation complete!")
+        click.echo(f"   Total responses: {response_results['total_responses']}")
+        click.echo(f"   New responses: {response_results['new_responses']}")
+        click.echo(f"   Errors: {len(response_results.get('errors', []))}")
+        
+        if response_results.get('errors'):
+            click.echo(f"⚠️  Errors encountered:")
+            for error in response_results['errors'][:5]:  # Show first 5 errors
+                click.echo(f"     {error}")
+        
+        # Step 2: Run evaluation if requested
+        if auto_evaluate:
+            click.echo(f"\n🧠 Step 2: Running LLM evaluations...")
+            
+            # Initialize evaluation service
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            sequence_eval_service = SequenceEvaluationService(database, openai_api_key)
+            
+            # Check if we have active criteria
+            criteria_repo = CriteriaRepository(database)
+            active_criteria = await criteria_repo.find_active()
+            
+            if not active_criteria:
+                click.echo("❌ No active evaluation criteria found!")
+                click.echo("   Please run the criteria setup first")
+                return
+            
+            click.echo(f"✅ Using criteria version {active_criteria.version}")
+            
+            # Run sequence-aware evaluations
+            eval_results = await sequence_eval_service.evaluate_all_sequences()
+            
+            click.echo(f"✅ Evaluation complete!")
+            click.echo(f"   Sequences evaluated: {eval_results['sequences_evaluated']}")
+            click.echo(f"   Total evaluations: {eval_results['total_evaluations_created']}")
+            click.echo(f"   Errors: {len(eval_results.get('errors', []))}")
+            
+            # Generate summary
+            click.echo(f"\n📊 Generating evaluation summary...")
+            summary = await sequence_eval_service.get_evaluation_summary()
+            
+            # Save results to file
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            results_file = f"pipeline_results_{timestamp}.json"
+            
+            output_data = {
+                "pipeline_timestamp": datetime.utcnow().isoformat(),
+                "config_used": config_path,
+                "filters": {
+                    "models": models_list,
+                    "sequences": sequences_list
+                },
+                "response_generation": response_results,
+                "evaluation_results": eval_results,
+                "evaluation_summary": summary,
+                "criteria_version": active_criteria.version
+            }
+            
+            with open(results_file, 'w') as f:
+                json.dump(output_data, f, indent=2)
+            
+            click.echo(f"\n🏆 Pipeline Summary:")
+            click.echo(f"   Total responses: {response_results['total_responses']}")
+            click.echo(f"   Total evaluations: {summary['total_evaluations']}")
+            click.echo(f"   Evaluation coverage: {summary['evaluation_coverage']:.1%}")
+            
+            # Show top model performance
+            if summary.get('model_sequence_statistics'):
+                click.echo(f"\n📈 Model Performance Preview:")
+                for model_seq, stats in list(summary['model_sequence_statistics'].items())[:3]:
+                    model_name = stats['model_name']
+                    sequence_name = stats['sequence_name']
+                    
+                    # Calculate average score across all criteria
+                    total_score = 0
+                    total_count = 0
+                    for criterion_data in stats['criteria_scores'].values():
+                        total_score += criterion_data['average'] * criterion_data['count']
+                        total_count += criterion_data['count']
+                    
+                    avg_score = total_score / total_count if total_count > 0 else 0
+                    click.echo(f"   {model_name} - {sequence_name}: {avg_score:.2f}/5.0")
+            
+            click.echo(f"\n💾 Detailed results saved to: {results_file}")
+        
+        else:
+            click.echo(f"\n⏭️  Skipping evaluation (use --auto-evaluate to include)")
+            click.echo(f"   You can run evaluations later with the sequence evaluation service")
+        
+        click.echo(f"\n✅ Pipeline complete!")
+        
+    finally:
+        client.close()
+        click.echo(f"🔌 Database connection closed")
 
 
 if __name__ == '__main__':
