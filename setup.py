@@ -4,8 +4,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="storybench",
-    version="0.1.0",
-    description="A modular tool for evaluating the creativity of LLMs",
+    version="0.2.0",
+    description="Enterprise LLM creativity evaluation with MongoDB Atlas backend",
     author="Todd",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -29,6 +29,10 @@ setup(
         "uvicorn[standard]>=0.24.0",
         "aiofiles>=23.2.0",
         "pydantic>=2.5.0",
+        # MongoDB dependencies (Phase 4)
+        "motor>=3.3.0",
+        "pymongo>=4.6.0",
+        "bson>=0.5.10",
     ],
     extras_require={
         "dev": [
@@ -55,8 +59,13 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Researchers",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11", 
         "Programming Language :: Python :: 3.12",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Database :: Database Engines/Servers",
     ],
 )

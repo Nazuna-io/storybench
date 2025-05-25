@@ -51,9 +51,8 @@ class BaseRepository(Generic[T], ABC):
                 
             result = await self.collection.insert_one(document_dict)
             
-            # Update document with new ID
-            document_dict["_id"] = result.inserted_id
-            return self.model_class(**document_dict)
+            # Return just the ObjectId for simple use
+            return result.inserted_id
             
         except Exception as e:
             logger.error(f"Error creating document in {self.collection_name}: {e}")

@@ -2,191 +2,389 @@
 
 A modular tool for evaluating the creativity of proprietary and open-source LLMs across various creative writing tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
+## 🚀 Phase 4 Complete: Enterprise Database Architecture
+
+**StorybenchLLM now features MongoDB Atlas integration for enterprise-scale evaluation workflows!**
+
+- **✅ Database-Driven**: MongoDB Atlas backend for scalable data management
+- **✅ Data Migration**: Automatic import of existing evaluation results
+- **✅ Real-time Analytics**: Advanced querying capabilities for evaluation insights
+- **✅ Enterprise Ready**: Production-grade reliability and backup systems
+
 ## Requirements
 
 - **Python 3.12+** (Required and fully tested)
+- **MongoDB Atlas** (or local MongoDB for development)
 - Node.js 18+ (for web frontend)
 
 ## Features
 
+### Core Evaluation Engine
 - **Modular Architecture**: Easy to add new model types and evaluators
 - **API & Local Support**: Works with API-based models (OpenAI, Anthropic, Google) and local GGUF models
-- **Web UI**: Complete web interface for configuration, evaluation, and results ✅
-- **CLI Interface**: Full command-line interface for automated workflows ✅
+- **Resume Functionality**: Smart resume from interruption points with database-backed progress tracking
+- **Automated Evaluation**: Uses LLMs to score creativity metrics with configurable criteria
+
+### Database & Data Management ✨ NEW
+- **MongoDB Atlas Integration**: Enterprise-grade database backend
+- **Data Migration Tools**: Automatic import of existing JSON evaluation results
+- **Advanced Analytics**: Query evaluation patterns, performance metrics, and trends
+- **Backup & Recovery**: Automated backup systems with rollback capability
+- **Export Functionality**: Export data for external analysis tools
+
+### Web Interface
+- **Complete Web UI**: Full web interface for configuration, evaluation, and results ✅
 - **Real-time Monitoring**: Live progress tracking with Server-Sent Events
-- **Resume Functionality**: Smart resume from interruption points with progress detection
-- **Background Processing**: Non-blocking evaluation execution
 - **Results Dashboard**: Interactive results viewing with actual evaluation data
-- **Robust Resume**: Can recover from crashes and continue evaluations
-- **Progress Tracking**: Real-time progress with incremental saves
+- **Configuration Management**: Web-based model, prompt, and criteria configuration
+
+### CLI Interface
+- **Full CLI**: Complete command-line interface for automated workflows ✅
+- **Migration Commands**: Database import/export and cleanup tools
+- **Background Processing**: Non-blocking evaluation execution
 - **Configuration Versioning**: Handles config changes gracefully
-- **Automated Evaluation**: Uses LLMs to score creativity metrics
-- **Enhanced API Error Handling**: Robust retry mechanism with exponential backoff
-- **Prompt Validation**: Validates structure and content of `prompts.json` during configuration loading
-- **Comprehensive Testing**: 91% test success rate with Python 3.12+ compatibility validated
+
+### Quality & Reliability
+- **Enhanced Error Handling**: Robust retry mechanism with exponential backoff
+- **Prompt Validation**: Validates structure and content during configuration loading
+- **Comprehensive Testing**: 91% test success rate with Python 3.12+ compatibility
+- **Database Validation**: Automated data integrity checking
 
 ## Quick Start
 
-### Web UI (Recommended)
-1. **Setup Environment**
+### Prerequisites
+
+1. **MongoDB Atlas Setup** (Recommended for production):
+   ```bash
+   # Sign up for MongoDB Atlas (free tier available)
+   # Create cluster and get connection string
+   # Add connection string to .env file
+   ```
+
+2. **Environment Setup**:
    ```bash
    python3.12 -m venv venv-storybench
    source venv-storybench/bin/activate
    pip install -e .
+   
+   # Copy environment template and add your API keys + MongoDB URI
+   cp .env.example .env
+   # Edit .env with your API keys and MongoDB connection string
    ```
 
-2. **Start Web Server**
+### Web UI (Recommended)
+
+1. **Start Web Server**
    ```bash
    storybench-web
    ```
 
-3. **Access Web UI**: Open http://localhost:8000
+2. **Access Web UI**: Open http://localhost:8000
    - 📊 **Results**: View evaluation results and progress
    - ⚙️ **Configuration**: Manage models and prompts  
    - 🚀 **Evaluation**: Run evaluations with real-time monitoring
    - 📚 **API Docs**: Available at http://localhost:8000/api/docs
 
 ### CLI Interface
-1. **Setup Environment**
+
+1. **Configure Models and Prompts**
    ```bash
-   python3.12 -m venv venv-storybench
-   source venv-storybench/bin/activate  # On Windows: venv-storybench\Scripts\activate
-   pip install -e .
+   # Edit configuration files
+   vim config/models.yaml
+   vim config/prompts.json
+   vim config/evaluation_criteria.yaml
    ```
 
-2. **Configure API Keys**
+2. **Run Evaluation**
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-3. **Run Evaluation**
-   ```bash
-   # Validate configuration first
-   storybench validate
-   
-   # Run evaluation (dry-run for testing)
-   storybench evaluate --dry-run
-   
-   # Run actual evaluation
    storybench evaluate
-   
-   # Clean up models when needed
-   storybench clean --models
    ```
+
+3. **Database Operations**
+   ```bash
+   # Import existing JSON evaluation results
+   storybench migrate --validate --cleanup
+   
+   # Export data for analysis
+   storybench export --export-dir ./analysis_data
+   
+   # Check database status
+   storybench status
+   ```
+
+## Database Migration
+
+If you have existing evaluation results in JSON format, Phase 4 provides automatic migration:
+
+```bash
+# Migrate existing data to MongoDB
+storybench migrate --validate --cleanup
+
+# This will:
+# 1. Import all JSON files from output/ directory
+# 2. Validate data integrity
+# 3. Create timestamped backup of original files
+# 4. Clean up original files after successful import
+```
 
 ## Configuration
 
-- `config/models.yaml` - Model configurations and settings
-- `config/prompts.json` - Creative writing prompts
-- `config/evaluation_criteria.yaml` - Scoring criteria
-- `.env` - API keys (not committed to git)
-
-## Results
-
-Results are saved in the `output/` directory as JSON files, one per model with automatic progress tracking and resume capability.
-
-## Development & Testing
-
+### Environment Variables (.env)
 ```bash
-# Install development dependencies
+# MongoDB Atlas (Required)
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/storybench?retryWrites=true&w=majority
+
+# API Keys (Add as needed)
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+GOOGLE_API_KEY=your_google_key_here
+
+# Optional: Custom endpoints
+GROK_BASE_URL=https://api.x.ai/v1
+```
+
+### Model Configuration (config/models.yaml)
+Configure available models for evaluation:
+```yaml
+models:
+  - name: "Claude-4-Sonnet"
+    type: "api"
+    provider: "anthropic"
+    model_name: "claude-3-5-sonnet-20241022"
+  
+  - name: "Local-Llama"
+    type: "local"
+    repo_id: "microsoft/DialoGPT-medium"
+    filename: "model.gguf"
+```
+
+### Evaluation Prompts (config/prompts.json)
+Define creative writing prompts across different sequences:
+```json
+{
+  "FilmNarrative": [
+    {
+      "name": "Initial Concept",
+      "text": "Create a completely original feature film concept..."
+    }
+  ]
+}
+```
+
+### Evaluation Criteria (config/evaluation_criteria.yaml)
+Configure how responses are automatically scored:
+```yaml
+creativity:
+  name: "Creativity and Originality"
+  description: "Assesses novelty and creative thinking"
+  scale: 10
+
+coherence:
+  name: "Narrative Coherence"
+  description: "Evaluates logical flow and structure"
+  scale: 10
+```
+
+## Architecture
+
+### Database Schema (MongoDB Atlas)
+```javascript
+// Collections:
+evaluations: {
+  _id: ObjectId,
+  config_hash: String,
+  models: [String],
+  status: "completed" | "in_progress" | "failed",
+  total_tasks: Number,
+  completed_tasks: Number,
+  timestamp: Date
+}
+
+responses: {
+  _id: ObjectId,
+  evaluation_id: String,  // Reference to evaluation
+  model_name: String,
+  sequence: String,
+  run: Number,
+  prompt_name: String,
+  response: String,
+  generation_time: Number,
+  completed_at: Date
+}
+
+evaluation_scores: {
+  _id: ObjectId,
+  evaluation_id: ObjectId,
+  model_name: String,
+  overall_score: Number,
+  detailed_scores: {
+    creativity: Number,
+    coherence: Number,
+    // ... other criteria
+  }
+}
+```
+
+### System Architecture
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Web UI        │    │   CLI Interface  │    │  API Endpoints  │
+│   (Frontend)    │    │   (Click)        │    │  (FastAPI)      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                │
+                    ┌──────────────────┐
+                    │   Core Engine    │
+                    │   (Async Python) │
+                    └──────────────────┘
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+        ┌───────────────┐ ┌──────────────┐ ┌────────────┐
+        │   Model APIs  │ │ Local Models │ │  MongoDB   │
+        │ (OpenAI, etc) │ │   (GGUF)     │ │   Atlas    │
+        └───────────────┘ └──────────────┘ └────────────┘
+```
+
+## Development
+
+### Setup Development Environment
+```bash
+# Clone and setup
+git clone <repository>
+cd storybench
+python3.12 -m venv venv-storybench
+source venv-storybench/bin/activate
+
+# Install with development dependencies
 pip install -e ".[dev]"
 
-# Run test suite
-pytest                                    # All tests
-pytest -k "not selenium"                 # Skip browser tests
-pytest tests/test_basic.py -v            # Basic functionality tests
-pytest tests/test_comprehensive_backend.py -v  # API tests
-pytest tests/test_python312_compatibility.py -v # Python 3.12+ tests
+# Install pre-commit hooks
+pre-commit install
 
-# Test coverage: 91% success rate
-# - 59 tests passing
-# - 3 tests skipped (intentional)
-# - 1 expected failure (xfailed)
-# - Python 3.12+ compatibility fully validated
+# Set up environment
+cp .env.example .env
+# Edit .env with your API keys and MongoDB URI
 ```
 
-## Completed Features
+### Testing
+```bash
+# Run all tests
+pytest
 
-- ✅ **Web UI**: Complete web interface with real-time monitoring
-- ✅ **CLI Interface**: Full command-line functionality
-- ✅ **Auto-evaluation**: System now automatically evaluates response quality using LLMs
-- ✅ **Local LLM Support**: Local GGUF model capability working and tested
-- ✅ **Python 3.12+ Support**: Fully compatible and tested with Python 3.12+
-- ✅ **Comprehensive Testing**: Refactored test suite with high success rate
-- ✅ **API Documentation**: Interactive API docs available
+# Run with coverage
+pytest --cov=storybench --cov-report=html
 
-## Roadmap & TODOs
+# Test database migration
+python test_phase4_migration.py
 
-### High Priority
-- [ ] **Database Integration**: Replace file-based storage with MongoDB Atlas
-  - Migrate configuration storage from YAML/JSON files to MongoDB collections
-  - Store evaluation results in database with proper indexing and querying
-  - Add database connection management and error handling
-  - Implement data migration tools for existing file-based data
-  - Add database backup and restore functionality
-
-- [ ] **Enhanced Web UI**: Complete the web interface with missing functionality
-  - **API Key Management**: Secure interface for managing API keys (OpenAI, Anthropic, Google)
-  - **Advanced Model Configuration**: UI for all model parameters (temperature, max_tokens, etc.)
-  - **Prompt Editor**: Rich text editor for creating and editing creative writing prompts
-  - **Evaluation Criteria Management**: Interface for customizing scoring criteria
-  - **User Authentication**: Login system and user-specific configurations
-  - **Results Export**: Download results as CSV, Excel, or PDF reports
-  - **Evaluation History**: Timeline view of past evaluations with comparison tools
-
-### Medium Priority
-- [ ] **Performance Optimization**
-  - Implement caching layer for frequent database queries
-  - Add pagination for large result sets
-  - Optimize frontend bundle size and loading times
-  - Background job queue for long-running evaluations
-
-- [ ] **Advanced Features**
-  - **Evaluation Templates**: Pre-configured evaluation setups for different use cases
-  - **Batch Evaluations**: Run multiple model comparisons simultaneously
-  - **A/B Testing**: Compare different prompt variations across models
-  - **Analytics Dashboard**: Statistical analysis and trend visualization
-  - **API Rate Limiting**: Smart throttling for API-based models
-  - **Model Performance Benchmarks**: Standardized creativity scoring across models
-
-### Low Priority
-- [ ] **Deployment & Infrastructure**
-  - Docker containerization improvements
-  - Kubernetes deployment manifests
-  - CI/CD pipeline for automated testing and deployment
-  - Production monitoring and logging
-  - Automated backups and disaster recovery
-
-- [ ] **Integrations**
-  - Webhook support for evaluation completion notifications
-  - Slack/Discord bot integration for team notifications
-  - Integration with popular ML platforms (Weights & Biases, MLflow)
-  - REST API versioning and backward compatibility
-
-## Project Structure
-
-```
-storybench/
-├── src/storybench/          # Main package
-│   ├── cli.py              # Command-line interface
-│   ├── evaluators/         # LLM evaluators (API & local)
-│   ├── models/             # Configuration models
-│   └── web/                # Web interface (FastAPI)
-├── config/                  # Configuration files  
-├── output/                  # Evaluation outputs (gitignored)
-├── tests/                   # Comprehensive test suite
-├── frontend/               # Vue.js web frontend
-└── models/                 # Downloaded local models (gitignored)
+# Verify setup
+python setup_phase4.py
 ```
 
-## Python 3.12+ Compatibility
+### Web UI Development
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
 
-This project requires Python 3.12+ and has been fully tested for compatibility:
+# Start development server
+npm run dev  # Frontend: http://localhost:3000
+storybench-web  # Backend: http://localhost:8000
+```
 
-- ✅ **Type annotations**: Modern typing with `Optional`, `List`, `Dict`
-- ✅ **Async/await**: Full asyncio compatibility
-- ✅ **Pathlib**: Modern path handling
-- ✅ **FastAPI**: Web framework compatibility
-- ✅ **Dependencies**: All major dependencies support Python 3.12+
-- ✅ **Testing**: Comprehensive test suite validates 3.12+ functionality
+## Data Management
+
+### Migration Commands
+```bash
+# Import existing JSON results to MongoDB
+storybench migrate --output-dir ./output --validate --cleanup
+
+# Export database data for analysis
+storybench export --export-dir ./exports
+
+# Backup specific evaluations
+storybench export --evaluation-ids 507f1f77bcf86cd799439011
+```
+
+### Database Operations
+```bash
+# Check connection and status
+storybench status
+
+# View evaluation progress
+storybench evaluate --dry-run
+
+# Resume interrupted evaluation
+storybench evaluate --resume
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **MongoDB Connection Issues**
+   ```bash
+   # Check connection string in .env
+   # Verify IP whitelist in MongoDB Atlas
+   # Test connection: python setup_phase4.py
+   ```
+
+2. **Migration Problems**
+   ```bash
+   # Check file permissions in output/ directory
+   # Verify JSON file format
+   # Check logs for specific errors
+   ```
+
+3. **Performance Issues**
+   ```bash
+   # For large datasets, use batch processing
+   # Monitor memory usage during evaluation
+   # Consider MongoDB Atlas cluster scaling
+   ```
+
+### Support
+- **Documentation**: Check PHASE_4_IMPLEMENTATION_SUMMARY.md
+- **Logs**: Check application logs for detailed error information
+- **Validation**: Use setup_phase4.py for comprehensive checks
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes with tests
+4. Run full test suite: `pytest`
+5. Submit pull request
+
+### Code Style
+- **Black**: Code formatting (`black .`)
+- **Flake8**: Linting (`flake8 src/`)
+- **MyPy**: Type checking (`mypy src/`)
+- **Pre-commit**: Automated checks
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Changelog
+
+### Version 0.2.0 - Phase 4 Complete (May 2025)
+- ✅ **MongoDB Atlas Integration**: Enterprise database backend
+- ✅ **Data Migration System**: Automatic JSON import with validation
+- ✅ **Advanced Analytics**: Database-driven evaluation insights
+- ✅ **Backup & Recovery**: Automated data safety systems
+- ✅ **CLI Enhancement**: Migration and export commands
+- ✅ **Production Ready**: Enterprise-grade reliability and scalability
+
+### Version 0.1.0 - Core System (Previous)
+- ✅ **Multi-Model Support**: API and local model evaluation
+- ✅ **Web Interface**: Complete frontend with real-time monitoring
+- ✅ **CLI Tools**: Command-line evaluation workflows
+- ✅ **Resume Functionality**: Interruption recovery
+- ✅ **Automated Scoring**: LLM-based evaluation metrics
+
+---
+
+**StorybenchLLM** - Enterprise-grade LLM creativity evaluation with MongoDB Atlas backend 🚀

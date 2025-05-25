@@ -367,5 +367,123 @@ def status():
     asyncio.run(show_status())
 
 
+@cli.command()
+@click.option('--output-dir', '-o', default='output', 
+              help='Directory containing JSON files to import')
+@click.option('--backup/--no-backup', default=True, 
+              help='Create backup of original files before cleanup')
+@click.option('--validate', is_flag=True, 
+              help='Run data validation after import')
+@click.option('--cleanup', is_flag=True, 
+              help='Clean up original files after successful import')
+def migrate(output_dir, backup, validate, cleanup):
+    """Import existing JSON evaluation data into MongoDB (Phase 4)."""
+    
+    async def run_migration():
+        from dotenv import load_dotenv
+        load_dotenv()  # Load environment variables
+        
+        from .database.migrations.import_existing import ExistingDataImporter
+        
+        try:
+            # Connect to database
+            from .database.connection import init_database
+            database = await init_database()
+            importer = ExistingDataImporter(database)
+            
+            click.echo("=" * 50)
+            click.echo("📊 StorybenchLLM Phase 4: Data Migration")
+            click.echo("=" * 50)
+            
+            # Import data
+            click.echo(f"🔄 Importing data from {output_dir}...")
+            stats = await importer.import_from_output_directory(output_dir)
+            
+            click.echo("\n📈 Import Results:")
+            click.echo(f"  • Files processed: {stats['files_processed']}")
+            click.echo(f"  • Evaluations imported: {stats['evaluations_imported']}")
+            click.echo(f"  • Responses imported: {stats['responses_imported']}")
+            if stats['errors'] > 0:
+                click.echo(f"  • Errors: {stats['errors']}")
+            
+            # Validate if requested
+            if validate:
+                click.echo("\n🔍 Validating imported data...")
+                validation = await importer.validate_import_integrity()
+                
+                if validation['is_valid']:
+                    click.echo("✅ Data validation passed!")
+                else:
+                    click.echo("⚠️  Data validation found issues:")
+                    for issue in validation['missing_required_fields']:
+                        click.echo(f"    • {issue}")
+                    for anomaly in validation['timestamp_anomalies']:
+                        click.echo(f"    • {anomaly}")
+                    if validation['orphaned_responses'] > 0:
+                        click.echo(f"    • {validation['orphaned_responses']} orphaned responses")
+            
+            # Cleanup if requested and successful
+            if cleanup and stats['errors'] == 0:
+                click.echo("\n🧹 Cleaning up original files...")
+                cleanup_result = await importer.cleanup_file_dependencies(output_dir, backup)
+                
+                if cleanup_result['cleanup_successful']:
+                    click.echo(f"✅ Moved {cleanup_result['files_moved']} files to backup")
+                    if cleanup_result['backup_created']:
+                        click.echo(f"📁 Backup location: {cleanup_result['backup_path']}")
+                else:
+                    click.echo("❌ Cleanup failed")
+            
+            if stats['errors'] == 0:
+                click.echo("\n🎉 Phase 4 Migration Complete!")
+                click.echo("✨ StorybenchLLM now uses MongoDB for all data storage")
+            else:
+                click.echo(f"\n⚠️  Migration completed with {stats['errors']} errors")
+                
+        except Exception as e:
+            click.echo(f"❌ Migration failed: {e}")
+            raise
+            
+    asyncio.run(run_migration())
+
+
+@cli.command()
+@click.option('--export-dir', '-e', default='export', 
+              help='Directory to export data for analysis')
+@click.option('--evaluation-ids', '-i', multiple=True,
+              help='Specific evaluation IDs to export (optional)')
+def export(export_dir, evaluation_ids):
+    """Export evaluation data from MongoDB to JSON format for analysis."""
+    
+    async def run_export():
+        from dotenv import load_dotenv
+        load_dotenv()  # Load environment variables
+        
+        from .database.connection import init_database
+        from .database.migrations.import_existing import ExistingDataImporter
+        
+        try:
+            database = await init_database()
+            importer = ExistingDataImporter(database)
+            
+            click.echo("📤 Exporting evaluation data...")
+            
+            # Convert evaluation_ids to ObjectIds if provided
+            eval_ids = None
+            if evaluation_ids:
+                from bson import ObjectId
+                eval_ids = [ObjectId(eid) for eid in evaluation_ids]
+            
+            export_path = await importer.export_for_analysis(export_dir, eval_ids)
+            
+            click.echo(f"✅ Data exported to: {export_path}")
+            
+        except Exception as e:
+            click.echo(f"❌ Export failed: {e}")
+            raise
+            
+    asyncio.run(run_export())
+
+
 if __name__ == '__main__':
     cli()

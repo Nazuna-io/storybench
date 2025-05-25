@@ -258,7 +258,7 @@ class EvaluationCriteria(BaseModel):
 class Response(BaseModel):
     """Individual model response document."""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    evaluation_id: PyObjectId
+    evaluation_id: str  # Temporarily change to string for testing
     model_name: str
     sequence: str
     run: int

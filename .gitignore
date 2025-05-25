@@ -65,6 +65,8 @@ Thumbs.db
 # Project specific
 .env
 output/
+output_backup_*/
+test_export/
 models/
 *.log
 frontend.log
