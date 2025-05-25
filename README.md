@@ -116,6 +116,54 @@ pytest tests/test_python312_compatibility.py -v # Python 3.12+ tests
 - ✅ **Comprehensive Testing**: Refactored test suite with high success rate
 - ✅ **API Documentation**: Interactive API docs available
 
+## Roadmap & TODOs
+
+### High Priority
+- [ ] **Database Integration**: Replace file-based storage with MongoDB Atlas
+  - Migrate configuration storage from YAML/JSON files to MongoDB collections
+  - Store evaluation results in database with proper indexing and querying
+  - Add database connection management and error handling
+  - Implement data migration tools for existing file-based data
+  - Add database backup and restore functionality
+
+- [ ] **Enhanced Web UI**: Complete the web interface with missing functionality
+  - **API Key Management**: Secure interface for managing API keys (OpenAI, Anthropic, Google)
+  - **Advanced Model Configuration**: UI for all model parameters (temperature, max_tokens, etc.)
+  - **Prompt Editor**: Rich text editor for creating and editing creative writing prompts
+  - **Evaluation Criteria Management**: Interface for customizing scoring criteria
+  - **User Authentication**: Login system and user-specific configurations
+  - **Results Export**: Download results as CSV, Excel, or PDF reports
+  - **Evaluation History**: Timeline view of past evaluations with comparison tools
+
+### Medium Priority
+- [ ] **Performance Optimization**
+  - Implement caching layer for frequent database queries
+  - Add pagination for large result sets
+  - Optimize frontend bundle size and loading times
+  - Background job queue for long-running evaluations
+
+- [ ] **Advanced Features**
+  - **Evaluation Templates**: Pre-configured evaluation setups for different use cases
+  - **Batch Evaluations**: Run multiple model comparisons simultaneously
+  - **A/B Testing**: Compare different prompt variations across models
+  - **Analytics Dashboard**: Statistical analysis and trend visualization
+  - **API Rate Limiting**: Smart throttling for API-based models
+  - **Model Performance Benchmarks**: Standardized creativity scoring across models
+
+### Low Priority
+- [ ] **Deployment & Infrastructure**
+  - Docker containerization improvements
+  - Kubernetes deployment manifests
+  - CI/CD pipeline for automated testing and deployment
+  - Production monitoring and logging
+  - Automated backups and disaster recovery
+
+- [ ] **Integrations**
+  - Webhook support for evaluation completion notifications
+  - Slack/Discord bot integration for team notifications
+  - Integration with popular ML platforms (Weights & Biases, MLflow)
+  - REST API versioning and backward compatibility
+
 ## Project Structure
 
 ```
