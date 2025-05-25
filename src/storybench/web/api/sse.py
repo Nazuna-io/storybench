@@ -12,10 +12,11 @@ from ..services.eval_service import EvaluationService
 
 router = APIRouter()
 
-def get_evaluation_service() -> EvaluationService:
-    """Get evaluation service instance."""
-    from ..api.evaluations import _eval_service
-    return _eval_service
+def get_evaluation_service():
+    """Get evaluation service instance - disabled for database architecture."""
+    # Note: This needs to be updated to work with database-backed services
+    # For now, return None to prevent import errors
+    return None
 
 
 class SSEManager:
@@ -120,8 +121,12 @@ async def get_evaluation_events():
     )
 
 
-def setup_sse_callbacks(eval_service: EvaluationService):
+def setup_sse_callbacks(eval_service=None):
     """Setup SSE callbacks for the evaluation service."""
+    if eval_service is None:
+        # SSE callbacks disabled for database architecture
+        return
+    # Original callback setup would go here
     eval_service.set_callbacks(
         progress_callback=lambda data: asyncio.create_task(_sse_manager.send_progress_update(data)),
         output_callback=lambda msg: asyncio.create_task(_sse_manager.send_output_message(msg)),

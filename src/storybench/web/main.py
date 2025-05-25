@@ -37,8 +37,8 @@ app.include_router(sse.router, prefix="/api/sse", tags=["Server-Sent Events"])
 
 # Setup SSE callbacks for real-time updates
 from .api.sse import setup_sse_callbacks
-from .api.evaluations import _eval_service
-setup_sse_callbacks(_eval_service)
+# Note: SSE callbacks now use dependency injection instead of global service
+# setup_sse_callbacks() # Disabled until SSE is updated for database architecture
 
 # Serve static files (frontend build) when running in production
 frontend_path = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"
