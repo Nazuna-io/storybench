@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="storybench",
-    version="0.2.0",
+    version="0.3.0",
     description="Enterprise LLM creativity evaluation with MongoDB Atlas backend",
     author="Todd",
     packages=find_packages(where="src"),

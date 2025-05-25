@@ -8,6 +8,12 @@ secrets.txt
 secrets.json
 api_keys.txt
 
+# Result files (prevent orphan files)
+pipeline_results_*.json
+*_evaluation_results.json
+test_*.json
+results_*.json
+
 # Frontend dependencies and build artifacts
 /frontend/node_modules/
 /frontend/dist/
