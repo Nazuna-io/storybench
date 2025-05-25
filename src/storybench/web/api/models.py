@@ -1,7 +1,7 @@
 """Updated API endpoints for model configuration management using MongoDB."""
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from ..models.requests import ModelsConfigRequest, APIKeysRequest
 from ..models.responses import ModelsConfigResponse, APIKeysResponse
@@ -183,3 +183,115 @@ async def test_model(request: Dict[str, str]):
         
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@router.get("/global-settings", response_model=Dict[str, Any])
+async def get_global_settings(config_service: ConfigService = Depends(get_config_service)):
+    """Get current global settings from MongoDB."""
+    try:
+        models_config = await config_service.get_active_models()
+        if not models_config:
+            # Return default global settings
+            return {
+                "temperature": 1.0,
+                "max_tokens": 8192,
+                "num_runs": 3,
+                "vram_limit_percent": 90
+            }
+            
+        return models_config.global_settings.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load global settings: {str(e)}")
+
+
+@router.put("/global-settings", response_model=Dict[str, Any])
+async def update_global_settings(
+    global_settings: Dict[str, Any],
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Update only global settings, preserving existing models."""
+    try:
+        # Get current configuration to preserve models
+        current_config = await config_service.get_active_models()
+        
+        if current_config:
+            # Update existing config with new global settings
+            request = {
+                "global_settings": global_settings,
+                "models": [model.model_dump(mode='json') for model in current_config.models],
+                "evaluation": {
+                    "auto_evaluate": current_config.evaluation.auto_evaluate_generated_responses,
+                    "evaluator_models": current_config.evaluation.evaluator_llm_names,
+                    "max_retries": current_config.evaluation.max_retries_on_evaluation_failure
+                }
+            }
+        else:
+            # No existing config, create new with just global settings
+            request = {
+                "global_settings": global_settings,
+                "models": [],
+                "evaluation": {
+                    "auto_evaluate": True,
+                    "evaluator_models": [],
+                    "max_retries": 3
+                }
+            }
+        
+        # Save updated configuration
+        models_config = await config_service.save_models_config(request)
+        
+        return models_config.global_settings.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save global settings: {str(e)}")
+
+
+@router.put("/models-only", response_model=Dict[str, Any])
+async def update_models_only(
+    models: List[Dict[str, Any]],
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Update only models, preserving existing global settings."""
+    try:
+        # Get current configuration to preserve global settings
+        current_config = await config_service.get_active_models()
+        
+        if current_config:
+            # Update existing config with new models
+            request = {
+                "global_settings": current_config.global_settings.model_dump(),
+                "models": models,
+                "evaluation": {
+                    "auto_evaluate": current_config.evaluation.auto_evaluate_generated_responses,
+                    "evaluator_models": current_config.evaluation.evaluator_llm_names,
+                    "max_retries": current_config.evaluation.max_retries_on_evaluation_failure
+                }
+            }
+        else:
+            # No existing config, create new with default global settings
+            request = {
+                "global_settings": {
+                    "temperature": 1.0,
+                    "max_tokens": 8192,
+                    "num_runs": 3,
+                    "vram_limit_percent": 90
+                },
+                "models": models,
+                "evaluation": {
+                    "auto_evaluate": True,
+                    "evaluator_models": [],
+                    "max_retries": 3
+                }
+            }
+        
+        # Save updated configuration
+        models_config = await config_service.save_models_config(request)
+        
+        # Return models data
+        return {
+            "models": [model.model_dump(mode='json') for model in models_config.models],
+            "config_hash": models_config.config_hash,
+            "version": models_config.version,
+            "created_at": models_config.created_at.isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save models: {str(e)}")

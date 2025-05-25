@@ -393,15 +393,12 @@ const saveGlobalSettings = async () => {
 
   try {
     saving.value = true
-    const response = await fetch('http://localhost:8000/api/config/models', {
+    const response = await fetch('http://localhost:8000/api/config/global-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        global_settings: globalSettings,
-        models: models.value
-      })
+      body: JSON.stringify(globalSettings)
     })
 
     if (response.ok) {
@@ -536,15 +533,12 @@ const removeModel = (index) => {
 const saveModels = async () => {
   try {
     saving.value = true
-    const response = await fetch('http://localhost:8000/api/config/models', {
+    const response = await fetch('http://localhost:8000/api/config/models-only', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        global_settings: globalSettings,
-        models: models.value
-      })
+      body: JSON.stringify(models.value)
     })
 
     if (response.ok) {
