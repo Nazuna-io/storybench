@@ -33,10 +33,11 @@ class EvaluationConfigResponse(BaseModel):
 
 class ModelsConfigResponse(BaseModel):
     """Response model for complete models configuration."""
-    version: int
-    global_settings: GlobalSettingsResponse
     models: List[ModelConfigResponse]
     evaluation: EvaluationConfigResponse
+    config_hash: str
+    version: int
+    created_at: str
 
 
 class APIKeysResponse(BaseModel):
@@ -58,6 +59,9 @@ class PromptResponse(BaseModel):
 class PromptsResponse(BaseModel):
     """Response model for prompts."""
     prompts: Dict[str, List[PromptResponse]]
+    config_hash: str
+    version: int
+    created_at: str
 
 
 class ValidationErrorDetail(BaseModel):

@@ -1,68 +1,70 @@
-"""API endpoints for model configuration management."""
+"""Updated API endpoints for model configuration management using MongoDB."""
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 
 from ..models.requests import ModelsConfigRequest, APIKeysRequest
 from ..models.responses import ModelsConfigResponse, APIKeysResponse
-from ..services.config_service import ConfigService
-from ..repositories.file_repository import FileRepository
+from ...database.connection import get_database
+from ...database.services.config_service import ConfigService
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 router = APIRouter()
 
-# Dependency to get config service
-def get_config_service() -> ConfigService:
-    """Get config service instance."""
-    repository = FileRepository()
-    return ConfigService(repository)
+# Dependency to get database config service
+async def get_config_service() -> ConfigService:
+    """Get database-backed config service instance."""
+    database = await get_database()
+    return ConfigService(database)
 
 
 @router.get("/models", response_model=ModelsConfigResponse)
 async def get_models_config(config_service: ConfigService = Depends(get_config_service)):
-    """Get current model configurations."""
+    """Get current model configurations from MongoDB."""
     try:
-        config_data = await config_service.get_models_config()
-        return ModelsConfigResponse(**config_data)
+        models_config = await config_service.get_active_models()
+        if not models_config:
+            raise HTTPException(status_code=404, detail="No active models configuration found")
+            
+        # Convert to response format
+        response_data = {
+            "models": models_config.models,
+            "evaluation": models_config.evaluation.dict(),
+            "config_hash": models_config.config_hash,
+            "version": models_config.version,
+            "created_at": models_config.created_at.isoformat()
+        }
+        return ModelsConfigResponse(**response_data)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load models config: {str(e)}")
 
 
-@router.put("/models")
+@router.post("/models", response_model=ModelsConfigResponse)
 async def update_models_config(
-    config: ModelsConfigRequest,
+    request: ModelsConfigRequest,
     config_service: ConfigService = Depends(get_config_service)
 ):
-    """Update model configurations."""
+    """Update model configurations in MongoDB."""
     try:
-        # Convert Pydantic model to dict for saving
-        config_dict = config.dict()
-        await config_service.update_models_config(config_dict)
-        return {"message": "Models configuration updated successfully"}
+        # Save new configuration
+        models_data = {
+            "models": request.models,
+            "evaluation": request.evaluation
+        }
+        
+        models_config = await config_service.save_models_config(models_data)
+        
+        # Convert to response format
+        response_data = {
+            "models": models_config.models,
+            "evaluation": models_config.evaluation.dict(),
+            "config_hash": models_config.config_hash,
+            "version": models_config.version,
+            "created_at": models_config.created_at.isoformat()
+        }
+        return ModelsConfigResponse(**response_data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update models config: {str(e)}")
-
-
-@router.get("/api-keys", response_model=APIKeysResponse)
-async def get_api_keys(config_service: ConfigService = Depends(get_config_service)):
-    """Get current API keys (masked)."""
-    try:
-        keys = await config_service.get_api_keys()
-        return APIKeysResponse(**keys)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load API keys: {str(e)}")
-
-
-@router.put("/api-keys")
-async def update_api_keys(
-    keys: APIKeysRequest,
-    config_service: ConfigService = Depends(get_config_service)
-):
-    """Update API keys."""
-    try:
-        # Only update keys that are provided (not None)
-        keys_dict = {k: v for k, v in keys.dict().items() if v is not None}
-        await config_service.update_api_keys(keys_dict)
-        return {"message": "API keys updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update API keys: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save models config: {str(e)}")

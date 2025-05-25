@@ -285,5 +285,87 @@ def _task_is_completed(sequence, run, prompt_idx, next_task, sequences):
             return prompt_idx < next_prompt_idx
 
 
+@cli.group()
+def config():
+    """Configuration management commands."""
+    pass
+
+@config.command()
+@click.option('--config-dir', default='config', help='Configuration directory path')
+def migrate(config_dir):
+    """Migrate configuration files to MongoDB."""
+    import asyncio
+    from .database.connection import init_database
+    from .database.migrations.config_migration import ConfigMigrationService
+    
+    async def run_migration():
+        try:
+            # Initialize database
+            db = await init_database()
+            
+            # Run migration
+            migration_service = ConfigMigrationService(db, config_dir)
+            stats = await migration_service.migrate_all_configs()
+            
+            # Print results
+            click.echo("Configuration Migration Results:")
+            click.echo("=" * 40)
+            
+            for config_type, result in stats.items():
+                if result["migrated"]:
+                    click.echo(f"✅ {config_type}: Successfully migrated (hash: {result.get('config_hash', 'N/A')})")
+                else:
+                    error_msg = result.get("error", "Unknown error")
+                    click.echo(f"❌ {config_type}: Failed - {error_msg}")
+                    
+        except Exception as e:
+            click.echo(f"Migration failed: {e}")
+            
+    asyncio.run(run_migration())
+
+@config.command()
+def status():
+    """Show current configuration status."""
+    import asyncio
+    from .database.connection import init_database
+    from .database.services.config_service import ConfigService
+    
+    async def show_status():
+        try:
+            # Initialize database
+            db = await init_database()
+            config_service = ConfigService(db)
+            
+            # Get active configurations
+            models_config = await config_service.get_active_models()
+            prompts_config = await config_service.get_active_prompts()
+            criteria_config = await config_service.get_active_criteria()
+            
+            click.echo("Current Configuration Status:")
+            click.echo("=" * 40)
+            
+            if models_config:
+                click.echo(f"✅ Models: Active (hash: {models_config.config_hash}, {len(models_config.models)} models)")
+            else:
+                click.echo("❌ Models: No active configuration")
+                
+            if prompts_config:
+                seq_count = len(prompts_config.sequences)
+                click.echo(f"✅ Prompts: Active (hash: {prompts_config.config_hash}, {seq_count} sequences)")
+            else:
+                click.echo("❌ Prompts: No active configuration")
+                
+            if criteria_config:
+                criteria_count = len(criteria_config.criteria)
+                click.echo(f"✅ Criteria: Active (hash: {criteria_config.config_hash}, {criteria_count} criteria)")
+            else:
+                click.echo("❌ Criteria: No active configuration")
+                
+        except Exception as e:
+            click.echo(f"Status check failed: {e}")
+            
+    asyncio.run(show_status())
+
+
 if __name__ == '__main__':
     cli()
