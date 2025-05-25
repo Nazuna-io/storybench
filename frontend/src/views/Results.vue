@@ -102,38 +102,82 @@
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Model
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('model_name')">
+                  <div class="flex items-center space-x-1">
+                    <span>Model</span>
+                    <span class="text-gray-400">{{ getSortIcon('model_name') }}</span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('timestamp')">
+                  <div class="flex items-center space-x-1">
+                    <span>Date</span>
+                    <span class="text-gray-400">{{ getSortIcon('timestamp') }}</span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('status')">
+                  <div class="flex items-center space-x-1">
+                    <span>Status</span>
+                    <span class="text-gray-400">{{ getSortIcon('status') }}</span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Overall Score
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('overall_score')">
+                  <div class="flex items-center space-x-1">
+                    <span>Overall Score</span>
+                    <span class="text-gray-400">{{ getSortIcon('overall_score') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Creativity
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('creativity')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Creativity</span>
+                    <span class="text-gray-400">{{ getSortIcon('creativity') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Coherence
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('coherence')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Coherence</span>
+                    <span class="text-gray-400">{{ getSortIcon('coherence') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Character
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('character_depth')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Character</span>
+                    <span class="text-gray-400">{{ getSortIcon('character_depth') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dialogue
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('dialogue_quality')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Dialogue</span>
+                    <span class="text-gray-400">{{ getSortIcon('dialogue_quality') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Visual
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('visual_imagination')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Visual</span>
+                    <span class="text-gray-400">{{ getSortIcon('visual_imagination') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Depth
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('conceptual_depth')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Depth</span>
+                    <span class="text-gray-400">{{ getSortIcon('conceptual_depth') }}</span>
+                  </div>
                 </th>
-                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Adapt.
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    @click="sortResults('adaptability')">
+                  <div class="flex items-center justify-center space-x-1">
+                    <span>Adapt.</span>
+                    <span class="text-gray-400">{{ getSortIcon('adaptability') }}</span>
+                  </div>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -144,7 +188,7 @@
               <tr v-for="result in results" :key="result.id" class="hover:bg-gray-50 transition-colors duration-150 table-row">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">{{ result.model_name }}</div>
-                  <div class="text-sm text-gray-500">{{ result.config_version }}</div>
+                  <div class="text-sm text-gray-500">{{ getConfigVersion(result.config_version) }}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ formatDate(result.timestamp) }}
@@ -212,7 +256,7 @@
             <div class="flex items-center justify-between mb-3">
               <div>
                 <h3 class="text-sm font-medium text-gray-900">{{ result.model_name }}</h3>
-                <p class="text-xs text-gray-500">{{ result.config_version }}</p>
+                <p class="text-xs text-gray-500">{{ getConfigVersion(result.config_version) }}</p>
               </div>
               <span 
                 class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
@@ -266,9 +310,9 @@
       </div>
       
       <!-- Pagination -->
-      <div v-if="filteredResults.length > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
+      <div v-if="filteredAndSortedResults.length > 0" class="mt-6 flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
         <div class="text-sm text-gray-700">
-          Showing {{ startIndex + 1 }} to {{ Math.min(startIndex + pageSize, filteredResults.length) }} of {{ filteredResults.length }} results
+          Showing {{ startIndex + 1 }} to {{ Math.min(startIndex + pageSize, filteredAndSortedResults.length) }} of {{ filteredAndSortedResults.length }} results
         </div>
         
         <div class="flex items-center space-x-2">
@@ -334,9 +378,11 @@ export default {
     const pageSize = ref(10)
     const showDetailModal = ref(false)
     const selectedResult = ref(null)
+    const sortBy = ref('overall_score')
+    const sortDirection = ref('desc')
     
-    // Computed properties for filtering and pagination
-    const filteredResults = computed(() => {
+    // Computed properties for filtering, sorting and pagination
+    const filteredAndSortedResults = computed(() => {
       let filtered = results.value
       
       // Apply search filter
@@ -344,7 +390,7 @@ export default {
         const query = searchQuery.value.toLowerCase()
         filtered = filtered.filter(result => 
           result.model_name.toLowerCase().includes(query) ||
-          result.config_version.toLowerCase().includes(query)
+          getConfigVersion(result.config_version).toLowerCase().includes(query)
         )
       }
       
@@ -353,16 +399,28 @@ export default {
         filtered = filtered.filter(result => result.status === statusFilter.value)
       }
       
+      // Apply sorting
+      filtered.sort((a, b) => {
+        const aValue = getSortableValue(a, sortBy.value)
+        const bValue = getSortableValue(b, sortBy.value)
+        
+        let comparison = 0
+        if (aValue < bValue) comparison = -1
+        if (aValue > bValue) comparison = 1
+        
+        return sortDirection.value === 'asc' ? comparison : -comparison
+      })
+      
       return filtered
     })
     
-    const totalPages = computed(() => Math.ceil(filteredResults.value.length / pageSize.value))
+    const totalPages = computed(() => Math.ceil(filteredAndSortedResults.value.length / pageSize.value))
     
     const startIndex = computed(() => (currentPage.value - 1) * pageSize.value)
     
     const paginatedResults = computed(() => {
       const start = startIndex.value
-      return filteredResults.value.slice(start, start + pageSize.value)
+      return filteredAndSortedResults.value.slice(start, start + pageSize.value)
     })
     
     const visiblePages = computed(() => {
@@ -401,8 +459,8 @@ export default {
       return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-'
     })
     
-    // Reset page when filters change
-    watch([searchQuery, statusFilter], () => {
+    // Reset page when filters or sorting change
+    watch([searchQuery, statusFilter, sortBy, sortDirection], () => {
       currentPage.value = 1
     })
     
@@ -410,13 +468,62 @@ export default {
       return result.scores?.detailed?.[criterion] ? result.scores.detailed[criterion].toFixed(1) : '-'
     }
     
+    const getConfigVersion = (configHash) => {
+      // Convert hash to readable version - take first 8 characters for brevity
+      return configHash ? `Config v${configHash.substring(0, 8)}` : 'Unknown'
+    }
+    
+    const getSortableValue = (result, column) => {
+      switch (column) {
+        case 'model_name':
+          return result.model_name
+        case 'timestamp':
+          return new Date(result.timestamp)
+        case 'status':
+          return result.status
+        case 'overall_score':
+          return result.scores?.overall || 0
+        case 'creativity':
+          return result.scores?.detailed?.creativity || 0
+        case 'coherence':
+          return result.scores?.detailed?.coherence || 0
+        case 'character_depth':
+          return result.scores?.detailed?.character_depth || 0
+        case 'dialogue_quality':
+          return result.scores?.detailed?.dialogue_quality || 0
+        case 'visual_imagination':
+          return result.scores?.detailed?.visual_imagination || 0
+        case 'conceptual_depth':
+          return result.scores?.detailed?.conceptual_depth || 0
+        case 'adaptability':
+          return result.scores?.detailed?.adaptability || 0
+        default:
+          return 0
+      }
+    }
+    
+    const sortResults = (column) => {
+      if (sortBy.value === column) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+      } else {
+        sortBy.value = column
+        sortDirection.value = column === 'overall_score' ? 'desc' : 'asc'
+      }
+      currentPage.value = 1 // Reset to first page when sorting
+    }
+    
+    const getSortIcon = (column) => {
+      if (sortBy.value !== column) {
+        return '↕️'
+      }
+      return sortDirection.value === 'asc' ? '↑' : '↓'
+    }
+    
     const formatDate = (dateString) => {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric'
       })
     }
     
@@ -441,6 +548,13 @@ export default {
         if (response.ok) {
           const data = await response.json()
           results.value = data.results || []
+          // Apply default sort by overall score (highest first)
+          if (results.value.length > 0 && sortBy.value === 'overall_score') {
+            // Force re-sort on initial load
+            const currentSort = sortBy.value
+            sortBy.value = ''
+            sortResults(currentSort)
+          }
         } else {
           console.error('Failed to load results:', response.statusText)
           results.value = []
@@ -477,15 +591,20 @@ export default {
       totalPages,
       startIndex,
       visiblePages,
-      filteredResults,
+      filteredAndSortedResults,
       totalEvaluations,
       modelsTested,
       averageScore,
       showDetailModal,
       selectedResult,
+      sortBy,
+      sortDirection,
       formatDate,
       getStatusClass,
       getScoreValue,
+      getConfigVersion,
+      sortResults,
+      getSortIcon,
       showDetail,
       closeDetail
     }

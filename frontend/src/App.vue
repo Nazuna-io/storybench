@@ -19,7 +19,7 @@
         class="flex-1 transition-all duration-300 ease-in-out"
         :class="mainContentClasses"
       >
-        <div class="p-4 sm:p-6">
+        <div class="p-2 sm:p-4">
           <router-view />
         </div>
       </main>
