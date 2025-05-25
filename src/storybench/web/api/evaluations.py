@@ -26,7 +26,7 @@ async def get_config_service() -> ConfigService:
     return ConfigService(database)
 
 
-@router.post("/evaluations/start", response_model=Dict[str, Any])
+@router.post("/start", response_model=Dict[str, Any])
 async def start_evaluation(
     request: EvaluationStartRequest,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner),
@@ -66,7 +66,7 @@ async def start_evaluation(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start evaluation: {str(e)}")
 
-@router.get("/evaluations/{evaluation_id}/progress", response_model=Dict[str, Any])
+@router.get("/{evaluation_id}/progress", response_model=Dict[str, Any])
 async def get_evaluation_progress(
     evaluation_id: str,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
@@ -90,7 +90,7 @@ async def get_evaluation_progress(
         raise HTTPException(status_code=500, detail=f"Failed to get progress: {str(e)}")
 
 
-@router.get("/evaluations/incomplete", response_model=List[Dict[str, Any]])
+@router.get("/incomplete", response_model=List[Dict[str, Any]])
 async def get_incomplete_evaluations(
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
 ):
@@ -110,7 +110,7 @@ async def get_incomplete_evaluations(
         raise HTTPException(status_code=500, detail=f"Failed to get incomplete evaluations: {str(e)}")
 
 
-@router.post("/evaluations/{evaluation_id}/complete")
+@router.post("/{evaluation_id}/complete")
 async def mark_evaluation_complete(
     evaluation_id: str,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
@@ -128,7 +128,7 @@ async def mark_evaluation_complete(
         raise HTTPException(status_code=500, detail=f"Failed to mark evaluation complete: {str(e)}")
 
 
-@router.post("/evaluations/{evaluation_id}/fail")
+@router.post("/{evaluation_id}/fail")
 async def mark_evaluation_failed(
     evaluation_id: str,
     error_message: str,
@@ -146,7 +146,7 @@ async def mark_evaluation_failed(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to mark evaluation failed: {str(e)}")
 
-@router.get("/evaluations/{evaluation_id}/stream")
+@router.get("/{evaluation_id}/stream")
 async def stream_evaluation_progress(
     evaluation_id: str,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
@@ -187,7 +187,7 @@ async def stream_evaluation_progress(
     )
 
 
-@router.post("/evaluations/{evaluation_id}/pause")
+@router.post("/{evaluation_id}/pause")
 async def pause_evaluation(
     evaluation_id: str,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
@@ -208,7 +208,7 @@ async def pause_evaluation(
         raise HTTPException(status_code=500, detail=f"Failed to pause evaluation: {str(e)}")
 
 
-@router.post("/evaluations/{evaluation_id}/resume")
+@router.post("/{evaluation_id}/resume")
 async def resume_evaluation(
     evaluation_id: str,
     runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
