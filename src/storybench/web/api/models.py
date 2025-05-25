@@ -112,16 +112,14 @@ async def update_api_keys(
 ):
     """Update API keys in the database."""
     try:
-        saved_keys = {}
+        saved_count = 0
         for provider, key in keys.items():
             if key:  # Only save non-empty keys
                 success = await api_keys_repo.save_api_key(provider, key)
                 if success:
-                    saved_keys[provider] = "saved"
-                else:
-                    saved_keys[provider] = "failed"
+                    saved_count += 1
         
-        return {"status": "success", "saved": saved_keys}
+        return {"status": "success", "saved_count": str(saved_count)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save API keys: {str(e)}")
 

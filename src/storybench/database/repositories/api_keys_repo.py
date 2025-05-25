@@ -7,16 +7,20 @@ from .base import BaseRepository
 from ...utils.encryption import encryption_service
 
 
-class ApiKeysRepository(BaseRepository):
+class ApiKeysRepository(BaseRepository[ApiKeys]):
     """Repository for managing encrypted API keys."""
 
     def __init__(self, database: AsyncIOMotorDatabase):
-        super().__init__(database)
-        self.collection = database.api_keys
+        super().__init__(database, ApiKeys)
+
+    def _get_collection_name(self) -> str:
+        """Return the collection name for this repository."""
+        return "api_keys"
 
     async def save_api_key(self, provider: str, api_key: str) -> bool:
         """Save an encrypted API key for a provider."""
         try:
+            from datetime import datetime
             encrypted_key = encryption_service.encrypt(api_key)
             
             # Update existing or create new
@@ -25,8 +29,8 @@ class ApiKeysRepository(BaseRepository):
                 {
                     "provider": provider,
                     "encrypted_key": encrypted_key,
-                    "created_at": ApiKeys().created_at,
-                    "updated_at": ApiKeys().updated_at,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow(),
                     "is_active": True
                 },
                 upsert=True
