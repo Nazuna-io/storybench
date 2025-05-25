@@ -67,6 +67,10 @@ Thumbs.db
 output/
 models/
 *.log
+frontend.log
+start_server.py
+*.pid
+*.tmp
 
 # Testing
 .coverage
@@ -74,6 +78,7 @@ models/
 .tox/
 .coverage.*
 htmlcov/
+tests/reports/
 
 # Documentation
 docs/_build/

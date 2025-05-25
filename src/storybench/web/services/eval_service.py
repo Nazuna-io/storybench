@@ -87,15 +87,17 @@ class EvaluationService:
             return {
                 "running": self._is_running,
                 "current_model": self._current_model,
-                "total_tasks": self._total_tasks,
-                "completed_tasks": self._completed_tasks,
-                "current_sequence": self._current_sequence,
-                "current_run": self._current_run,
-                "current_prompt": self._current_prompt,
-                "progress_percentage": (
-                    (self._completed_tasks / self._total_tasks * 100) 
-                    if self._total_tasks > 0 else 0
-                )
+                "progress": {
+                    "total_tasks": self._total_tasks,
+                    "completed_tasks": self._completed_tasks,
+                    "current_sequence": self._current_sequence,
+                    "current_run": self._current_run,
+                    "current_prompt": self._current_prompt,
+                    "progress_percentage": (
+                        (self._completed_tasks / self._total_tasks * 100) 
+                        if self._total_tasks > 0 else 0
+                    )
+                }
             }
             
     async def get_resume_status(self, config: Config) -> ResumeInfo:

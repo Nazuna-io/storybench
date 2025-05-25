@@ -9,7 +9,7 @@ setup(
     author="Todd",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    python_requires=">=3.10",
+    python_requires=">=3.12",
     install_requires=[
         "torch>=2.0.0",
         "transformers>=4.30.0",
@@ -40,6 +40,12 @@ setup(
             "flake8>=6.0.0",
             "pre-commit>=3.3.0",
             "mypy>=1.4.0",
+            # Web UI testing dependencies
+            "selenium>=4.22.0",
+            "pytest-selenium>=4.1.0",
+            "pytest-html>=4.0.0",
+            "webdriver-manager>=4.0.1",
+            "requests>=2.26.0",
         ]
     },
     entry_points={
@@ -51,8 +57,6 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Researchers",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
 )

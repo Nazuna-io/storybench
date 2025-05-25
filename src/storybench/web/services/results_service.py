@@ -31,16 +31,33 @@ class ResultsService:
                 with open(result_file, 'r') as f:
                     data = json.load(f)
                     
+                # Extract config_hash from filename to allow filtering
+                # Assumes filename format like: ModelName_configHash.json or any_string_configHash.json
+                file_config_hash = ""
+                if '_' in result_file.name:
+                    try:
+                        file_config_hash = result_file.name.split('_')[-1].replace('.json', '')
+                    except IndexError:
+                        # Handle cases where split might be problematic, though '_' check should prevent most
+                        pass # file_config_hash remains ""
+
                 # Filter by config version if specified
-                if config_version and config_hash != config_version:
+                if config_version and file_config_hash != config_version:
                     continue
                     
                 summary = self._create_result_summary(data, result_file.name)
                 if summary:
                     results.append(summary)
                     
+            except json.JSONDecodeError:
+                # Specifically skip corrupted JSON files (e.g., invalid JSON syntax)
+                # Optionally, add logging here: logger.warning(f"Skipping corrupted JSON file: {result_file.name}")
+                continue
             except Exception as e:
-                # Skip corrupted files
+                # Skip files that cause other errors during processing or summary creation
+                # This could be due to unexpected data structure if _create_result_summary fails internally
+                # and doesn't return None, or other file I/O issues not caught by JSONDecodeError.
+                # Optionally, add logging here: logger.error(f"Error processing file {result_file.name}: {e}")
                 continue
                 
         # Sort by timestamp, most recent first

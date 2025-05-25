@@ -3,14 +3,40 @@
 import pytest
 import requests
 import json
+import time
 
+BASE_URL = "http://localhost:8000"
+SERVER_WAIT_TIMEOUT = 15  # seconds for server to be ready
+API_TIMEOUT = 10 # seconds for API calls
+
+def wait_for_server(url, timeout):
+    """Wait for server to be available."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            response = requests.get(f"{url}/api/health", timeout=2)
+            if response.status_code == 200:
+                print(f"Server at {url} is ready.")
+                return True
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            time.sleep(1)
+    print(f"Server at {url} did not become ready within {timeout}s.")
+    return False
+
+@pytest.fixture(scope="class")
+def backend_server_ready():
+    """Fixture to ensure backend server is running before tests in a class."""
+    if not wait_for_server(BASE_URL, SERVER_WAIT_TIMEOUT):
+        pytest.fail(f"Backend server at {BASE_URL} not responding after {SERVER_WAIT_TIMEOUT}s. Ensure it's running.")
+
+@pytest.mark.usefixtures("backend_server_ready")
 class TestEvaluationEndpoints:
     """Test evaluation management endpoints."""
     
     @pytest.mark.integration
     def test_evaluation_status_endpoint(self):
         """Test evaluation status endpoint returns valid data."""
-        response = requests.get("http://localhost:8000/api/evaluations/status")
+        response = requests.get(f"{BASE_URL}/api/evaluations/status", timeout=API_TIMEOUT)
         assert response.status_code == 200
         
         data = response.json()
@@ -35,7 +61,7 @@ class TestEvaluationEndpoints:
     @pytest.mark.integration
     def test_resume_status_endpoint(self):
         """Test resume status endpoint."""
-        response = requests.get("http://localhost:8000/api/evaluations/resume-status")
+        response = requests.get(f"{BASE_URL}/api/evaluations/resume-status", timeout=API_TIMEOUT)
         assert response.status_code == 200
         
         data = response.json()
@@ -46,7 +72,7 @@ class TestEvaluationEndpoints:
     @pytest.mark.integration
     def test_results_endpoint(self):
         """Test results endpoint returns data."""
-        response = requests.get("http://localhost:8000/api/results")
+        response = requests.get(f"{BASE_URL}/api/results", timeout=API_TIMEOUT)
         assert response.status_code == 200
         
         data = response.json()
@@ -65,14 +91,10 @@ class TestEvaluationEndpoints:
             assert "total_responses" in result
             assert "successful_responses" in result
     
+    @pytest.mark.usefixtures("backend_server_ready")
     @pytest.mark.integration
     def test_sse_events_endpoint(self):
         """Test SSE events endpoint is accessible."""
-        response = requests.get(
-            "http://localhost:8000/api/sse/events", 
-            headers={"Accept": "text/event-stream"},
-            stream=True,
-            timeout=1
-        )
+        response = requests.get(f"{BASE_URL}/api/sse/events", headers={"Accept": "text/event-stream"}, stream=True, timeout=API_TIMEOUT)
         assert response.status_code == 200
         assert "text/event-stream" in response.headers.get("content-type", "")

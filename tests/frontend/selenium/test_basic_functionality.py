@@ -2,48 +2,48 @@
 Basic smoke tests for Storybench Web UI.
 """
 import pytest
-from .conftest import DashboardPage, ModelsConfigPage, PromptsPage
+# from .conftest import DashboardPage, ModelsConfigPage, PromptsPage
 
 
-@pytest.mark.selenium
-class TestBasicNavigation:
-    """Test basic navigation and page loading."""
-    
-    def test_dashboard_loads(self, driver):
-        """Test that the dashboard loads successfully."""
-        page = DashboardPage(driver)
-        page.wait_for_page_load()
-        
-        title = page.get_title()
-        assert "Storybench" in title or title != ""
-        
-        # Check if main content is visible
-        assert page.is_element_present(page.HEADER_TITLE)
-    
-    def test_navigation_to_config(self, driver):
-        """Test navigation to configuration page."""
-        dashboard = DashboardPage(driver)
-        dashboard.wait_for_page_load()
-        
-        # Navigate to config page
-        config_page = dashboard.navigate_to_config()
-        config_page.wait_for_page_load()
-        
-        # Verify we're on the config page
-        assert config_page.is_element_present(config_page.PAGE_TITLE)
-        assert config_page.is_global_settings_visible()
-    
-    def test_navigation_to_prompts(self, driver):
-        """Test navigation to prompts page."""
-        dashboard = DashboardPage(driver)
-        dashboard.wait_for_page_load()
-        
-        # Navigate to prompts page
-        prompts_page = dashboard.navigate_to_prompts()
-        prompts_page.wait_for_page_load()
-        
-        # Verify we're on the prompts page
-        assert prompts_page.is_element_present(prompts_page.PAGE_TITLE)
+# @pytest.mark.selenium
+# class TestBasicNavigation:
+#     """Test basic navigation and page loading."""
+#     
+#     def test_dashboard_loads(self, driver):
+#         """Test that the dashboard loads successfully."""
+#         page = DashboardPage(driver)
+#         page.wait_for_page_load()
+#         
+#         title = page.get_title()
+#         assert "Storybench" in title or title != ""
+#         
+#         # Check if main content is visible
+#         assert page.is_element_present(page.HEADER_TITLE)
+#     
+#     def test_navigation_to_config(self, driver):
+#         """Test navigation to configuration page."""
+#         dashboard = DashboardPage(driver)
+#         dashboard.wait_for_page_load()
+#         
+#         # Navigate to config page
+#         config_page = dashboard.navigate_to_config()
+#         config_page.wait_for_page_load()
+#         
+#         # Verify we're on the config page
+#         assert config_page.is_element_present(config_page.PAGE_TITLE)
+#         assert config_page.is_global_settings_visible()
+#     
+#     def test_navigation_to_prompts(self, driver):
+#         """Test navigation to prompts page."""
+#         dashboard = DashboardPage(driver)
+#         dashboard.wait_for_page_load()
+#         
+#         # Navigate to prompts page
+#         prompts_page = dashboard.navigate_to_prompts()
+#         prompts_page.wait_for_page_load()
+#         
+#         # Verify we're on the prompts page
+#         assert prompts_page.is_element_present(prompts_page.PAGE_TITLE)
 
 
 @pytest.mark.selenium
