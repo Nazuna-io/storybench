@@ -2,29 +2,29 @@ version: 1
 criteria:
   creativity:
     name: "Creativity"
-    description: "Originality, avoidance of tropes, innovative perspectives"
+    description: "1=Highly derivative/clichéd. 2=Some original elements but mostly familiar. 3=Solid originality with fresh perspective. 4=Highly original with innovative concepts. 5=Groundbreaking originality that redefines genre expectations."
     scale: 5
   coherence:
     name: "Coherence"
-    description: "Consistency across the sequence, logical development of ideas"
+    description: "1=Major logical inconsistencies/contradictions. 2=Some inconsistencies but mostly coherent. 3=Solid logical flow with minor gaps. 4=Strong consistency with clear narrative progression. 5=Flawless internal logic with masterful narrative architecture."
     scale: 5
   character_depth:
     name: "Character Depth"
-    description: "Psychological complexity, authentic motivations"
+    description: "1=Flat archetypes with no development. 2=Basic characterization with simple motivations. 3=Well-developed characters with clear psychology. 4=Complex, multi-dimensional characters with authentic depth. 5=Profound psychological insight rivaling literary masters."
     scale: 5
   dialogue_quality:
     name: "Dialogue Quality"
-    description: "Naturalistic speech, character revelation through dialogue"
+    description: "1=Stilted/unnatural speech patterns. 2=Functional but unremarkable dialogue. 3=Natural dialogue that serves the story well. 4=Distinctive voices that reveal character depth. 5=Masterful dialogue that elevates the entire work."
     scale: 5
   visual_imagination:
     name: "Visual Imagination"
-    description: "Distinctiveness and vividness of visual elements"
+    description: "1=Generic/forgettable imagery. 2=Adequate visual description. 3=Vivid imagery that enhances the narrative. 4=Striking visuals with cinematic quality. 5=Visionary imagery that creates lasting impact."
     scale: 5
   conceptual_depth:
     name: "Conceptual Depth"
-    description: "Sophistication of themes and ideas"
+    description: "1=Superficial themes with no exploration. 2=Basic thematic content. 3=Thoughtful exploration of meaningful themes. 4=Sophisticated philosophical/conceptual framework. 5=Profound insights that challenge fundamental assumptions."
     scale: 5
   adaptability:
     name: "Adaptability"
-    description: "Success in responding to different aspects of the creative challenge"
+    description: "1=Fails to address prompt requirements. 2=Partially addresses prompt with gaps. 3=Competently fulfills prompt requirements. 4=Exceeds expectations while meeting all requirements. 5=Transcends prompt limitations to create something extraordinary."
     scale: 5

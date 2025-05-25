@@ -1,0 +1,116 @@
+{
+  "sequence_info": {
+    "model_name": "Gemini-2.5-Pro",
+    "sequence_name": "FilmNarrative",
+    "run": 1,
+    "total_responses": 3
+  },
+  "evaluations": [
+    {
+      "response_id": "6832a5995ed7fc2c9088a31e",
+      "prompt_name": "Initial Concept",
+      "prompt_index": 0,
+      "criteria_results": [
+        {
+          "criterion_name": "creativity",
+          "score": 4.0,
+          "justification": "The concept of a \"Noospheric Resonance Field\" that warps reality based on collective emotional states is highly original and avoids common sci-fi tropes, presenting a fresh perspective on perception vs. reality."
+        },
+        {
+          "criterion_name": "coherence",
+          "score": 4.0,
+          "justification": "The narrative is internally consistent, with a clear explanation of the NRF's effects on reality and a logical progression into the global crisis of the \"Resonance Drift.\""
+        },
+        {
+          "criterion_name": "character_depth",
+          "score": 3.0,
+          "justification": "Characters are introduced with distinct roles and initial depth, particularly Dr. Aria Sharma, who has a personal stake in the NRF's research and effects."
+        },
+        {
+          "criterion_name": "visual_imagination",
+          "score": 5.0,
+          "justification": "The innovative visual elements described, such as \"Perceptual Bleed\" and \"Reality Tears/Folds,\" are striking and detailed, promising a visually unique film."
+        },
+        {
+          "criterion_name": "conceptual_depth",
+          "score": 4.0,
+          "justification": "The exploration of how collective and individual perceptions shape reality, and the philosophical implications of a consensus-based existence, are sophisticated and thought-provoking."
+        },
+        {
+          "criterion_name": "adaptability",
+          "score": 3.0,
+          "justification": "The response adeptly fulfills the prompt requirements by creating an original film concept that explores the nature of objective reality without resorting to clich\u00e9s."
+        }
+      ]
+    },
+    {
+      "response_id": "6832a59a5ed7fc2c9088a320",
+      "prompt_name": "Scene Development",
+      "prompt_index": 1,
+      "criteria_results": [
+        {
+          "criterion_name": "creativity",
+          "score": 1.0,
+          "justification": "The scene introduces a completely different concept (\"The Aethel\") unrelated to the original film concept, showing a significant departure from the established narrative."
+        },
+        {
+          "criterion_name": "coherence",
+          "score": 1.0,
+          "justification": "This response fails to build on R1, introducing a simulated reality concept that contradicts the original premise of reality being shaped by emotional states, resulting in a major coherence issue."
+        },
+        {
+          "criterion_name": "character_depth",
+          "score": 2.0,
+          "justification": "While Elias and Seraphina are given some psychological depth through their dialogue, the sudden shift in narrative context makes it difficult to assess this depth within the established story."
+        },
+        {
+          "criterion_name": "dialogue_quality",
+          "score": 3.0,
+          "justification": "The dialogue effectively conveys philosophical themes and character perspectives, though it feels somewhat expository."
+        },
+        {
+          "criterion_name": "conceptual_depth",
+          "score": 2.0,
+          "justification": "The themes of free will and the nature of reality are explored, but the shift away from the original concept muddles the depth of exploration."
+        },
+        {
+          "criterion_name": "adaptability",
+          "score": 1.0,
+          "justification": "The response does not adapt to the established narrative and premise, instead introducing an entirely new concept and setting."
+        }
+      ]
+    },
+    {
+      "response_id": "6832a59a5ed7fc2c9088a322",
+      "prompt_name": "Visual Realization",
+      "prompt_index": 2,
+      "criteria_results": [
+        {
+          "criterion_name": "creativity",
+          "score": 2.0,
+          "justification": "The description of a deep-space discovery introduces a visually compelling scenario, but it represents another significant departure from both previous responses, lacking thematic and narrative consistency."
+        },
+        {
+          "criterion_name": "coherence",
+          "score": 1.0,
+          "justification": "There is no coherent progression from either the original concept or the second response, with this entry focusing on yet another unrelated story."
+        },
+        {
+          "criterion_name": "visual_imagination",
+          "score": 4.0,
+          "justification": "The detailed description of the \"Void Structure\" and its contrast with the surrounding nebula offers a visually striking and imaginative scene."
+        },
+        {
+          "criterion_name": "conceptual_depth",
+          "score": 1.0,
+          "justification": "While the image is visually interesting, there's little to no exploration of the deeper themes introduced in the first response, nor does it connect to the philosophical discussions of the second."
+        },
+        {
+          "criterion_name": "adaptability",
+          "score": 1.0,
+          "justification": "This response fails to address the requirements of building upon the established narrative and concepts, instead introducing a new, unrelated visual scenario."
+        }
+      ]
+    }
+  ]
+}

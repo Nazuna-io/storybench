@@ -2,30 +2,38 @@
 
 A modular tool for evaluating the creativity of proprietary and open-source LLMs across various creative writing tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
-## 🚀 Phase 4 Complete: Enterprise Database Architecture
+## 🚀 Phase 5 Complete: Research-Quality Evaluation System
 
-**StorybenchLLM now features MongoDB Atlas integration for enterprise-scale evaluation workflows!**
+**StorybenchLLM now features sophisticated sequence-aware evaluation with realistic scoring standards!**
 
-- **✅ Database-Driven**: MongoDB Atlas backend for scalable data management
-- **✅ Data Migration**: Automatic import of existing evaluation results
-- **✅ Real-time Analytics**: Advanced querying capabilities for evaluation insights
-- **✅ Enterprise Ready**: Production-grade reliability and backup systems
+- **✅ Sequence-Aware Evaluation**: Assesses coherence across multi-prompt creative sequences
+- **✅ Realistic Scoring Standards**: Stringent criteria that properly differentiate quality levels
+- **✅ Full-Context Assessment**: GPT-4 Turbo with 128k context for complete evaluation
+- **✅ Research-Quality Results**: Meaningful model comparisons for academic research
 
 ## Requirements
 
 - **Python 3.12+** (Required and fully tested)
 - **MongoDB Atlas** (or local MongoDB for development)
+- **OpenAI API Key** (for evaluation system)
 - Node.js 18+ (for web frontend)
 
 ## Features
+
+### Advanced Evaluation Engine ✨ ENHANCED
+- **Sequence-Aware Analysis**: Evaluates narrative coherence across related responses
+- **Realistic Scoring**: 1-5 scale with explicit standards (most responses score 2-3)
+- **Full Context Evaluation**: No content truncation - complete assessment of all responses
+- **Research Standards**: Compares against professional published fiction, not just AI writing
+- **Comprehensive Criteria**: 7 evaluation dimensions with detailed justifications
 
 ### Core Evaluation Engine
 - **Modular Architecture**: Easy to add new model types and evaluators
 - **API & Local Support**: Works with API-based models (OpenAI, Anthropic, Google) and local GGUF models
 - **Resume Functionality**: Smart resume from interruption points with database-backed progress tracking
-- **Automated Evaluation**: Uses LLMs to score creativity metrics with configurable criteria
+- **Automated Evaluation**: Uses GPT-4 Turbo to score creativity metrics with configurable criteria
 
-### Database & Data Management ✨ NEW
+### Database & Data Management
 - **MongoDB Atlas Integration**: Enterprise-grade database backend
 - **Data Migration Tools**: Automatic import of existing JSON evaluation results
 - **Advanced Analytics**: Query evaluation patterns, performance metrics, and trends
@@ -369,6 +377,12 @@ storybench evaluate --resume
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 0.3.0 - Phase 5 Complete (June 2025)
+- ✅ **Sequence-Aware Evaluation**: Assesses coherence across multi-prompt creative sequences
+- ✅ **Realistic Scoring Standards**: Stringent criteria that properly differentiate quality levels
+- ✅ **Full-Context Assessment**: GPT-4 Turbo with 128k context for complete evaluation
+- ✅ **Research-Quality Results**: Meaningful model comparisons for academic research
 
 ### Version 0.2.0 - Phase 4 Complete (May 2025)
 - ✅ **MongoDB Atlas Integration**: Enterprise database backend

@@ -1,0 +1,317 @@
+{
+  "evaluation_results": {
+    "total_sequences": 30,
+    "unevaluated_sequences": 23,
+    "sequences_evaluated": 0,
+    "total_evaluations_created": 0,
+    "errors": []
+  },
+  "summary": {
+    "total_evaluations": 26,
+    "total_responses": 90,
+    "evaluation_coverage": 0.28888888888888886,
+    "model_sequence_statistics": {
+      "Gemini-2.5-Pro_FilmNarrative": {
+        "model_name": "Gemini-2.5-Pro",
+        "sequence_name": "FilmNarrative",
+        "total_evaluations": 16,
+        "criteria_scores": {
+          "creativity": {
+            "average": 3.78125,
+            "count": 16,
+            "scores": [
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              4.5,
+              5.0,
+              5.0,
+              4.0,
+              4.0,
+              3.0,
+              5.0,
+              1.0,
+              2.0,
+              4.0,
+              1.0,
+              2.0
+            ]
+          },
+          "coherence": {
+            "average": 3.5625,
+            "count": 16,
+            "scores": [
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              4.0,
+              3.0,
+              2.0,
+              5.0,
+              1.0,
+              1.0,
+              4.0,
+              1.0,
+              1.0
+            ]
+          },
+          "character_depth": {
+            "average": 3.6785714285714284,
+            "count": 14,
+            "scores": [
+              4.0,
+              4.5,
+              4.0,
+              4.5,
+              4.5,
+              4.0,
+              5.0,
+              3.0,
+              4.0,
+              4.0,
+              3.0,
+              2.0,
+              3.0,
+              2.0
+            ]
+          },
+          "visual_imagination": {
+            "average": 4.535714285714286,
+            "count": 14,
+            "scores": [
+              5.0,
+              4.5,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              4.0,
+              5.0,
+              5.0,
+              2.0,
+              4.0,
+              5.0,
+              4.0
+            ]
+          },
+          "conceptual_depth": {
+            "average": 4.0,
+            "count": 16,
+            "scores": [
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              5.0,
+              4.0,
+              5.0,
+              3.0,
+              5.0,
+              3.0,
+              2.0,
+              4.0,
+              2.0,
+              1.0
+            ]
+          },
+          "adaptability": {
+            "average": 3.5625,
+            "count": 16,
+            "scores": [
+              5.0,
+              5.0,
+              5.0,
+              4.5,
+              4.5,
+              5.0,
+              5.0,
+              5.0,
+              4.0,
+              2.0,
+              5.0,
+              1.0,
+              1.0,
+              3.0,
+              1.0,
+              1.0
+            ]
+          },
+          "dialogue_quality": {
+            "average": 4.166666666666667,
+            "count": 6,
+            "scores": [
+              5.0,
+              4.0,
+              5.0,
+              4.0,
+              4.0,
+              3.0
+            ]
+          }
+        }
+      },
+      "Claude-4-Sonnet_FilmNarrative": {
+        "model_name": "Claude-4-Sonnet",
+        "sequence_name": "FilmNarrative",
+        "total_evaluations": 1,
+        "criteria_scores": {
+          "creativity": {
+            "average": 5.0,
+            "count": 1,
+            "scores": [
+              5.0
+            ]
+          },
+          "coherence": {
+            "average": 4.5,
+            "count": 1,
+            "scores": [
+              4.5
+            ]
+          },
+          "character_depth": {
+            "average": 4.5,
+            "count": 1,
+            "scores": [
+              4.5
+            ]
+          },
+          "visual_imagination": {
+            "average": 5.0,
+            "count": 1,
+            "scores": [
+              5.0
+            ]
+          },
+          "conceptual_depth": {
+            "average": 5.0,
+            "count": 1,
+            "scores": [
+              5.0
+            ]
+          },
+          "adaptability": {
+            "average": 4.5,
+            "count": 1,
+            "scores": [
+              4.5
+            ]
+          }
+        }
+      },
+      "Gemini-2.5-Pro_LiteraryNarrative": {
+        "model_name": "Gemini-2.5-Pro",
+        "sequence_name": "LiteraryNarrative",
+        "total_evaluations": 9,
+        "criteria_scores": {
+          "creativity": {
+            "average": 3.2222222222222223,
+            "count": 9,
+            "scores": [
+              5.0,
+              1.0,
+              2.0,
+              5.0,
+              2.0,
+              4.0,
+              5.0,
+              1.0,
+              4.0
+            ]
+          },
+          "coherence": {
+            "average": 2.3333333333333335,
+            "count": 9,
+            "scores": [
+              5.0,
+              1.0,
+              1.0,
+              5.0,
+              1.0,
+              1.0,
+              5.0,
+              1.0,
+              1.0
+            ]
+          },
+          "character_depth": {
+            "average": 3.625,
+            "count": 8,
+            "scores": [
+              5.0,
+              4.0,
+              3.0,
+              5.0,
+              3.0,
+              3.0,
+              5.0,
+              1.0
+            ]
+          },
+          "visual_imagination": {
+            "average": 3.888888888888889,
+            "count": 9,
+            "scores": [
+              4.0,
+              3.0,
+              5.0,
+              4.0,
+              3.0,
+              5.0,
+              4.0,
+              2.0,
+              5.0
+            ]
+          },
+          "conceptual_depth": {
+            "average": 3.5555555555555554,
+            "count": 9,
+            "scores": [
+              5.0,
+              3.0,
+              4.0,
+              5.0,
+              2.0,
+              3.0,
+              5.0,
+              1.0,
+              4.0
+            ]
+          },
+          "adaptability": {
+            "average": 2.3333333333333335,
+            "count": 9,
+            "scores": [
+              5.0,
+              1.0,
+              1.0,
+              5.0,
+              1.0,
+              1.0,
+              5.0,
+              1.0,
+              1.0
+            ]
+          },
+          "dialogue_quality": {
+            "average": 3.6666666666666665,
+            "count": 3,
+            "scores": [
+              4.0,
+              4.0,
+              3.0
+            ]
+          }
+        }
+      }
+    }
+  }
+}
