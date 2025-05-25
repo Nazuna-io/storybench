@@ -154,6 +154,126 @@
         </div>
       </div>
 
+      <!-- Models Management Card -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">Models</h2>
+          <button
+            @click="addModel"
+            class="btn btn-primary"
+          >
+            ➕ Add Model
+          </button>
+        </div>
+        
+        <!-- Models List -->
+        <div v-if="models.length > 0" class="space-y-4">
+          <div v-for="(model, index) in models" :key="index" class="border border-gray-200 rounded-lg p-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Model Name</label>
+                <input
+                  v-model="model.name"
+                  type="text"
+                  placeholder="e.g., GPT-4o"
+                  class="input-field"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                <select v-model="model.provider" class="input-field">
+                  <option value="">Select Provider</option>
+                  <option v-for="provider in apiProviders" :key="provider.name" :value="provider.name">
+                    {{ provider.label }}
+                  </option>
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Model ID</label>
+                <input
+                  v-model="model.model_name"
+                  type="text"
+                  placeholder="e.g., gpt-4o"
+                  class="input-field"
+                />
+              </div>
+              
+              <div class="flex items-end">
+                <button
+                  @click="removeModel(index)"
+                  class="btn btn-danger w-full"
+                >
+                  🗑️ Remove
+                </button>
+              </div>
+            </div>
+            
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select v-model="model.type" class="input-field">
+                  <option value="api">API</option>
+                  <option value="local">Local</option>
+                </select>
+              </div>
+              
+              <!-- Local model specific fields -->
+              <div v-if="model.type === 'local'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Repository ID</label>
+                <input
+                  v-model="model.repo_id"
+                  type="text"
+                  placeholder="e.g., microsoft/DialoGPT-medium"
+                  class="input-field"
+                />
+              </div>
+            </div>
+            
+            <div v-if="model.type === 'local'" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filename</label>
+                <input
+                  v-model="model.filename"
+                  type="text"
+                  placeholder="e.g., model.gguf"
+                  class="input-field"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Subdirectory (optional)</label>
+                <input
+                  v-model="model.subdirectory"
+                  type="text"
+                  placeholder="e.g., models"
+                  class="input-field"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Empty state -->
+        <div v-else class="text-center py-8 text-gray-500">
+          <p class="text-lg mb-2">No models configured</p>
+          <p class="text-sm">Add your first model to get started with evaluations</p>
+        </div>
+        
+        <!-- Save models button -->
+        <div v-if="models.length > 0" class="mt-6 flex justify-end">
+          <button
+            @click="saveModels"
+            :disabled="saving"
+            class="btn btn-primary"
+          >
+            <span v-if="saving">Saving...</span>
+            <span v-else">💾 Save Models</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Success Toast -->
       <div v-if="showSuccessToast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-50">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,6 +303,8 @@ const globalSettings = reactive({
   vram_limit_percent: 90
 })
 
+const models = ref([])
+
 const apiProviders = ref([
   { name: 'openai', label: 'OpenAI', key: '', testing: false, removable: false },
   { name: 'anthropic', label: 'Anthropic', key: '', testing: false, removable: false },
@@ -203,12 +325,15 @@ const loadConfiguration = async () => {
   try {
     loading.value = true
     
-    // Load global settings
+    // Load global settings and models
     const response = await fetch('http://localhost:8000/api/config/models')
     if (response.ok) {
       const data = await response.json()
       if (data.global_settings) {
         Object.assign(globalSettings, data.global_settings)
+      }
+      if (data.models) {
+        models.value = data.models
       }
     }
 
@@ -343,6 +468,49 @@ const removeProvider = (providerName) => {
   if (index > -1) {
     apiProviders.value.splice(index, 1)
     showToast('Provider removed successfully!')
+  }
+}
+
+const addModel = () => {
+  models.value.push({
+    name: '',
+    type: 'api',
+    provider: '',
+    model_name: '',
+    repo_id: '',
+    filename: '',
+    subdirectory: ''
+  })
+}
+
+const removeModel = (index) => {
+  models.value.splice(index, 1)
+  showToast('Model removed successfully!')
+}
+
+const saveModels = async () => {
+  try {
+    saving.value = true
+    const response = await fetch('http://localhost:8000/api/config/models', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        global_settings: globalSettings
+      })
+    })
+
+    if (response.ok) {
+      showToast('Models saved successfully!')
+    } else {
+      throw new Error('Failed to save models')
+    }
+  } catch (error) {
+    console.error('Failed to save models:', error)
+    showToast('Failed to save models', 'error')
+  } finally {
+    saving.value = false
   }
 }
 

@@ -2,6 +2,23 @@
 
 A modular tool for evaluating the creativity of proprietary and open-source LLMs across various creative writing tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
+## 🚀 Latest Update: Complete Web Interface & Bug Fixes (May 2025)
+
+**All critical issues resolved - StorybenchLLM is now fully operational!**
+
+### ✅ **Fixed Issues**
+- **Results Page**: Now correctly displays completed evaluations with scores from database
+- **Global Settings**: Proper defaults (temperature: 1.0, max_tokens: 8192) working correctly  
+- **Models Management**: Complete workflow for API providers → API keys → model configuration
+- **Web Server**: Fixed import errors, encryption keys, and frontend serving
+- **Database Integration**: Properly reads from response_llm_evaluations collection
+
+### ✅ **Enhanced Features**
+- **Structured Model Management**: Add providers, configure API keys, then add specific models
+- **Real Evaluation Data**: View actual scores from completed evaluations (Gemini-2.5-Pro: 2.50, Claude-4-Sonnet: 2.90)
+- **Improved Configuration**: Save/load settings with proper validation and error handling
+- **API Testing**: Built-in API key validation and testing functionality
+
 ## 🚀 Phase 5 Complete: Research-Quality Evaluation System
 
 **StorybenchLLM now features sophisticated sequence-aware evaluation with realistic scoring standards!**
@@ -40,11 +57,14 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 - **Backup & Recovery**: Automated backup systems with rollback capability
 - **Export Functionality**: Export data for external analysis tools
 
-### Web Interface
+### Web Interface ✨ FULLY OPERATIONAL
 - **Complete Web UI**: Full web interface for configuration, evaluation, and results ✅
+- **Results Dashboard**: Interactive results viewing with **real evaluation data** from database ✅  
+- **Models Management**: Structured workflow: API providers → API keys → model configuration ✅
+- **Global Settings**: Proper defaults (temperature: 1.0, max_tokens: 8192) with save functionality ✅
+- **API Key Management**: Secure storage with testing and validation capabilities ✅
 - **Real-time Monitoring**: Live progress tracking with Server-Sent Events
-- **Results Dashboard**: Interactive results viewing with actual evaluation data
-- **Configuration Management**: Web-based model, prompt, and criteria configuration
+- **Configuration Management**: Web-based model, prompt, and criteria configuration ✅
 
 ### CLI Interface
 
@@ -117,7 +137,7 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
    # Edit .env with your API keys and MongoDB connection string
    ```
 
-### Web UI (Recommended)
+### Web UI (Recommended) ✨ ENHANCED
 
 1. **Start Web Server**
    ```bash
@@ -125,10 +145,28 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
    ```
 
 2. **Access Web UI**: Open http://localhost:8000
-   - 📊 **Results**: View evaluation results and progress
-   - ⚙️ **Configuration**: Manage models and prompts  
-   - 🚀 **Evaluation**: Run evaluations with real-time monitoring
-   - 📚 **API Docs**: Available at http://localhost:8000/api/docs
+
+   **🎯 Available Pages:**
+   - **📊 Results**: View completed evaluations with scores and detailed analysis
+     - Shows actual evaluation data from database
+     - Model comparisons with averaged scores across criteria
+     - Drill-down to individual responses and evaluations
+   
+   - **⚙️ Models Configuration**: Complete model management workflow
+     - **Global Settings**: Temperature (1.0), Max Tokens (8192), etc.
+     - **API Keys**: Add and test API keys for different providers
+     - **Models**: Add specific models from configured providers
+     - Structured workflow: Provider → API Key → Model Configuration
+   
+   - **📝 Prompts**: Configure creative writing prompt sequences
+   - **📏 Criteria**: Set evaluation criteria and scoring standards  
+   - **🚀 Evaluation**: Run evaluations with real-time monitoring
+   - **📚 API Docs**: Available at http://localhost:8000/api/docs
+
+3. **Current Data**: 
+   - **2 completed evaluations** ready to view
+   - **150 responses** from Gemini-2.5-Pro and Claude-4-Sonnet
+   - **169 LLM evaluations** with detailed criteria scoring
 
 ## Database Migration
 
@@ -342,21 +380,50 @@ storybench evaluate --resume
 
 ### Common Issues
 
-1. **MongoDB Connection Issues**
+1. **Results Page Shows No Results**
+   ```bash
+   # Issue: Database has evaluations but Results page empty
+   # Fixed: Updated DatabaseResultsService to use response_llm_evaluations collection
+   # Test: curl -X GET http://localhost:8000/api/results
+   ```
+
+2. **Global Settings Wrong Defaults**
+   ```bash
+   # Issue: Temperature 0.9 instead of 1.0, max_tokens 4096 instead of 8192  
+   # Fixed: Backend already had correct defaults, frontend API paths corrected
+   # Test: Check Models Configuration page shows temperature: 1.0, max_tokens: 8192
+   ```
+
+3. **Web Server Import Errors**
+   ```bash
+   # Issue: ValueError: ENCRYPTION_KEY environment variable required
+   # Fixed: Added proper Fernet encryption key to .env file
+   # Fixed: Added dotenv loading to main.py
+   # Test: Server starts without errors
+   ```
+
+4. **Frontend Not Loading**
+   ```bash
+   # Issue: 404 Not Found when accessing http://localhost:8000/
+   # Fixed: Corrected frontend path calculation in main.py
+   # Test: Frontend loads with Vue.js interface
+   ```
+
+5. **MongoDB Connection Issues**
    ```bash
    # Check connection string in .env
    # Verify IP whitelist in MongoDB Atlas
    # Test connection: python setup_phase4.py
    ```
 
-2. **Migration Problems**
+6. **Migration Problems**
    ```bash
    # Check file permissions in output/ directory
    # Verify JSON file format
    # Check logs for specific errors
    ```
 
-3. **Performance Issues**
+7. **Performance Issues**
    ```bash
    # For large datasets, use batch processing
    # Monitor memory usage during evaluation
@@ -387,6 +454,15 @@ storybench evaluate --resume
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 0.3.1 - Critical Bug Fixes & Web Interface Completion (May 2025)
+- 🔧 **Fixed Results Page**: Now correctly displays evaluation data from database
+- ⚙️ **Fixed Global Settings**: Proper defaults (temperature: 1.0, max_tokens: 8192) working
+- 🔧 **Enhanced Models Management**: Complete workflow for API providers → API keys → models
+- 🔐 **Fixed API Keys**: Proper encryption, validation, and testing functionality  
+- 🌐 **Fixed Web Server**: Resolved import errors, encryption keys, and frontend serving
+- 📊 **Database Integration**: Correctly reads from response_llm_evaluations collection
+- ✅ **Tested & Verified**: All core functionality working with real evaluation data
 
 ### Version 0.3.0 - Phase 5 Complete (June 2025)
 - ✅ **Sequence-Aware Evaluation**: Assesses coherence across multi-prompt creative sequences

@@ -1,10 +1,15 @@
 """FastAPI main application for Storybench Web UI."""
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
@@ -67,7 +72,7 @@ from .api.sse import setup_sse_callbacks
 # setup_sse_callbacks() # Disabled until SSE is updated for database architecture
 
 # Serve static files (frontend build) when running in production
-frontend_path = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "dist"
+frontend_path = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
 if frontend_path.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_path / "static")), name="static")
     

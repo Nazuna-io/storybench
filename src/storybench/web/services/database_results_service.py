@@ -4,8 +4,8 @@ from typing import List, Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 
-from ..repositories.evaluation_repo import EvaluationRepository
-from ..repositories.response_repo import ResponseRepository
+from ...database.repositories.evaluation_repo import EvaluationRepository
+from ...database.repositories.response_repo import ResponseRepository
 
 
 class DatabaseResultsService:
@@ -28,7 +28,6 @@ class DatabaseResultsService:
             
             results = []
             for evaluation in evaluations:
-                # Get response data for this evaluation
                 evaluation_id = str(evaluation.id)
                 
                 # Get unique models from responses
@@ -40,22 +39,50 @@ class DatabaseResultsService:
                 async for model in self.database.responses.aggregate(models_pipeline):
                     models_result.append(model["_id"])
                 
-                # Get average scores (if any evaluation scores exist)
-                scores_pipeline = [
-                    {"$match": {"evaluation_id": ObjectId(evaluation_id)}},
-                    {"$group": {
-                        "_id": "$model_name",
-                        "avg_score": {"$avg": "$overall_score"},
-                        "detailed_scores": {"$first": "$detailed_scores"}
-                    }}
-                ]
-                
+                # Get scores from response_llm_evaluations collection
                 model_scores = {}
-                async for score in self.database.evaluation_scores.aggregate(scores_pipeline):
-                    model_scores[score["_id"]] = {
-                        "overall": score["avg_score"],
-                        "detailed": score["detailed_scores"]
-                    }
+                for model_name in models_result:
+                    # Get all response IDs for this model and evaluation
+                    responses = await self.database.responses.find({
+                        "evaluation_id": evaluation_id,
+                        "model_name": model_name
+                    }).to_list(None)
+                    
+                    response_ids = [resp["_id"] for resp in responses]
+                    
+                    # Get LLM evaluations for these responses
+                    llm_evaluations = await self.database.response_llm_evaluations.find({
+                        "response_id": {"$in": response_ids}
+                    }).to_list(None)
+                    
+                    if llm_evaluations:
+                        # Calculate average scores across all criteria and evaluations
+                        all_scores = []
+                        criteria_scores = {}
+                        
+                        for llm_eval in llm_evaluations:
+                            for criterion in llm_eval.get("criteria_results", []):
+                                criterion_name = criterion.get("criterion_name")
+                                score = criterion.get("score")
+                                if criterion_name and score is not None:
+                                    if criterion_name not in criteria_scores:
+                                        criteria_scores[criterion_name] = []
+                                    criteria_scores[criterion_name].append(score)
+                                    all_scores.append(score)
+                        
+                        # Calculate averages
+                        overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
+                        detailed_avg = {
+                            criterion: sum(scores) / len(scores)
+                            for criterion, scores in criteria_scores.items()
+                        }
+                        
+                        model_scores[model_name] = {
+                            "overall": round(overall_avg, 2),
+                            "detailed": detailed_avg,
+                            "total_evaluations": len(llm_evaluations),
+                            "total_responses": len(responses)
+                        }
                 
                 # Create result entries for each model
                 for model_name in models_result:
@@ -66,7 +93,9 @@ class DatabaseResultsService:
                         "config_version": evaluation.config_hash,
                         "timestamp": evaluation.completed_at or evaluation.started_at,
                         "status": evaluation.status,
-                        "scores": model_scores.get(model_name, None)
+                        "scores": model_scores.get(model_name, None),
+                        "total_tasks": evaluation.total_tasks,
+                        "completed_tasks": evaluation.completed_tasks
                     }
                     results.append(result)
             
@@ -107,11 +136,38 @@ class DatabaseResultsService:
                 "model_name": model_name
             })
             
-            # Get evaluation scores
-            scores_result = await self.database.evaluation_scores.find_one({
-                "evaluation_id": ObjectId(evaluation_id),
-                "model_name": model_name
-            })
+            # Get LLM evaluations for these responses
+            response_ids = [resp.id for resp in responses]
+            llm_evaluations = await self.database.response_llm_evaluations.find({
+                "response_id": {"$in": response_ids}
+            }).to_list(None)
+            
+            # Calculate scores from LLM evaluations
+            scores_data = None
+            if llm_evaluations:
+                all_scores = []
+                criteria_scores = {}
+                
+                for llm_eval in llm_evaluations:
+                    for criterion in llm_eval.get("criteria_results", []):
+                        criterion_name = criterion.get("criterion_name")
+                        score = criterion.get("score")
+                        if criterion_name and score is not None:
+                            if criterion_name not in criteria_scores:
+                                criteria_scores[criterion_name] = []
+                            criteria_scores[criterion_name].append(score)
+                            all_scores.append(score)
+                
+                overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
+                detailed_avg = {
+                    criterion: sum(scores) / len(scores)
+                    for criterion, scores in criteria_scores.items()
+                }
+                
+                scores_data = {
+                    "overall": round(overall_avg, 2),
+                    "detailed": detailed_avg
+                }
             
             # Format detailed result
             result = {
@@ -121,8 +177,10 @@ class DatabaseResultsService:
                 "timestamp": evaluation.completed_at or evaluation.started_at,
                 "status": evaluation.status,
                 "total_responses": len(responses),
+                "total_evaluations": len(llm_evaluations),
                 "responses": [
                     {
+                        "id": str(resp.id),
                         "sequence": resp.sequence,
                         "run": resp.run,
                         "prompt_name": resp.prompt_name,
@@ -132,10 +190,7 @@ class DatabaseResultsService:
                     }
                     for resp in responses
                 ],
-                "scores": {
-                    "overall": scores_result["overall_score"] if scores_result else None,
-                    "detailed": scores_result["detailed_scores"] if scores_result else {}
-                } if scores_result else None
+                "scores": scores_data
             }
             
             return result
