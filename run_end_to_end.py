@@ -8,7 +8,7 @@ import asyncio
 import os
 import json
 import click
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -160,9 +160,9 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                             # Generate response
                             click.echo(f"         🎯 {prompt_name}...")
                             
-                            start_time = datetime.utcnow()
+                            start_time = datetime.now(timezone.utc)
                             response_result = await evaluator.generate_response(prompt_text)
-                            end_time = datetime.utcnow()
+                            end_time = datetime.now(timezone.utc)
                             generation_time = (end_time - start_time).total_seconds()
                             
                             # Extract response text from the result dict
@@ -239,11 +239,11 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
             summary = await sequence_eval_service.get_evaluation_summary()
             
             # Save results to file
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             results_file = f"pipeline_results_{timestamp}.json"
             
             output_data = {
-                "pipeline_timestamp": datetime.utcnow().isoformat(),
+                "pipeline_timestamp": datetime.now(timezone.utc).isoformat(),
                 "config_used": config_path,
                 "filters": {
                     "models": models_filter,
