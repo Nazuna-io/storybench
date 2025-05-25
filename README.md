@@ -47,16 +47,53 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 - **Configuration Management**: Web-based model, prompt, and criteria configuration
 
 ### CLI Interface
-- **Full CLI**: Complete command-line interface for automated workflows ✅
-- **Migration Commands**: Database import/export and cleanup tools
-- **Background Processing**: Non-blocking evaluation execution
-- **Configuration Versioning**: Handles config changes gracefully
+
+1. **End-to-End Pipeline** (New! ✨)
+   ```bash
+   # Complete pipeline: Generate responses + evaluate
+   python3 run_end_to_end.py --auto-evaluate
+   
+   # Generate responses only (specific models/sequences)
+   python3 run_end_to_end.py --models "GPT-4o" --sequences "FilmNarrative"
+   
+   # Full pipeline with filtering
+   python3 run_end_to_end.py --models "GPT-4o,Claude-4-Sonnet" --sequences "FilmNarrative,LiteraryNarrative" --auto-evaluate
+   ```
+
+2. **Configure Models and Prompts**
+   ```bash
+   # Edit configuration files
+   vim config/models.yaml
+   vim config/prompts.json
+   vim config/evaluation_criteria.yaml
+   ```
+
+3. **Run Evaluation**
+   ```bash
+   storybench evaluate
+   ```
+
+4. **Database Operations**
+   ```bash
+   # Import existing JSON evaluation results
+   storybench migrate --validate --cleanup
+   
+   # Export data for analysis
+   storybench export --export-dir ./analysis_data
+   
+   # Check database status
+   storybench status
+   ```
 
 ### Quality & Reliability
 - **Enhanced Error Handling**: Robust retry mechanism with exponential backoff
 - **Prompt Validation**: Validates structure and content during configuration loading
 - **Comprehensive Testing**: 91% test success rate with Python 3.12+ compatibility
 - **Database Validation**: Automated data integrity checking
+- **Full CLI**: Complete command-line interface for automated workflows ✅
+- **Migration Commands**: Database import/export and cleanup tools
+- **Background Processing**: Non-blocking evaluation execution
+- **Configuration Versioning**: Handles config changes gracefully
 
 ## Quick Start
 
@@ -92,33 +129,6 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
    - ⚙️ **Configuration**: Manage models and prompts  
    - 🚀 **Evaluation**: Run evaluations with real-time monitoring
    - 📚 **API Docs**: Available at http://localhost:8000/api/docs
-
-### CLI Interface
-
-1. **Configure Models and Prompts**
-   ```bash
-   # Edit configuration files
-   vim config/models.yaml
-   vim config/prompts.json
-   vim config/evaluation_criteria.yaml
-   ```
-
-2. **Run Evaluation**
-   ```bash
-   storybench evaluate
-   ```
-
-3. **Database Operations**
-   ```bash
-   # Import existing JSON evaluation results
-   storybench migrate --validate --cleanup
-   
-   # Export data for analysis
-   storybench export --export-dir ./analysis_data
-   
-   # Check database status
-   storybench status
-   ```
 
 ## Database Migration
 
