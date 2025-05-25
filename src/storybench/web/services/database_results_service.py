@@ -19,8 +19,8 @@ class DatabaseResultsService:
     async def get_all_results(self, config_version: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get all evaluation results with optional filtering."""
         try:
-            # Get completed evaluations
-            filter_criteria = {"status": "completed"}
+            # Get all evaluations (not just completed ones)
+            filter_criteria = {}
             if config_version:
                 filter_criteria["config_hash"] = config_version
                 

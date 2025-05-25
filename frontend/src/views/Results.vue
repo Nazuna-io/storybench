@@ -1,12 +1,12 @@
 <template>
   <div>
-    <div class="mb-6">
+    <div class="mb-4">
       <h1 class="text-2xl font-bold text-gray-900">Evaluation Results</h1>
       <p class="text-gray-600">View and analyze LLM creativity evaluation results</p>
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
       <div class="card fade-in-up">
         <div class="flex items-center">
           <div class="flex-shrink-0">
@@ -372,6 +372,7 @@ export default {
   setup() {
     const loading = ref(false)
     const results = ref([])
+    const availableVersions = ref([])
     const searchQuery = ref('')
     const statusFilter = ref('')
     const currentPage = ref(1)
@@ -469,8 +470,9 @@ export default {
     }
     
     const getConfigVersion = (configHash) => {
-      // Convert hash to readable version - take first 8 characters for brevity
-      return configHash ? `Config v${configHash.substring(0, 8)}` : 'Unknown'
+      // Create version mapping based on API versions (sorted oldest to newest)
+      const versionIndex = availableVersions.value.indexOf(configHash)
+      return versionIndex >= 0 ? `Config v${versionIndex + 1}` : 'Config v?'
     }
     
     const getSortableValue = (result, column) => {
@@ -548,6 +550,8 @@ export default {
         if (response.ok) {
           const data = await response.json()
           results.value = data.results || []
+          // Store available versions for config version mapping (reverse to get oldest first)
+          availableVersions.value = (data.versions || []).reverse()
           // Apply default sort by overall score (highest first)
           if (results.value.length > 0 && sortBy.value === 'overall_score') {
             // Force re-sort on initial load
@@ -558,10 +562,12 @@ export default {
         } else {
           console.error('Failed to load results:', response.statusText)
           results.value = []
+          availableVersions.value = []
         }
       } catch (error) {
         console.error('Failed to load results:', error)
         results.value = []
+        availableVersions.value = []
       } finally {
         loading.value = false
       }
