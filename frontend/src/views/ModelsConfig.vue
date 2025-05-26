@@ -318,7 +318,7 @@ const models = ref([])
 const apiProviders = ref([
   { name: 'openai', label: 'OpenAI', key: '', testing: false, removable: false },
   { name: 'anthropic', label: 'Anthropic', key: '', testing: false, removable: false },
-  { name: 'google', label: 'Google', key: '', testing: false, removable: false },
+  { name: 'gemini', label: 'Google', key: '', testing: false, removable: false },
   { name: 'grok', label: 'Grok', key: '', testing: false, removable: false }
 ])
 
@@ -357,8 +357,10 @@ const loadConfiguration = async () => {
     if (keysResponse.ok) {
       const keysData = await keysResponse.json()
       apiProviders.value.forEach(provider => {
-        if (keysData[provider.name]) {
-          provider.key = keysData[provider.name]
+        // Map gemini provider to google key for backwards compatibility
+        const keyName = provider.name === 'gemini' ? 'google' : provider.name
+        if (keysData[keyName]) {
+          provider.key = keysData[keyName]
         }
       })
     }
@@ -424,8 +426,10 @@ const toggleApiKeysVisibility = async () => {
       if (response.ok) {
         const unmaskedKeys = await response.json()
         apiProviders.value.forEach(provider => {
-          if (unmaskedKeys[provider.name]) {
-            provider.key = unmaskedKeys[provider.name]
+          // Map gemini provider to google key for backwards compatibility
+          const keyName = provider.name === 'gemini' ? 'google' : provider.name
+          if (unmaskedKeys[keyName]) {
+            provider.key = unmaskedKeys[keyName]
           }
         })
       }
@@ -440,8 +444,10 @@ const toggleApiKeysVisibility = async () => {
       if (response.ok) {
         const maskedKeys = await response.json()
         apiProviders.value.forEach(provider => {
-          if (maskedKeys[provider.name]) {
-            provider.key = maskedKeys[provider.name]
+          // Map gemini provider to google key for backwards compatibility
+          const keyName = provider.name === 'gemini' ? 'google' : provider.name
+          if (maskedKeys[keyName]) {
+            provider.key = maskedKeys[keyName]
           }
         })
       }
@@ -458,7 +464,9 @@ const saveApiKeys = async () => {
     const keys = {}
     apiProviders.value.forEach(provider => {
       if (provider.key) {
-        keys[provider.name] = provider.key
+        // Map gemini provider back to google key for storage
+        const keyName = provider.name === 'gemini' ? 'google' : provider.name
+        keys[keyName] = provider.key
       }
     })
 
