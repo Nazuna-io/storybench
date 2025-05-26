@@ -44,10 +44,42 @@ class LocalEvaluator(BaseEvaluator):
         self.subdirectory = config.get("subdirectory")
         self.model_path = None
         self.llm = None
+        self._progress_callbacks = set()
         
         # Check for required configuration
         if not self.repo_id or not self.filename:
             raise ValueError(f"Local model {name} missing required configuration: repo_id and filename")
+            
+    def register_progress_callback(self, callback):
+        """Register a callback for download progress updates.
+        
+        Args:
+            callback: Function that takes (progress_percent, status_message) as arguments
+        """
+        self._progress_callbacks.add(callback)
+        
+    def unregister_progress_callback(self, callback):
+        """Unregister a progress callback.
+        
+        Args:
+            callback: The callback function to remove
+        """
+        if callback in self._progress_callbacks:
+            self._progress_callbacks.remove(callback)
+            
+    def _send_progress(self, progress_percent: float, status_message: str):
+        """Send progress update to all registered callbacks.
+        
+        Args:
+            progress_percent: Download progress percentage (0-100)
+            status_message: Status message to display
+        """
+        for callback in self._progress_callbacks:
+            try:
+                callback(progress_percent, status_message)
+            except Exception as e:
+                logger.error(f"Error in progress callback: {str(e)}")
+                # Don't remove callback on error, it might be temporary
         
     async def setup(self) -> bool:
         """Setup local model by downloading from Hugging Face and loading with llama.cpp.
@@ -196,22 +228,39 @@ class LocalEvaluator(BaseEvaluator):
                 r.raise_for_status()
                 total_size = int(r.headers.get('content-length', 0))
                 
+                # Send initial progress update
+                self._send_progress(0, f"Starting download of {self.filename} ({total_size / (1024*1024):.1f} MB)")
+                
                 # Write to temporary file first
                 temp_path = model_path.with_suffix('.temp')
                 with open(temp_path, 'wb') as f:
+                    downloaded_size = 0
                     with tqdm(total=total_size, unit='B', unit_scale=True, desc=self.filename) as pbar:
                         for chunk in r.iter_content(chunk_size=8192):
                             if chunk:
                                 f.write(chunk)
-                                pbar.update(len(chunk))
+                                chunk_size = len(chunk)
+                                downloaded_size += chunk_size
+                                pbar.update(chunk_size)
+                                
+                                # Send progress updates periodically (every ~5%)
+                                if total_size > 0:
+                                    progress = (downloaded_size / total_size) * 100
+                                    if progress % 5 < (chunk_size / total_size) * 100:
+                                        self._send_progress(
+                                            progress,
+                                            f"Downloading {self.filename}: {progress:.1f}% ({downloaded_size / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB)"
+                                        )
                 
                 # Rename to final filename
                 shutil.move(temp_path, model_path)
                 logger.info(f"Successfully downloaded model to {model_path}")
+                self._send_progress(100, f"Download complete: {self.filename}")
                 return model_path
                 
         except Exception as e:
             logger.warning(f"Direct download failed, falling back to huggingface_hub: {str(e)}")
+            self._send_progress(0, f"Direct download failed, trying alternative method...")
             
             # Fall back to huggingface_hub download
             try:
@@ -227,6 +276,7 @@ class LocalEvaluator(BaseEvaluator):
                 )
                 
                 logger.info(f"Successfully downloaded model to {downloaded_path}")
+                self._send_progress(100, f"Download complete: {self.filename}")
                 return Path(downloaded_path)
                 
             except Exception as e:

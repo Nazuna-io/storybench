@@ -116,109 +116,6 @@
             </div>
           </div>
           
-          <!-- Hardware Info -->
-          <div>
-            <h3 class="text-md font-medium text-gray-800 mb-2">Hardware Information</h3>
-            <div class="bg-gray-50 p-4 rounded-md">
-              <div v-if="hardwareInfo.loading" class="text-center py-2">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mx-auto"></div>
-                <p class="text-sm text-gray-600 mt-1">Checking hardware...</p>
-              </div>
-              <div v-else>
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <p class="text-sm text-gray-500">GPU Available:</p>
-                    <p class="text-sm font-medium" :class="hardwareInfo.gpu_available ? 'text-green-600' : 'text-red-600'">
-                      {{ hardwareInfo.gpu_available ? 'Yes' : 'No' }}
-                    </p>
-                  </div>
-                  <div v-if="hardwareInfo.gpu_available">
-                    <p class="text-sm text-gray-500">VRAM:</p>
-                    <p class="text-sm font-medium text-gray-800">
-                      {{ hardwareInfo.vram_gb.toFixed(2) }} GB
-                    </p>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-500">CPU Cores:</p>
-                    <p class="text-sm font-medium text-gray-800">
-                      {{ hardwareInfo.cpu_cores }}
-                    </p>
-                  </div>
-                  <div>
-                    <p class="text-sm text-gray-500">RAM:</p>
-                    <p class="text-sm font-medium text-gray-800">
-                      {{ hardwareInfo.ram_gb.toFixed(2) }} GB
-                    </p>
-                  </div>
-                </div>
-                <div class="mt-2">
-                  <p class="text-sm" :class="hardwareInfo.gpu_available ? 'text-green-600' : 'text-amber-600'">
-                    {{ hardwareInfo.gpu_available 
-                      ? 'GPU acceleration available for faster inference' 
-                      : 'Running in CPU-only mode (slower inference)' }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Actions -->
-          <div class="flex justify-end space-x-3 mt-4">
-            <button 
-              @click="checkHardware" 
-              class="btn btn-secondary"
-              :disabled="checkingHardware"
-            >
-              <span v-if="checkingHardware">Checking...</span>
-              <span v-else>Check Hardware</span>
-            </button>
-            <button 
-              @click="saveConfiguration" 
-              class="btn btn-primary"
-              :disabled="saving"
-            >
-              <span v-if="saving">Saving...</span>
-              <span v-else>Save Configuration</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Evaluation Panel -->
-      <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Run Local Evaluation</h2>
-        
-        <div class="space-y-4">
-          <!-- Sequences Selection -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Sequences to Evaluate
-            </label>
-            <div class="bg-gray-50 p-4 rounded-md max-h-48 overflow-y-auto">
-              <div v-if="loadingSequences" class="text-center py-2">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600 mx-auto"></div>
-                <p class="text-sm text-gray-600 mt-1">Loading sequences...</p>
-              </div>
-              <div v-else-if="sequences.length === 0" class="text-center py-2">
-                <p class="text-sm text-gray-600">No sequences available</p>
-              </div>
-              <div v-else class="space-y-2">
-                <div v-for="sequence in sequences" :key="sequence" class="flex items-center">
-                  <input 
-                    :id="`sequence-${sequence}`"
-                    v-model="selectedSequences"
-                    :value="sequence"
-                    type="checkbox"
-                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <label :for="`sequence-${sequence}`" class="ml-2 text-sm text-gray-700">
-                    {{ sequence }}
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          
           <!-- Generation Settings -->
           <div>
             <h3 class="text-md font-medium text-gray-800 mb-2">Generation Settings</h3>
@@ -278,24 +175,105 @@
             </div>
           </div>
           
-          <!-- Auto-Evaluate Toggle -->
-          <div class="flex items-center space-x-2">
-            <input 
-              v-model="settings.auto_evaluate" 
-              type="checkbox" 
-              id="auto-evaluate-toggle"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            <label for="auto-evaluate-toggle" class="text-sm text-gray-700">
-              Automatically evaluate responses after generation
-            </label>
+          <!-- Buttons -->
+          <div class="flex space-x-3 mt-6">
+            <button 
+              @click="saveConfiguration" 
+              class="btn-primary"
+              :disabled="saving"
+            >
+              {{ saving ? 'Saving...' : 'Save Configuration' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Hardware Info and Sequences Panel -->
+      <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Hardware & Sequences</h2>
+        <div class="space-y-6">
+          <!-- Hardware Info -->
+          <div>
+            <h3 class="text-md font-medium text-gray-800 mb-2">Hardware Information</h3>
+            <div v-if="checkingHardware" class="text-center py-4">
+              <div class="spinner"></div>
+              <p class="mt-4 text-gray-600">Checking hardware capabilities...</p>
+            </div>
+            <div v-else class="bg-gray-50 p-4 rounded-md">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="text-sm text-gray-600">CPU:</div>
+                <div class="text-sm font-medium">{{ hardwareInfo.cpu_info || 'Unknown' }}</div>
+                
+                <div class="text-sm text-gray-600">RAM:</div>
+                <div class="text-sm font-medium">{{ hardwareInfo.ram_gb ? `${hardwareInfo.ram_gb.toFixed(1)} GB` : 'Unknown' }}</div>
+                
+                <div class="text-sm text-gray-600">GPU Available:</div>
+                <div class="text-sm font-medium">{{ hardwareInfo.gpu_available ? 'Yes' : 'No' }}</div>
+                
+                <template v-if="hardwareInfo.gpu_available">
+                  <div class="text-sm text-gray-600">GPU:</div>
+                  <div class="text-sm font-medium">{{ hardwareInfo.gpu_name || 'Unknown' }}</div>
+                  
+                  <div class="text-sm text-gray-600">VRAM:</div>
+                  <div class="text-sm font-medium">{{ hardwareInfo.vram_gb ? `${hardwareInfo.vram_gb.toFixed(1)} GB` : 'Unknown' }}</div>
+                </template>
+              </div>
+              <div class="mt-3">
+                <button @click="checkHardware" class="btn-secondary text-sm">
+                  Refresh Hardware Info
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Sequences Selection -->
+          <div>
+            <h3 class="text-md font-medium text-gray-800 mb-2">Sequences to Evaluate</h3>
+            <div class="bg-gray-50 p-4 rounded-md max-h-48 overflow-y-auto">
+              <div v-if="loadingSequences" class="text-center py-2">
+                <div class="spinner"></div>
+                <p class="text-sm text-gray-600 mt-1">Loading sequences...</p>
+              </div>
+              <div v-else-if="sequences.length === 0" class="text-center py-2">
+                <p class="text-sm text-gray-600">No sequences available</p>
+              </div>
+              <div v-else class="space-y-2">
+                <div v-for="sequence in sequences" :key="sequence" class="flex items-center">
+                  <input 
+                    :id="`sequence-${sequence}`"
+                    v-model="selectedSequences"
+                    :value="sequence"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <label :for="`sequence-${sequence}`" class="ml-2 text-sm text-gray-700">
+                    {{ sequence }}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Download Progress -->
+          <div v-if="downloadProgress.isDownloading" class="mt-4 bg-blue-50 p-4 rounded-md">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-blue-700">Downloading Model</span>
+              <span class="text-sm text-blue-700">{{ Math.round(downloadProgress.percent) }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+                :style="{ width: `${downloadProgress.percent}%` }"
+              ></div>
+            </div>
+            <p class="text-sm text-blue-600 mt-2">{{ downloadProgress.message }}</p>
           </div>
           
           <!-- Start Button -->
           <div class="flex justify-end mt-4">
             <button 
               @click="startEvaluation" 
-              class="btn btn-primary"
+              class="btn-primary"
               :disabled="isRunning || selectedSequences.length === 0"
             >
               <span v-if="isRunning">Running...</span>
@@ -335,13 +313,16 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 
 export default {
-  name: 'LocalModels',
   setup() {
-    // Model configurations
+    // Hardware info
+    const hardwareInfo = ref({})
+    const checkingHardware = ref(true)
+    
+    // Model configuration
     const generationModel = ref({
       repo_id: '',
       filename: '',
@@ -354,19 +335,7 @@ export default {
       subdirectory: ''
     })
     
-    const useLocalEvaluator = ref(false)
-    
-    // Hardware information
-    const hardwareInfo = ref({
-      loading: true,
-      gpu_available: false,
-      gpu_name: '',
-      vram_gb: 0,
-      cpu_cores: 0,
-      ram_gb: 0
-    })
-    
-    const checkingHardware = ref(false)
+    const useLocalEvaluator = ref(true)
     
     // Sequences
     const sequences = ref([])
@@ -375,8 +344,8 @@ export default {
     
     // Generation settings
     const settings = ref({
-      temperature: 0.8,
-      max_tokens: 2048,
+      temperature: 1,
+      max_tokens: 8192,
       num_runs: 3,
       vram_limit_percent: 80,
       auto_evaluate: true
@@ -385,14 +354,33 @@ export default {
     // Evaluation state
     const isRunning = ref(false)
     const saving = ref(false)
-    
-    // Console output
+    const downloadProgress = ref({
+      isDownloading: false,
+      percent: 0,
+      message: ''
+    })
     const consoleMessages = ref([])
     const consoleOutput = ref(null)
     
     // SSE connection
     let eventSource = null
     
+    // Load configuration on mount
+    onMounted(async () => {
+      await loadConfiguration()
+      await checkHardware()
+      await loadSequences()
+    })
+    
+    // Cleanup on unmount
+    onUnmounted(() => {
+      if (eventSource) {
+        eventSource.close()
+        eventSource = null
+      }
+    })
+    
+    // Console output helpers
     const scrollToBottom = async () => {
       await nextTick()
       if (consoleOutput.value) {
@@ -405,6 +393,121 @@ export default {
       scrollToBottom()
     }
     
+    // Load configuration from backend
+    const loadConfiguration = async () => {
+      try {
+        const response = await axios.get('/api/local-models/config')
+        
+        if (response.data) {
+          // Load generation model
+          generationModel.value = response.data.generation_model || {
+            repo_id: '',
+            filename: '',
+            subdirectory: ''
+          }
+          
+          // Load evaluation model
+          evaluationModel.value = response.data.evaluation_model || {
+            repo_id: '',
+            filename: '',
+            subdirectory: ''
+          }
+          
+          // Load local evaluator setting
+          useLocalEvaluator.value = response.data.use_local_evaluator !== undefined 
+            ? response.data.use_local_evaluator 
+            : true
+          
+          // Load other settings
+          if (response.data.settings) {
+            settings.value = {
+              ...settings.value,
+              ...response.data.settings
+            }
+          }
+        }
+        
+        addConsoleMessage('info', 'Configuration loaded')
+      } catch (error) {
+        console.error('Error loading configuration:', error)
+        addConsoleMessage('error', `Error loading configuration: ${error.message}`)
+      }
+    }
+    
+    // Save configuration to backend
+    const saveConfiguration = async () => {
+      saving.value = true
+      
+      try {
+        const config = {
+          generation_model: generationModel.value,
+          evaluation_model: evaluationModel.value,
+          use_local_evaluator: useLocalEvaluator.value,
+          settings: settings.value
+        }
+        
+        await axios.post('/api/local-models/config', config)
+        addConsoleMessage('info', 'Configuration saved successfully')
+      } catch (error) {
+        console.error('Error saving configuration:', error)
+        addConsoleMessage('error', `Error saving configuration: ${error.message}`)
+      } finally {
+        saving.value = false
+      }
+    }
+    
+    // Check hardware capabilities
+    const checkHardware = async () => {
+      checkingHardware.value = true
+      
+      try {
+        const response = await axios.get('/api/local-models/hardware-info')
+        hardwareInfo.value = response.data
+        addConsoleMessage('info', `Hardware check: ${hardwareInfo.value.gpu_available ? 'GPU available' : 'CPU only mode'}`)
+      } catch (error) {
+        console.error('Error checking hardware:', error)
+        addConsoleMessage('error', `Error checking hardware: ${error.message}`)
+      } finally {
+        checkingHardware.value = false
+      }
+    }
+    
+    // Load available sequences
+    const loadSequences = async () => {
+      loadingSequences.value = true
+      
+      try {
+        // First try to load from the new endpoint
+        const response = await axios.get('/api/prompts/sequences')
+        sequences.value = response.data || []
+        
+        // Select all sequences by default
+        selectedSequences.value = [...sequences.value]
+        addConsoleMessage('info', `Loaded ${sequences.value.length} sequences`)
+      } catch (error) {
+        console.error('Error loading sequences:', error)
+        
+        try {
+          // Fallback to the old endpoint
+          const fallbackResponse = await axios.get('/api/config/sequences')
+          sequences.value = fallbackResponse.data.sequences || []
+          selectedSequences.value = [...sequences.value]
+          addConsoleMessage('info', `Loaded ${sequences.value.length} sequences (fallback)`)
+        } catch (fallbackError) {
+          console.error('Error loading sequences (fallback):', fallbackError)
+          addConsoleMessage('error', `Error loading sequences: ${error.message}`)
+          
+          // Use sample sequences as last resort
+          sequences.value = ['FilmNarrative', 'LiteraryNarrative']
+          selectedSequences.value = [...sequences.value]
+          addConsoleMessage('info', 'Using sample sequences as fallback')
+        }
+      } finally {
+        loadingSequences.value = false
+      }
+    }
+    
+    // Start SSE connection for real-time updates
     const startSSE = () => {
       if (eventSource) {
         eventSource.close()
@@ -412,27 +515,65 @@ export default {
       
       eventSource = new EventSource('/api/local-models/events')
       
+      // Generic message handler
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
-          if (data.type === 'console') {
-            addConsoleMessage(data.console_type || 'output', data.message, data.timestamp)
-          } else if (data.type === 'status') {
-            // Update status information
-            if (data.status === 'completed' || data.status === 'failed' || data.status === 'stopped') {
-              isRunning.value = false
-              eventSource.close()
-              eventSource = null
-            }
-          }
+          addConsoleMessage('info', JSON.stringify(data))
         } catch (error) {
           console.error('Error parsing SSE message:', error)
         }
       }
       
+      // Event-specific handlers
+      eventSource.addEventListener('console', (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          addConsoleMessage(data.console_type || 'output', data.message, data.timestamp)
+        } catch (error) {
+          console.error('Error parsing console event:', error)
+        }
+      })
+      
+      eventSource.addEventListener('progress', (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          downloadProgress.value.isDownloading = true
+          downloadProgress.value.percent = data.progress
+          downloadProgress.value.message = data.message || 'Downloading model...'
+          
+          if (data.progress >= 100) {
+            setTimeout(() => {
+              downloadProgress.value.isDownloading = false
+            }, 2000)
+          }
+        } catch (error) {
+          console.error('Error parsing progress event:', error)
+        }
+      })
+      
+      eventSource.addEventListener('status', (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.status === 'completed' || data.status === 'failed' || data.status === 'stopped') {
+            isRunning.value = false
+            addConsoleMessage('status', `Evaluation ${data.status}`)
+            
+            if (eventSource) {
+              eventSource.close()
+              eventSource = null
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing status event:', error)
+        }
+      })
+      
+      // Error handler
       eventSource.onerror = (error) => {
         console.error('SSE connection error:', error)
+        addConsoleMessage('error', 'SSE connection error')
+        
         if (eventSource) {
           eventSource.close()
           eventSource = null
@@ -440,106 +581,13 @@ export default {
       }
     }
     
-    const checkHardware = async () => {
-      checkingHardware.value = true
-      hardwareInfo.value.loading = true
-      
-      try {
-        const response = await axios.get('/api/hardware-info')
-        hardwareInfo.value = {
-          ...response.data,
-          loading: false
-        }
-        addConsoleMessage('info', `Hardware check complete: ${hardwareInfo.value.gpu_available ? 'GPU available' : 'CPU only mode'}`)
-      } catch (error) {
-        console.error('Error checking hardware:', error)
-        addConsoleMessage('error', `Failed to check hardware: ${error.message}`)
-        hardwareInfo.value.loading = false
-      }
-      
-      checkingHardware.value = false
-    }
-    
-    const loadSequences = async () => {
-      loadingSequences.value = true
-      
-      try {
-        const response = await axios.get('/api/config/sequences')
-        sequences.value = response.data.sequences || []
-        
-        // Select all sequences by default
-        selectedSequences.value = [...sequences.value]
-      } catch (error) {
-        console.error('Error loading sequences:', error)
-        addConsoleMessage('error', `Failed to load sequences: ${error.message}`)
-        
-        // Fallback to sample sequences if API fails
-        sequences.value = ['FilmNarrative', 'LiteraryNarrative']
-        selectedSequences.value = [...sequences.value]
-        addConsoleMessage('info', 'Using sample sequences for demonstration')
-      }
-      
-      loadingSequences.value = false
-    }
-    
-    const loadConfiguration = async () => {
-      try {
-        // Load local model configuration
-        const response = await axios.get('/api/local-models/config')
-        
-        if (response.data.generation_model) {
-          generationModel.value = response.data.generation_model
-        }
-        
-        if (response.data.evaluation_model) {
-          evaluationModel.value = response.data.evaluation_model
-          useLocalEvaluator.value = response.data.use_local_evaluator || false
-        }
-        
-        if (response.data.settings) {
-          settings.value = {
-            ...settings.value,
-            ...response.data.settings
-          }
-        }
-        
-        addConsoleMessage('info', 'Configuration loaded')
-      } catch (error) {
-        console.error('Error loading configuration:', error)
-        // If 404, it's likely the first time, so just log info
-        if (error.response && error.response.status === 404) {
-          addConsoleMessage('info', 'No existing configuration found')
-        } else {
-          addConsoleMessage('error', `Failed to load configuration: ${error.message}`)
-        }
-      }
-    }
-    
-    const saveConfiguration = async () => {
-      saving.value = true
-      
-      try {
-        await axios.post('/api/local-models/config', {
-          generation_model: generationModel.value,
-          evaluation_model: evaluationModel.value,
-          use_local_evaluator: useLocalEvaluator.value,
-          settings: settings.value
-        })
-        
-        addConsoleMessage('info', 'Configuration saved successfully')
-      } catch (error) {
-        console.error('Error saving configuration:', error)
-        addConsoleMessage('error', `Failed to save configuration: ${error.message}`)
-      }
-      
-      saving.value = false
-    }
-    
+    // Start local evaluation
     const startEvaluation = async () => {
-      if (isRunning.value) return
+      if (isRunning.value || selectedSequences.value.length === 0) return
       
       isRunning.value = true
       consoleMessages.value = []
+      addConsoleMessage('info', 'Starting local evaluation...')
       
       try {
         // Start SSE connection for real-time updates
@@ -557,7 +605,7 @@ export default {
         addConsoleMessage('info', 'Evaluation started')
       } catch (error) {
         console.error('Error starting evaluation:', error)
-        addConsoleMessage('error', `Failed to start evaluation: ${error.message}`)
+        addConsoleMessage('error', `Error starting evaluation: ${error.message}`)
         isRunning.value = false
         
         if (eventSource) {
@@ -566,19 +614,6 @@ export default {
         }
       }
     }
-    
-    onMounted(async () => {
-      await checkHardware()
-      await loadSequences()
-      await loadConfiguration()
-    })
-    
-    onUnmounted(() => {
-      if (eventSource) {
-        eventSource.close()
-        eventSource = null
-      }
-    })
     
     return {
       generationModel,
@@ -592,12 +627,42 @@ export default {
       settings,
       isRunning,
       saving,
+      downloadProgress,
       consoleMessages,
       consoleOutput,
-      checkHardware,
       saveConfiguration,
+      checkHardware,
       startEvaluation
     }
   }
 }
 </script>
+
+<style>
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border-left-color: #3b82f6;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-primary {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+</style>

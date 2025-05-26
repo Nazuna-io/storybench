@@ -46,7 +46,7 @@ class LocalModelService:
         """
         self.database = database
         self.config_service = None
-        if database:
+        if database is not None:
             try:
                 from ...database.services.config_service import ConfigService
                 self.config_service = ConfigService(database)
@@ -54,23 +54,58 @@ class LocalModelService:
                 logger.warning(f"Could not initialize config service: {str(e)}")
         self._clients = {}
         self._output_callbacks = set()
+        self._progress_callbacks = set()
         
     def register_output_callback(self, callback):
         """Register a callback for console output."""
         self._output_callbacks.add(callback)
         
     def unregister_output_callback(self, callback):
-        """Unregister a callback for console output."""
+        """Unregister a console output callback."""
         if callback in self._output_callbacks:
             self._output_callbacks.remove(callback)
             
-    def _send_output(self, message: str, message_type: str = "info"):
-        """Send output to all registered callbacks."""
+    def register_progress_callback(self, callback):
+        """Register a callback for download progress updates.
+        
+        Args:
+            callback: Function that takes (progress_percent, status_message) as arguments
+        """
+        self._progress_callbacks.add(callback)
+        
+    def unregister_progress_callback(self, callback):
+        """Unregister a progress callback."""
+        if callback in self._progress_callbacks:
+            self._progress_callbacks.remove(callback)
+            
+    def _send_output(self, message, message_type="info"):
+        """Send console output to all registered callbacks."""
+        logger.info(f"[{message_type}] {message}")
         for callback in self._output_callbacks:
             try:
                 callback(message, message_type)
             except Exception as e:
                 logger.error(f"Error in output callback: {str(e)}")
+                
+    def _handle_progress_update(self, progress_percent, status_message):
+        """Handle progress updates from the evaluator.
+        
+        Args:
+            progress_percent: Download progress percentage (0-100)
+            status_message: Status message to display
+        """
+        # Log the progress update
+        logger.info(f"[progress] {progress_percent:.1f}%: {status_message}")
+        
+        # Send to console output callbacks
+        self._send_output(status_message, "progress")
+        
+        # Send to progress callbacks
+        for callback in self._progress_callbacks:
+            try:
+                callback(progress_percent, status_message)
+            except Exception as e:
+                logger.error(f"Error in progress callback: {str(e)}")
     
     async def get_hardware_info(self) -> Dict[str, Any]:
         """Get information about available hardware.
@@ -112,47 +147,84 @@ class LocalModelService:
         Returns:
             Dict with configuration
         """
-        if not LOCAL_CONFIG_FILE.exists():
-            return {
-                "generation_model": {
-                    "repo_id": "",
-                    "filename": "",
-                    "subdirectory": ""
-                },
-                "evaluation_model": {
-                    "repo_id": "",
-                    "filename": "",
-                    "subdirectory": ""
-                },
-                "use_local_evaluator": False,
-                "settings": {
-                    "temperature": 0.8,
-                    "max_tokens": 2048,
-                    "num_runs": 3,
-                    "vram_limit_percent": 80,
-                    "auto_evaluate": True
-                }
+        # Default configuration
+        default_config = {
+            "generation_model": {
+                "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v0.3-GGUF",
+                "filename": "tinyllama-1.1b-chat-v0.3.Q2_K.gguf",
+                "subdirectory": ""
+            },
+            "evaluation_model": {
+                "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v0.3-GGUF",
+                "filename": "tinyllama-1.1b-chat-v0.3.Q2_K.gguf",
+                "subdirectory": ""
+            },
+            "use_local_evaluator": True,
+            "settings": {
+                "temperature": 0.8,
+                "max_tokens": 2048,
+                "num_runs": 3,
+                "vram_limit_percent": 80,
+                "auto_evaluate": True
             }
+        }
+        
+        # If config file doesn't exist, create it with default values
+        if not LOCAL_CONFIG_FILE.exists():
+            try:
+                # Ensure the directory exists
+                os.makedirs(os.path.dirname(LOCAL_CONFIG_FILE), exist_ok=True)
+                
+                # Write default config
+                with open(LOCAL_CONFIG_FILE, "w") as f:
+                    json.dump(default_config, f, indent=2)
+                    
+                logger.info(f"Created default configuration at {LOCAL_CONFIG_FILE}")
+                return default_config
+            except Exception as e:
+                logger.warning(f"Could not create default configuration file: {str(e)}")
+                return default_config
             
+        # If config file exists, try to load it
         try:
             with open(LOCAL_CONFIG_FILE, "r") as f:
-                return json.load(f)
+                config = json.load(f)
+                logger.info(f"Loaded configuration from {LOCAL_CONFIG_FILE}")
+                return config
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in configuration file {LOCAL_CONFIG_FILE}. Using default configuration.")
+            return default_config
         except Exception as e:
-            logger.error(f"Error loading local model configuration: {str(e)}")
-            raise
+            logger.error(f"Error loading configuration from {LOCAL_CONFIG_FILE}: {str(e)}")
+            return default_config
     
-    async def save_configuration(self, config: Dict[str, Any]) -> None:
+    async def save_configuration(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Save local model configuration.
         
         Args:
             config: Configuration to save
+            
+        Returns:
+            Dict with success status and saved configuration
         """
         try:
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(LOCAL_CONFIG_FILE), exist_ok=True)
+            
+            # Save the configuration
             with open(LOCAL_CONFIG_FILE, "w") as f:
                 json.dump(config, f, indent=2)
+                
+            logger.info(f"Successfully saved configuration to {LOCAL_CONFIG_FILE}")
+            return {"success": True, "config": config}
+        except PermissionError:
+            error_msg = f"Permission denied when writing to {LOCAL_CONFIG_FILE}. Check file permissions."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
         except Exception as e:
-            logger.error(f"Error saving local model configuration: {str(e)}")
-            raise
+            error_msg = f"Error saving local model configuration: {str(e)}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
     
     async def run_local_evaluation(
         self, 
@@ -226,6 +298,9 @@ class LocalModelService:
             self._send_output(f"Initializing generation model: {gen_model_name}", "info")
             generation_evaluator = LocalEvaluator(gen_model_name, gen_model_config)
             
+            # Register progress callback
+            generation_evaluator.register_progress_callback(self._handle_progress_update)
+            
             # Setup generation model
             self._send_output("Setting up generation model...", "info")
             setup_success = await generation_evaluator.setup()
@@ -250,6 +325,9 @@ class LocalModelService:
                 
                 self._send_output(f"Initializing evaluation model: {eval_model_name}", "info")
                 evaluation_evaluator = LocalEvaluator(eval_model_name, eval_model_config)
+                
+                # Register progress callback
+                evaluation_evaluator.register_progress_callback(self._handle_progress_update)
                 
                 # Setup evaluation model
                 self._send_output("Setting up evaluation model...", "info")
@@ -336,7 +414,29 @@ class LocalModelService:
                             
                             # Generate a unique evaluation ID for this run
                             from bson import ObjectId
+                            from ...database.models import Evaluation, EvaluationStatus
+                            
+                            # Create an evaluation record
                             evaluation_id = str(ObjectId())
+                            
+                            # Create evaluation in database
+                            evaluation = Evaluation(
+                                _id=evaluation_id,
+                                name=f"Local Evaluation - {sequence_name}",
+                                models=[gen_model_name],
+                                sequences=[sequence_name],
+                                status=EvaluationStatus.COMPLETED,
+                                created_at=datetime.utcnow(),
+                                completed_at=datetime.utcnow(),
+                                settings={
+                                    "temperature": settings.get("temperature", 0.8),
+                                    "max_tokens": settings.get("max_tokens", 2048),
+                                    "num_runs": settings.get("num_runs", 1)
+                                }
+                            )
+                            
+                            # Save the evaluation
+                            await self.database.evaluations.insert_one(evaluation.dict())
                             
                             # Store each response in the database
                             for prompt_idx, response_data in enumerate(responses):

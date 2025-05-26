@@ -1,18 +1,18 @@
 {
   "generation_model": {
-    "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v0.3-GGUF",
-    "filename": "tinyllama-1.1b-chat-v0.3.Q2_K.gguf",
+    "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+    "filename": "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
     "subdirectory": ""
   },
   "evaluation_model": {
-    "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v0.3-GGUF",
-    "filename": "tinyllama-1.1b-chat-v0.3.Q2_K.gguf",
+    "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+    "filename": "tinyllama-1.1b-chat-v1.0.Q2_K.gguf",
     "subdirectory": ""
   },
   "use_local_evaluator": true,
   "settings": {
-    "temperature": 0.8,
-    "max_tokens": 2048,
+    "temperature": 1,
+    "max_tokens": 8192,
     "num_runs": 3,
     "vram_limit_percent": 80,
     "auto_evaluate": true

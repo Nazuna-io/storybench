@@ -19,7 +19,8 @@ router = APIRouter(prefix="/local-models", tags=["local-models"])
 
 # Global variables for SSE
 output_queue = asyncio.Queue()
-evaluation_status = {"status": "idle", "progress": 0}
+progress_queue = asyncio.Queue()
+evaluation_status = {"status": "idle", "progress": 0, "download_progress": 0}
 
 
 async def get_database():
@@ -47,7 +48,22 @@ async def get_local_model_service(database = Depends(get_database)):
             })
         )
     
+    # Register progress callback
+    def progress_callback(progress_percent, status_message):
+        global evaluation_status
+        evaluation_status["download_progress"] = progress_percent
+        
+        asyncio.create_task(
+            output_queue.put({
+                "type": "progress",
+                "progress": progress_percent,
+                "message": status_message,
+                "timestamp": datetime.now().isoformat()
+            })
+        )
+    
     service.register_output_callback(output_callback)
+    service.register_progress_callback(progress_callback)
     return service
 
 
@@ -208,13 +224,25 @@ async def event_stream(request: Request):
             try:
                 # Get message from queue with timeout
                 message = await asyncio.wait_for(output_queue.get(), timeout=1.0)
-                yield message
+                
+                # Format message for SSE
+                if isinstance(message, dict):
+                    # Extract the message type and use it as the event name
+                    msg_type = message.pop("type", "message")
+                    # Convert the remaining data to JSON
+                    data = json.dumps(message)
+                    # Yield a properly formatted SSE message
+                    yield {"event": msg_type, "data": data}
+                else:
+                    # If it's not a dict, just send it as data
+                    yield {"data": json.dumps(message)}
+                    
             except asyncio.TimeoutError:
                 # Send ping to keep connection alive
-                yield {"type": "ping", "timestamp": datetime.now().isoformat()}
+                yield {"event": "ping", "data": json.dumps({"timestamp": datetime.now().isoformat()})}
             except Exception as e:
                 logger.error(f"Error in SSE: {str(e)}")
-                yield {"type": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
+                yield {"event": "error", "data": json.dumps({"error": str(e), "timestamp": datetime.now().isoformat()})}
                 break
     
     return EventSourceResponse(event_generator())

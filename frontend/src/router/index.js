@@ -6,6 +6,7 @@ import CriteriaConfig from '@/views/CriteriaConfig.vue'
 import EvaluationRunner from '@/views/EvaluationRunner.vue'
 import Results from '@/views/Results.vue'
 import LocalModels from '@/views/LocalModels.vue'
+import TestPage from '@/views/TestPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -64,6 +65,14 @@ const router = createRouter({
       component: LocalModels,
       meta: {
         title: 'Local Models'
+      }
+    },
+    {
+      path: '/test-page',
+      name: 'test-page',
+      component: TestPage,
+      meta: {
+        title: 'Test Page'
       }
     }
   ]
