@@ -21,6 +21,10 @@ from .services.background_evaluation_service import start_background_service, st
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    pass
+
+# --- FastAPI startup event for background tasks ---
+
     # Code to run on startup
     print("INFO:     Initializing database connection...")
     try:
@@ -28,9 +32,26 @@ async def lifespan(app: FastAPI):
         print("INFO:     Database connection initialized.")
         
         # Start background evaluation service
-        print("INFO:     Starting background evaluation service...")
-        await start_background_service()
-        print("INFO:     Background evaluation service started.")
+        print("INFO:     Starting background evaluation service (after DB init)...")
+        # Force reset the global background service so it is recreated after DB is ready
+        from storybench.web.services import background_evaluation_service as bes
+        bes._background_service = None
+        import asyncio
+        from storybench.web.services.background_evaluation_service import start_background_service
+        try:
+            asyncio.create_task(start_background_service())
+            print("INFO:     Background evaluation service started (via lifespan).");
+            # Minimal heartbeat test
+            async def test_heartbeat():
+                import logging
+                while True:
+                    print("[TEST_HEARTBEAT] Minimal background task is running...")
+                    logging.info("[TEST_HEARTBEAT] Minimal background task is running...")
+                    await asyncio.sleep(2)
+            asyncio.create_task(test_heartbeat())
+        except Exception as e:
+            print(f"ERROR:    Failed to start background evaluation service: {type(e).__name__}: {e}")
+            print(f"ERROR:    Full exception details: {repr(e)}")
         
     except Exception as e:
         print(f"ERROR:    Failed to initialize database: {type(e).__name__}: {e}")
@@ -63,6 +84,16 @@ app = FastAPI(
     lifespan=lifespan  # Add this line
 )
 
+
+# Create FastAPI app
+app = FastAPI(
+    title="Storybench Web UI",
+    description="Web interface for the Storybench LLM creativity evaluation system",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    lifespan=lifespan
+)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

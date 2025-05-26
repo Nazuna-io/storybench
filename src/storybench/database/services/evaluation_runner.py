@@ -253,9 +253,15 @@ class DatabaseEvaluationRunner:
             logger.error(f"Failed to find running evaluations: {e}")
             return []
             
+    import traceback
+    from datetime import datetime
+
     async def stop_evaluation(self, evaluation_id: ObjectId) -> bool:
         """Stop a running evaluation."""
         try:
+            now = datetime.utcnow().isoformat()
+            stack = ''.join(traceback.format_stack(limit=10))
+            logger.warning(f"[DEBUG] stop_evaluation called at {now} for evaluation_id={evaluation_id}\nStack trace:\n{stack}")
             await self.evaluation_repo.update_by_id(
                 evaluation_id,
                 {"status": EvaluationStatus.STOPPED.value}

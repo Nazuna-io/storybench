@@ -29,6 +29,7 @@ class BackgroundEvaluationService:
         
     async def start(self):
         """Start the background evaluation service."""
+        logger.info("[DEBUG] Entered BackgroundEvaluationService.start()")
         if self.is_running:
             logger.warning("Background evaluation service is already running")
             return
@@ -40,6 +41,7 @@ class BackgroundEvaluationService:
         # Main service loop
         try:
             while not self._stop_event.is_set():
+                logger.info("[DEBUG] BackgroundEvaluationService main loop running...")
                 await self._process_pending_evaluations()
                 # Check every 5 seconds for new evaluations
                 try:
@@ -62,8 +64,9 @@ class BackgroundEvaluationService:
     async def _process_pending_evaluations(self):
         """Check for and process any pending evaluations."""
         try:
-            # Find evaluations that are in_progress but haven't started processing
+            now = datetime.utcnow().isoformat()
             pending_evaluations = await self.runner.find_running_evaluations()
+            logger.info(f"[HEARTBEAT] _process_pending_evaluations at {now}: found {len(pending_evaluations)} pending evaluations.")
             
             for evaluation in pending_evaluations:
                 # Check if this evaluation has any responses yet
@@ -145,6 +148,7 @@ class BackgroundEvaluationService:
                 {"status": EvaluationStatus.GENERATING_RESPONSES}
             )
             
+            any_responses_generated = False
             for model_name in models:
                 logger.info(f"Processing model {model_name} for evaluation {evaluation_id}")
                 
@@ -219,7 +223,7 @@ class BackgroundEvaluationService:
                                     response_text=response_text,
                                     generation_time=generation_time
                                 )
-                                
+                                any_responses_generated = True
                                 completed_tasks += 1
                                 logger.info(f"Generated response ({generation_time:.1f}s) - Progress: {completed_tasks}/{evaluation.total_tasks}")
                                 
@@ -237,6 +241,15 @@ class BackgroundEvaluationService:
                 except Exception as e:
                     logger.warning(f"Error cleaning up evaluator for {model_name}: {e}")
             
+            # If no responses were generated, mark evaluation as failed and exit
+            if not any_responses_generated:
+                logger.error(f"No responses were generated for evaluation {evaluation_id}. Marking as FAILED.")
+                await self.runner.mark_evaluation_failed(
+                    evaluation_id,
+                    "No responses were generated for any model. All models may have failed or been rate-limited."
+                )
+                return
+
             # Update evaluation status to responses complete
             await self.runner.evaluation_repo.update_by_id(
                 evaluation_id,
@@ -318,18 +331,25 @@ class BackgroundEvaluationService:
 # Global service instance
 _background_service: Optional[BackgroundEvaluationService] = None
 
-async def get_background_service() -> BackgroundEvaluationService:
+import logging
+
+async def get_background_service() -> Optional[BackgroundEvaluationService]:
     """Get or create the background evaluation service."""
     global _background_service
     if _background_service is None:
-        database = await get_database()
-        _background_service = BackgroundEvaluationService(database)
+        try:
+            database = await get_database()
+            logging.info("[DEBUG] Creating new BackgroundEvaluationService instance.")
+            _background_service = BackgroundEvaluationService(database)
+        except Exception as e:
+            logging.error(f"Failed to get database for background service: {e}")
+            return None
     return _background_service
 
 async def start_background_service():
     """Start the background evaluation service."""
     service = await get_background_service()
-    if not service.is_running:
+    if service and not service.is_running:
         # Start in background task
         asyncio.create_task(service.start())
 
