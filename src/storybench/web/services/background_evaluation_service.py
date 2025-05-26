@@ -1,6 +1,6 @@
 """
 Background evaluation service that processes evaluations from the web UI.
-Monitors database for new evaluations and processes them using simplified simulation.
+Monitors database for new evaluations and processes them using real LLM APIs and evaluations.
 """
 import asyncio
 import logging
@@ -12,6 +12,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ...database.connection import get_database
 from ...database.models import EvaluationStatus
 from ...database.services.evaluation_runner import DatabaseEvaluationRunner
+from ...database.services.sequence_evaluation_service import SequenceEvaluationService
+from ...database.repositories.criteria_repo import CriteriaRepository
+from ...evaluators.factory import EvaluatorFactory
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +94,7 @@ class BackgroundEvaluationService:
             logger.error(f"Error processing pending evaluations: {e}")
     
     async def _process_evaluation(self, evaluation):
-        """Process a single evaluation - creates actual response records."""
+        """Process a single evaluation - creates actual response records using real LLM APIs."""
         try:
             evaluation_id = evaluation.id
             models = evaluation.models
@@ -130,11 +133,52 @@ class BackgroundEvaluationService:
                     ]
                 }
             
+            # Get API keys from environment
+            api_keys = self._get_api_keys()
+            
             num_runs = 3  # Default number of runs
             completed_tasks = 0
             
+            # Update evaluation status to response generation phase
+            await self.runner.evaluation_repo.update_by_id(
+                evaluation_id,
+                {"status": EvaluationStatus.GENERATING_RESPONSES}
+            )
+            
             for model_name in models:
                 logger.info(f"Processing model {model_name} for evaluation {evaluation_id}")
+                
+                # Get model configuration from database
+                models_config = await config_service.get_active_models()
+                if not models_config:
+                    logger.error(f"No active models configuration found")
+                    continue
+                
+                # Find the specific model configuration
+                model_config = None
+                for model in models_config.models:
+                    if model.name == model_name:
+                        model_config = {
+                            "type": model.type,
+                            "provider": model.provider,
+                            "model_name": model.model_name
+                        }
+                        break
+                
+                if not model_config:
+                    logger.error(f"Model configuration not found for {model_name}")
+                    continue
+                
+                # Create evaluator for this model
+                try:
+                    evaluator = EvaluatorFactory.create_evaluator(model_name, model_config, api_keys)
+                    setup_success = await evaluator.setup()
+                    if not setup_success:
+                        logger.error(f"Failed to setup evaluator for {model_name}")
+                        continue
+                except Exception as e:
+                    logger.error(f"Failed to create evaluator for {model_name}: {e}")
+                    continue
                 
                 for sequence_name, prompts in sequences.items():
                     logger.info(f"Processing sequence {sequence_name} with {len(prompts)} prompts")
@@ -152,36 +196,124 @@ class BackgroundEvaluationService:
                                 }
                             )
                             
-                            # Create simulated response
-                            response_text = f"Simulated response from {model_name} for prompt '{prompt['name']}' in sequence '{sequence_name}' (Run {run})"
-                            
-                            # Save the response to database
-                            await self.runner.save_response(
-                                evaluation_id=str(evaluation_id),  # Convert ObjectId to string
-                                model_name=model_name,
-                                sequence=sequence_name,
-                                run=run,
-                                prompt_index=prompt_index,
-                                prompt_name=prompt["name"],
-                                prompt_text=prompt["text"],
-                                response_text=response_text,
-                                generation_time=2.5  # Simulated generation time
-                            )
-                            
-                            completed_tasks += 1
-                            
-                            # Simulate processing time
-                            await asyncio.sleep(2)
-                            
-                            logger.info(f"Progress: {completed_tasks}/{evaluation.total_tasks} tasks completed")
+                            # Generate real response using LLM API
+                            try:
+                                logger.info(f"Generating response for {model_name}/{sequence_name}/run{run}/{prompt['name']}")
+                                start_time = datetime.now()
+                                response_result = await evaluator.generate_response(prompt['text'])
+                                end_time = datetime.now()
+                                generation_time = (end_time - start_time).total_seconds()
+                                
+                                # Extract response text from the result dict
+                                response_text = response_result.get("response", "")
+                                
+                                # Save the response to database
+                                await self.runner.save_response(
+                                    evaluation_id=str(evaluation_id),  # Convert ObjectId to string
+                                    model_name=model_name,
+                                    sequence=sequence_name,
+                                    run=run,
+                                    prompt_index=prompt_index,
+                                    prompt_name=prompt["name"],
+                                    prompt_text=prompt["text"],
+                                    response_text=response_text,
+                                    generation_time=generation_time
+                                )
+                                
+                                completed_tasks += 1
+                                logger.info(f"Generated response ({generation_time:.1f}s) - Progress: {completed_tasks}/{evaluation.total_tasks}")
+                                
+                                # Add delay to be nice to APIs
+                                await asyncio.sleep(1)
+                                
+                            except Exception as e:
+                                logger.error(f"Error generating response for {model_name}/{sequence_name}/run{run}/{prompt['name']}: {e}")
+                                # Continue with next prompt even if one fails
+                                continue
+                
+                # Cleanup evaluator
+                try:
+                    await evaluator.cleanup()
+                except Exception as e:
+                    logger.warning(f"Error cleaning up evaluator for {model_name}: {e}")
             
-            # Mark evaluation as completed
+            # Update evaluation status to responses complete
+            await self.runner.evaluation_repo.update_by_id(
+                evaluation_id,
+                {"status": EvaluationStatus.RESPONSES_COMPLETE}
+            )
+            logger.info(f"Response generation complete for evaluation {evaluation_id}")
+            
+            # Update evaluation status to LLM evaluation phase
+            await self.runner.evaluation_repo.update_by_id(
+                evaluation_id,
+                {"status": EvaluationStatus.EVALUATING_RESPONSES}
+            )
+            
+            # Step 2: Run LLM evaluation on all generated responses
+            logger.info(f"Starting LLM evaluation for evaluation {evaluation_id}")
+            
+            # Check if we have OpenAI API key for evaluation
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if not openai_api_key:
+                logger.error("OPENAI_API_KEY not found - cannot run LLM evaluation")
+                await self.runner.mark_evaluation_failed(evaluation_id, "OPENAI_API_KEY not found for LLM evaluation")
+                return
+            
+            # Initialize sequence evaluation service
+            sequence_eval_service = SequenceEvaluationService(self.database, openai_api_key)
+            
+            # Check if we have active criteria
+            criteria_repo = CriteriaRepository(self.database)
+            active_criteria = await criteria_repo.find_active()
+            
+            if not active_criteria:
+                logger.error("No active evaluation criteria found")
+                await self.runner.mark_evaluation_failed(evaluation_id, "No active evaluation criteria found")
+                return
+            
+            logger.info(f"Using criteria version {active_criteria.version}")
+            
+            # Run sequence-aware evaluations
+            try:
+                eval_results = await sequence_eval_service.evaluate_all_sequences()
+                logger.info(f"LLM evaluation complete - Sequences evaluated: {eval_results['sequences_evaluated']}, Total evaluations: {eval_results['total_evaluations_created']}")
+                
+                if eval_results.get('errors'):
+                    logger.warning(f"LLM evaluation had {len(eval_results['errors'])} errors")
+                    for error in eval_results['errors'][:3]:  # Log first 3 errors
+                        logger.warning(f"Evaluation error: {error}")
+                
+            except Exception as e:
+                logger.error(f"Error during LLM evaluation: {e}")
+                await self.runner.mark_evaluation_failed(evaluation_id, f"LLM evaluation failed: {str(e)}")
+                return
+            
+            # Mark evaluation as completed only after both response generation AND evaluation are done
             await self.runner.mark_evaluation_completed(evaluation_id)
-            logger.info(f"Completed evaluation {evaluation_id} with {completed_tasks} responses")
+            logger.info(f"Completed evaluation {evaluation_id} with {completed_tasks} responses and LLM evaluations")
             
         except Exception as e:
             logger.error(f"Error processing evaluation {evaluation.id}: {e}")
             await self.runner.mark_evaluation_failed(evaluation.id, str(e))
+    
+    def _get_api_keys(self) -> Dict[str, str]:
+        """Get API keys from environment variables."""
+        api_keys = {}
+        
+        # OpenAI
+        if os.getenv("OPENAI_API_KEY"):
+            api_keys["openai"] = os.getenv("OPENAI_API_KEY")
+        
+        # Anthropic
+        if os.getenv("ANTHROPIC_API_KEY"):
+            api_keys["anthropic"] = os.getenv("ANTHROPIC_API_KEY")
+        
+        # Google Gemini
+        if os.getenv("GOOGLE_API_KEY"):
+            api_keys["google"] = os.getenv("GOOGLE_API_KEY")
+        
+        return api_keys
 
 # Global service instance
 _background_service: Optional[BackgroundEvaluationService] = None

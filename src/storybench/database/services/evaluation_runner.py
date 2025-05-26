@@ -235,7 +235,20 @@ class DatabaseEvaluationRunner:
     async def find_running_evaluations(self) -> List[Evaluation]:
         """Find currently running evaluations."""
         try:
-            return await self.evaluation_repo.find_by_status(EvaluationStatus.IN_PROGRESS)
+            # Include all statuses that represent an evaluation in progress
+            running_statuses = [
+                EvaluationStatus.IN_PROGRESS,
+                EvaluationStatus.GENERATING_RESPONSES,
+                EvaluationStatus.RESPONSES_COMPLETE,
+                EvaluationStatus.EVALUATING_RESPONSES
+            ]
+            
+            running_evaluations = []
+            for status in running_statuses:
+                evals = await self.evaluation_repo.find_by_status(status)
+                running_evaluations.extend(evals)
+            
+            return running_evaluations
         except Exception as e:
             logger.error(f"Failed to find running evaluations: {e}")
             return []

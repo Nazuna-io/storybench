@@ -48,6 +48,9 @@ class PyObjectId(ObjectId):
 class EvaluationStatus(str, Enum):
     """Evaluation status enumeration."""
     IN_PROGRESS = "in_progress"
+    GENERATING_RESPONSES = "generating_responses"
+    RESPONSES_COMPLETE = "responses_complete"
+    EVALUATING_RESPONSES = "evaluating_responses"
     COMPLETED = "completed"
     FAILED = "failed"
     PAUSED = "paused"
