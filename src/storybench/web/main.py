@@ -14,7 +14,9 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
 from storybench.database.connection import init_database, close_database
-from .api import models, prompts, evaluations, results, validation, sse, criteria
+from .api import models, prompts, results, validation, criteria
+from .api import mock_evaluations as evaluations
+from .api import mock_sse as sse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +28,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"ERROR:    Failed to initialize database: {type(e).__name__}: {e}")
         print(f"ERROR:    Full exception details: {repr(e)}")
+        import traceback
+        traceback.print_exc()
         # Re-raise the exception to prevent the app from starting with a broken database
         raise
     yield
@@ -66,6 +70,11 @@ app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluat
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(sse.router, prefix="/api/sse", tags=["Server-Sent Events"])
 
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "storybench-web"}
+
 # Setup SSE callbacks for real-time updates
 from .api.sse import setup_sse_callbacks
 # Note: SSE callbacks now use dependency injection instead of global service
@@ -82,16 +91,18 @@ if frontend_path.exists():
     
     @app.get("/{path:path}")
     async def read_spa(path: str):
+        # Don't serve SPA for API routes - let them be handled by the API routers
+        if path.startswith("api/"):
+            # This shouldn't be reached since API routes are handled by routers
+            # But just in case, we'll raise a 404
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+            
         # Serve static files or fallback to index.html for SPA routing
         file_path = frontend_path / path
         if file_path.exists() and file_path.is_file():
             return FileResponse(str(file_path))
         return FileResponse(str(frontend_path / "index.html"))
-
-@app.get("/api/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "storybench-web"}
 
 if __name__ == "__main__":
     import uvicorn
