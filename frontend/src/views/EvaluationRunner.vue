@@ -180,9 +180,9 @@ export default {
     }
     const getStatusDisplayText = (status) => {
       const statusMap = {
-        'in_progress': 'Starting...',
+        'in_progress': 'Starting Evaluation...',
         'generating_responses': 'Generating Responses',
-        'responses_complete': 'Responses Complete', 
+        'responses_complete': 'Responses Complete - Starting Evaluation', 
         'evaluating_responses': 'Evaluating Responses',
         'completed': 'Completed',
         'failed': 'Failed',
@@ -326,14 +326,24 @@ export default {
             console.log('Updated progress:', progress.value)
           }
           
-          // If evaluation is running and we weren't aware, add a console message
+          // If evaluation is running and we weren't aware, add status messages and try to restore context
           if (status.running && !wasRunning) {
-            addConsoleMessage('output', `🔄 Evaluation resuming: ${status.progress?.current_model || 'Processing...'}`)
+            addConsoleMessage('status', '🔄 Evaluation session resumed')
+            if (status.progress) {
+              const statusText = getStatusDisplayText(status.progress.status)
+              addConsoleMessage('status', `📊 Current Status: ${statusText}`)
+              if (status.progress.current_model) {
+                addConsoleMessage('info', `🤖 Processing: ${status.progress.current_model}`)
+              }
+              if (status.progress.progress_percent !== undefined) {
+                addConsoleMessage('info', `📈 Progress: ${status.progress.progress_percent}% (${status.progress.completed_tasks}/${status.progress.total_tasks} tasks)`)
+              }
+            }
           }
           
           // If evaluation finished and we were tracking it, add completion message
           if (!status.running && wasRunning) {
-            addConsoleMessage('output', '✅ Evaluation completed')
+            addConsoleMessage('status', '✅ Evaluation completed')
           }
         } else {
           console.error('Failed to load status:', statusResponse.statusText)

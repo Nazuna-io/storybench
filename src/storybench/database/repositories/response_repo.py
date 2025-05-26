@@ -43,4 +43,6 @@ class ResponseRepository(BaseRepository[Response]):
         
     async def count_by_evaluation_id(self, evaluation_id: ObjectId) -> int:
         """Count responses for an evaluation."""
-        return await self.collection.count_documents({"evaluation_id": evaluation_id})
+        # Handle both ObjectId and string format
+        evaluation_id_str = str(evaluation_id)
+        return await self.collection.count_documents({"evaluation_id": evaluation_id_str})
