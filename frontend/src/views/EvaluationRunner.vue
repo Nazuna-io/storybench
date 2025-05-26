@@ -82,7 +82,12 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-            <span class="text-gray-900 font-medium">Evaluation Running</span>
+            <span class="text-gray-900 font-medium">
+              {{ getStatusDisplayText(progress.status) }}
+              <span v-if="progress.progress_percent !== undefined" class="text-gray-600">
+                ({{ progress.progress_percent }}%)
+              </span>
+            </span>
           </div>
           <button 
             @click="stopEvaluation" 
@@ -168,8 +173,23 @@ export default {
         case 'error': return 'text-red-400'
         case 'progress': return 'text-blue-400'
         case 'output': return 'text-green-400'
+        case 'status': return 'text-yellow-400'
+        case 'info': return 'text-cyan-400'
         default: return 'text-gray-300'
       }
+    }
+    const getStatusDisplayText = (status) => {
+      const statusMap = {
+        'in_progress': 'Starting...',
+        'generating_responses': 'Generating Responses',
+        'responses_complete': 'Responses Complete', 
+        'evaluating_responses': 'Evaluating Responses',
+        'completed': 'Completed',
+        'failed': 'Failed',
+        'stopped': 'Stopped',
+        'paused': 'Paused'
+      }
+      return statusMap[status] || 'Evaluation Running'
     }
     
     const scrollToBottom = async () => {
@@ -197,7 +217,24 @@ export default {
           
           switch (data.type) {
             case 'progress':
-              progress.value = { ...progress.value, ...data.data }
+              const oldStatus = progress.value.status
+              const newProgress = { ...progress.value, ...data.data }
+              
+              // Check if status changed and add console message
+              if (oldStatus !== newProgress.status) {
+                const statusMessage = getStatusDisplayText(newProgress.status)
+                addConsoleMessage('status', `📊 Status: ${statusMessage}`)
+              }
+              
+              // Add progress update message for significant milestones
+              if (newProgress.completed_tasks && newProgress.total_tasks) {
+                const percentage = Math.round((newProgress.completed_tasks / newProgress.total_tasks) * 100)
+                if (percentage % 25 === 0 && percentage !== (Math.round((progress.value.completed_tasks || 0) / (progress.value.total_tasks || 1)) * 100)) {
+                  addConsoleMessage('info', `🎯 Progress: ${percentage}% complete (${newProgress.completed_tasks}/${newProgress.total_tasks} tasks)`)
+                }
+              }
+              
+              progress.value = newProgress
               break
             case 'output':
               addConsoleMessage('output', data.message, data.timestamp)
@@ -371,6 +408,7 @@ export default {
       consoleOutput,
       formatTimestamp,
       getMessageClass,
+      getStatusDisplayText,
       startEvaluation,
       stopEvaluation
     }

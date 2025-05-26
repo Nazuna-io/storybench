@@ -16,6 +16,20 @@ class DatabaseResultsService:
         self.evaluation_repo = EvaluationRepository(database)
         self.response_repo = ResponseRepository(database)
         
+    def _map_status_to_display(self, internal_status: str) -> str:
+        """Map internal status to user-friendly display status."""
+        status_mapping = {
+            "in_progress": "prompting",
+            "generating_responses": "prompting", 
+            "responses_complete": "evaluating",
+            "evaluating_responses": "evaluating",
+            "completed": "completed",
+            "failed": "failed",
+            "stopped": "stopped",
+            "paused": "stopped"
+        }
+        return status_mapping.get(internal_status, internal_status)
+        
     async def get_all_results(self, config_version: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get all evaluation results with optional filtering."""
         try:
@@ -101,16 +115,34 @@ class DatabaseResultsService:
                 
                 # Create result entries for each model
                 for model_name in models_result:
+                    # Map status to user-friendly display
+                    display_status = self._map_status_to_display(evaluation.status)
+                    
+                    # Calculate progress percent based on status
+                    if evaluation.status == "completed":
+                        progress_percent = 100.0
+                    elif hasattr(evaluation, 'completed_tasks') and evaluation.completed_tasks:
+                        progress_percent = round((evaluation.completed_tasks / evaluation.total_tasks * 100) if evaluation.total_tasks > 0 else 0, 1)
+                    else:
+                        # Count actual responses for this evaluation
+                        response_count = await self.response_repo.count_by_evaluation_id(evaluation.id)
+                        progress_percent = round((response_count / evaluation.total_tasks * 100) if evaluation.total_tasks > 0 else 0, 1)
+                    
                     result = {
                         "id": f"{evaluation_id}_{model_name}",
                         "model_name": model_name,
                         "evaluation_id": evaluation_id,
                         "config_version": evaluation.config_hash,
                         "timestamp": evaluation.completed_at or evaluation.started_at,
-                        "status": evaluation.status,
+                        "status": display_status,
+                        "internal_status": evaluation.status,  # Keep for debugging
                         "scores": model_scores.get(model_name, None),
                         "total_tasks": evaluation.total_tasks,
-                        "completed_tasks": evaluation.completed_tasks
+                        "completed_tasks": evaluation.completed_tasks,
+                        "progress_percent": progress_percent,
+                        "current_model": getattr(evaluation, 'current_model', None),
+                        "current_sequence": getattr(evaluation, 'current_sequence', None),
+                        "current_run": getattr(evaluation, 'current_run', None)
                     }
                     results.append(result)
             
@@ -134,8 +166,8 @@ class DatabaseResultsService:
     async def get_detailed_result(self, model_name: str, config_version: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Get detailed results for a specific model."""
         try:
-            # Find evaluation
-            filter_criteria = {"status": "completed"}
+            # Find evaluation (not just completed ones)
+            filter_criteria = {}
             if config_version:
                 filter_criteria["config_hash"] = config_version
                 

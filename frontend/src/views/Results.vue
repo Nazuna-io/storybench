@@ -83,7 +83,9 @@
           >
             <option value="">All Status</option>
             <option value="completed">Completed</option>
-            <option value="in_progress">In Progress</option>
+            <option value="prompting">Prompting</option>
+            <option value="evaluating">Evaluating</option>
+            <option value="stopped">Stopped</option>
             <option value="failed">Failed</option>
           </select>
         </div>
