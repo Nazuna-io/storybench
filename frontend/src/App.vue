@@ -19,7 +19,7 @@
         class="flex-1 transition-all duration-300 ease-in-out"
         :class="mainContentClasses"
       >
-        <div class="p-4 sm:p-6">
+        <div class="pr-4 sm:pr-6 py-2 sm:py-4 pl-2">
           <router-view />
         </div>
       </main>
@@ -46,7 +46,7 @@ export default {
     
     const mainContentClasses = computed(() => ({
       'ml-0': isMobile.value || !showSidebar.value,
-      'ml-64': !isMobile.value && showSidebar.value
+      'ml-78': !isMobile.value && showSidebar.value
     }))
     
     const toggleSidebar = () => {
