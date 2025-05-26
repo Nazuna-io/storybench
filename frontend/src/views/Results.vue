@@ -2,7 +2,18 @@
   <div>
     <div class="mb-4">
       <h1 class="text-2xl font-bold text-gray-900">Evaluation Results</h1>
-      <p class="text-gray-600">View and analyze LLM creativity evaluation results</p>
+      <div class="flex items-center justify-between">
+        <p class="text-gray-600">View and analyze LLM creativity evaluation results</p>
+        <div class="flex items-center space-x-2">
+          <span 
+            class="w-2 h-2 rounded-full"
+            :class="connectionStatus === 'connected' ? 'bg-green-500' : connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'"
+          ></span>
+          <span class="text-sm text-gray-600">
+            {{ connectionStatus === 'connected' ? 'Live updates' : connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected' }}
+          </span>
+        </div>
+      </div>
     </div>
 
     <!-- Quick Stats -->
@@ -375,7 +386,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch, onActivated } from 'vue'
+import { ref, computed, onMounted, watch, onActivated, onUnmounted } from 'vue'
 import ResultDetailModal from '@/components/ResultDetailModal.vue'
 
 export default {
@@ -395,6 +406,10 @@ export default {
     const selectedResult = ref(null)
     const sortBy = ref('overall_score')
     const sortDirection = ref('desc')
+    
+    // SSE connection management
+    const connectionStatus = ref('disconnected')
+    let eventSource = null
     
     let refreshInterval = null
     
@@ -576,6 +591,33 @@ export default {
       }
     }
     
+    // Setup SSE connection for real-time updates
+    const setupSSE = () => {
+      if (eventSource) eventSource.close()
+      
+      connectionStatus.value = 'connecting'
+      eventSource = new EventSource('http://localhost:8000/api/sse/results/events')
+      
+      eventSource.onopen = () => {
+        connectionStatus.value = 'connected'
+        console.log('Live updates connected')
+      }
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'results_update' && data.data?.results) {
+          results.value = data.data.results
+          availableVersions.value = (data.data.versions || []).reverse()
+          console.log('Results updated via live connection')
+        }
+      }
+      
+      eventSource.onerror = () => {
+        connectionStatus.value = 'disconnected'
+        console.log('Live updates disconnected')
+      }
+    }
+    
     const loadResults = async () => {
       loading.value = true
       try {
@@ -617,14 +659,8 @@ export default {
     }
     
     onMounted(() => {
-      console.log('Results page mounted - loading results')
-      loadResults()
-      
-      // Set up auto-refresh every 15 seconds to catch new evaluations
-      refreshInterval = setInterval(() => {
-        console.log('Auto-refreshing results...')
-        loadResults()
-      }, 15000)
+      console.log('Results page mounted - setting up live updates')
+      setupSSE()
     })
     
     // Also refresh when component becomes active (user navigates back)
@@ -633,13 +669,20 @@ export default {
       loadResults()
     })
     
-    // Clean up interval
+    // Clean up connections
     const cleanup = () => {
       if (refreshInterval) {
         clearInterval(refreshInterval)
         refreshInterval = null
       }
+      if (eventSource) {
+        eventSource.close()
+        eventSource = null
+      }
+      connectionStatus.value = 'disconnected'
     }
+    
+    onUnmounted(cleanup)
     
     // Clean up on unmount
     if (typeof onUnmounted !== 'undefined') {
@@ -664,6 +707,7 @@ export default {
       selectedResult,
       sortBy,
       sortDirection,
+      connectionStatus,
       formatDate,
       getStatusClass,
       getStatusText,

@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 from storybench.database.connection import init_database, close_database
 from .api import models, prompts, evaluations, results, validation, criteria
 from .api import sse_database as sse
+from .api import sse_results
 from .services.background_evaluation_service import start_background_service, stop_background_service
 
 @asynccontextmanager
@@ -79,6 +80,7 @@ app.include_router(validation.router, prefix="/api/config", tags=["Configuration
 app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluations"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(sse.router, prefix="/api/sse", tags=["Server-Sent Events"])
+app.include_router(sse_results.router, prefix="/api/sse", tags=["Server-Sent Events"])
 
 @app.get("/api/health")
 async def health_check():
