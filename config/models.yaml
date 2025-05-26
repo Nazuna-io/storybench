@@ -1,7 +1,7 @@
 version: 1
 global_settings:
-  temperature: 0.9
-  max_tokens: 4096
+  temperature: 1.0
+  max_tokens: 8192
   num_runs: 3
   vram_limit_percent: 80
 
