@@ -42,6 +42,12 @@ class ConfigService:
         # Check if this configuration already exists
         existing = await self.model_repo.find_by_config_hash(config_hash)
         if existing:
+            if not existing.is_active:
+                # Deactivate all other configurations first
+                await self.model_repo.deactivate_all()
+                # Activate the existing one that matches the hash
+                await self.model_repo.update_by_id(existing.id, {"is_active": True})
+                existing.is_active = True  # Update the in-memory object
             return existing
             
         # Deactivate current active configuration
