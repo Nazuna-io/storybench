@@ -450,6 +450,7 @@ class LocalModelService:
                             eval_dict = evaluation.dict()
                             eval_dict["_id"] = evaluation_id_obj  # Ensure _id is ObjectId
                             await self.database.evaluations.insert_one(eval_dict)
+                            self._send_output(f"Evaluation record created: {evaluation_id}", "info")
                             
                             # Store each response in the database
                             for prompt_idx, response_data in enumerate(responses):
@@ -457,7 +458,7 @@ class LocalModelService:
                                     evaluation_id=evaluation_id,
                                     model_name=gen_model_name,
                                     sequence=sequence_name,
-                                    run=run_idx,
+                                    run=run_idx + 1,  # Fix: Convert to 1-based indexing
                                     prompt_index=prompt_idx,
                                     prompt_name=response_data["prompt_name"],
                                     prompt_text=response_data["prompt_text"],
@@ -467,7 +468,12 @@ class LocalModelService:
                                     status=ResponseStatus.COMPLETED
                                 )
                                 
-                                await response_repo.create(response_obj)
+                                try:
+                                    created_response = await response_repo.create(response_obj) 
+                                    self._send_output(f"Response saved: {response_data['prompt_name']}", "info")
+                                except Exception as resp_error:
+                                    self._send_output(f"Error saving response: {str(resp_error)}", "error")
+                                    raise  # Re-raise to prevent silent failures
                                 
                             self._send_output(f"Stored {len(responses)} responses in database with evaluation ID: {evaluation_id}", "info")
                         else:
