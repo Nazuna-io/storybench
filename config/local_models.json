@@ -9,7 +9,7 @@
     "filename": "tinyllama-1.1b-chat-v0.3.Q2_K.gguf",
     "subdirectory": ""
   },
-  "use_local_evaluator": false,
+  "use_local_evaluator": true,
   "settings": {
     "temperature": 0.8,
     "max_tokens": 2048,

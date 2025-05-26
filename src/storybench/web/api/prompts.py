@@ -50,6 +50,24 @@ async def get_prompts(config_service: ConfigService = Depends(get_config_service
         raise HTTPException(status_code=500, detail=f"Failed to load prompts: {str(e)}")
 
 
+@router.get("/sequences")
+async def get_sequences(config_service: ConfigService = Depends(get_config_service)):
+    """Get available sequence names for prompts."""
+    try:
+        prompts_config = await config_service.get_active_prompts()
+        if not prompts_config:
+            raise HTTPException(status_code=404, detail="No active prompts configuration found")
+            
+        # Extract just the sequence names
+        sequences = list(prompts_config.sequences.keys()) if hasattr(prompts_config, 'sequences') else []
+        
+        return {"sequences": sequences}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load sequences: {str(e)}")
+
+
 @router.put("/prompts")
 async def update_prompts(
     request: PromptsUpdateRequest,

@@ -410,7 +410,7 @@ export default {
         eventSource.close()
       }
       
-      eventSource = new EventSource('/api/local-evaluation/events')
+      eventSource = new EventSource('/api/local-models/events')
       
       eventSource.onmessage = (event) => {
         try {
@@ -464,7 +464,7 @@ export default {
       loadingSequences.value = true
       
       try {
-        const response = await axios.get('/api/prompts/sequences')
+        const response = await axios.get('/api/config/sequences')
         sequences.value = response.data.sequences || []
         
         // Select all sequences by default
@@ -472,6 +472,11 @@ export default {
       } catch (error) {
         console.error('Error loading sequences:', error)
         addConsoleMessage('error', `Failed to load sequences: ${error.message}`)
+        
+        // Fallback to sample sequences if API fails
+        sequences.value = ['FilmNarrative', 'LiteraryNarrative']
+        selectedSequences.value = [...sequences.value]
+        addConsoleMessage('info', 'Using sample sequences for demonstration')
       }
       
       loadingSequences.value = false
@@ -541,7 +546,7 @@ export default {
         startSSE()
         
         // Start evaluation
-        await axios.post('/api/local-evaluation/start', {
+        await axios.post('/api/local-models/start', {
           generation_model: generationModel.value,
           evaluation_model: useLocalEvaluator.value ? evaluationModel.value : null,
           use_local_evaluator: useLocalEvaluator.value,

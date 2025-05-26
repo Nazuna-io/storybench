@@ -180,19 +180,59 @@ class LocalEvaluator(BaseEvaluator):
         
         logger.info(f"Downloading {self.filename} from {self.repo_id}")
         
+        # Try direct download first using requests if it's a GGUF file
+        # This is often more reliable than the huggingface_hub API for large files
         try:
-            # Download model from Hugging Face
-            downloaded_path = hf_hub_download(
-                repo_id=self.repo_id,
-                filename=self.filename,
-                subfolder=self.subdirectory,
-                local_dir=model_dir,
-                local_dir_use_symlinks=False
-            )
+            # Construct direct URL to the file
+            direct_url = f"https://huggingface.co/{self.repo_id}/resolve/main"
+            if self.subdirectory:
+                direct_url += f"/{self.subdirectory}"
+            direct_url += f"/{self.filename}"
             
-            logger.info(f"Successfully downloaded model to {downloaded_path}")
-            return Path(downloaded_path)
+            logger.info(f"Attempting direct download from: {direct_url}")
             
+            # Download with progress tracking
+            with requests.get(direct_url, stream=True, timeout=60) as r:
+                r.raise_for_status()
+                total_size = int(r.headers.get('content-length', 0))
+                
+                # Write to temporary file first
+                temp_path = model_path.with_suffix('.temp')
+                with open(temp_path, 'wb') as f:
+                    with tqdm(total=total_size, unit='B', unit_scale=True, desc=self.filename) as pbar:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                pbar.update(len(chunk))
+                
+                # Rename to final filename
+                shutil.move(temp_path, model_path)
+                logger.info(f"Successfully downloaded model to {model_path}")
+                return model_path
+                
+        except Exception as e:
+            logger.warning(f"Direct download failed, falling back to huggingface_hub: {str(e)}")
+            
+            # Fall back to huggingface_hub download
+            try:
+                # Download model from Hugging Face
+                downloaded_path = hf_hub_download(
+                    repo_id=self.repo_id,
+                    filename=self.filename,
+                    subfolder=self.subdirectory,
+                    local_dir=model_dir,
+                    local_dir_use_symlinks=False,
+                    resume_download=True,  # Resume partial downloads
+                    force_download=False    # Don't redownload if exists
+                )
+                
+                logger.info(f"Successfully downloaded model to {downloaded_path}")
+                return Path(downloaded_path)
+                
+            except Exception as e:
+                logger.error(f"Failed to download model {self.filename} from {self.repo_id}: {str(e)}")
+                raise RuntimeError(f"Failed to download model after multiple attempts: {str(e)}")
+        
         except Exception as e:
             logger.error(f"Failed to download model {self.filename} from {self.repo_id}: {str(e)}")
-            raise
+            raise RuntimeError(f"Failed to download model: {str(e)}")
