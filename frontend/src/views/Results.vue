@@ -665,8 +665,9 @@ export default {
     }
     
     onMounted(() => {
-      console.log('Results page mounted - setting up live updates')
+      console.log('Results page mounted - setting up live updates and loading results')
       setupSSE()
+      loadResults()  // Fix: Load results on mount
     })
     
     // Also refresh when component becomes active (user navigates back)
