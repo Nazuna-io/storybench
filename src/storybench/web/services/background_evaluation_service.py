@@ -63,63 +63,121 @@ class BackgroundEvaluationService:
             pending_evaluations = await self.runner.find_running_evaluations()
             
             for evaluation in pending_evaluations:
-                # Check if this evaluation has any progress yet
-                progress = await self.runner.get_evaluation_progress(evaluation.id)
+                # Check if this evaluation has any responses yet
+                response_count = await self.database.responses.count_documents({
+                    "evaluation_id": str(evaluation.id)
+                })
                 
-                if progress and progress.get("completed_tasks", 0) == 0:
+                # Only process if:
+                # 1. No responses exist yet (fresh evaluation)
+                # 2. OR evaluation was interrupted and needs resuming
+                if response_count == 0:
                     # This is a fresh evaluation, start processing it
-                    logger.info(f"Starting processing for evaluation {evaluation.id}")
+                    logger.info(f"Starting processing for fresh evaluation {evaluation.id}")
                     # Start processing in background task so we don't block polling
                     asyncio.create_task(self._process_evaluation(evaluation))
+                elif response_count < evaluation.total_tasks:
+                    # This is a partially completed evaluation - could be resumed
+                    logger.info(f"Found partially completed evaluation {evaluation.id} ({response_count}/{evaluation.total_tasks} responses)")
+                    # For now, we'll skip automatic resume to avoid conflicts
+                    # User should explicitly choose to resume via UI
+                else:
+                    # This evaluation appears complete but status is still in_progress
+                    # Mark it as completed
+                    logger.info(f"Marking completed evaluation {evaluation.id} as finished")
+                    await self.runner.mark_evaluation_completed(evaluation.id)
                     
         except Exception as e:
             logger.error(f"Error processing pending evaluations: {e}")
     
     async def _process_evaluation(self, evaluation):
-        """Process a single evaluation - simplified simulation for testing."""
+        """Process a single evaluation - creates actual response records."""
         try:
-            evaluation_id = str(evaluation.id)
+            evaluation_id = evaluation.id
             models = evaluation.models
-            total_tasks = evaluation.total_tasks
             
             logger.info(f"Starting processing for evaluation {evaluation_id}")
             
-            # Simulate processing each model with progress updates
+            # Get the actual sequences from the evaluation's stored configuration
+            # We need to reconstruct this from the active configuration
+            from ...database.services.config_service import ConfigService
+            config_service = ConfigService(self.database)
+            
+            try:
+                # Get the current active prompts configuration
+                prompts_config = await config_service.get_active_prompts()
+                if prompts_config and hasattr(prompts_config, 'sequences'):
+                    sequences = {name: [prompt.model_dump() for prompt in prompt_list] 
+                               for name, prompt_list in prompts_config.sequences.items()}
+                else:
+                    # Fallback to hardcoded sequences if config is missing
+                    logger.warning("No prompts config found, using fallback sequences")
+                    sequences = {
+                        "FilmNarrative": [
+                            {"name": "Initial Concept", "text": "Create a feature film concept..."},
+                            {"name": "Character Development", "text": "Develop the main characters..."},
+                            {"name": "Plot Structure", "text": "Outline the plot structure..."}
+                        ]
+                    }
+            except Exception as config_error:
+                logger.error(f"Error loading prompts config: {config_error}")
+                # Use minimal fallback
+                sequences = {
+                    "FilmNarrative": [
+                        {"name": "Initial Concept", "text": "Create a feature film concept..."},
+                        {"name": "Scene Development", "text": "Develop a pivotal scene..."},
+                        {"name": "Visual Realization", "text": "Describe the most striking visual..."}
+                    ]
+                }
+            
+            num_runs = 3  # Default number of runs
             completed_tasks = 0
             
-            for i, model_name in enumerate(models):
+            for model_name in models:
                 logger.info(f"Processing model {model_name} for evaluation {evaluation_id}")
                 
-                # Update current model in database
-                await self.runner.evaluation_repo.update_by_id(
-                    evaluation.id,
-                    {
-                        "current_model": model_name,
-                        "current_sequence": "FilmNarrative",
-                        "current_run": 1,
-                        "completed_tasks": completed_tasks
-                    }
-                )
-                
-                # Simulate processing time with progress updates
-                tasks_per_model = max(1, total_tasks // len(models)) if models else 1
-                for j in range(tasks_per_model):
-                    completed_tasks += 1
+                for sequence_name, prompts in sequences.items():
+                    logger.info(f"Processing sequence {sequence_name} with {len(prompts)} prompts")
                     
-                    # Update progress
-                    await self.runner.evaluation_repo.update_by_id(
-                        evaluation.id,
-                        {"completed_tasks": completed_tasks}
-                    )
-                    
-                    # Wait a bit to simulate work
-                    await asyncio.sleep(3)
-                    
-                    logger.info(f"Progress: {completed_tasks}/{total_tasks} tasks completed")
+                    for run in range(1, num_runs + 1):
+                        for prompt_index, prompt in enumerate(prompts):
+                            # Update current status
+                            await self.runner.evaluation_repo.update_by_id(
+                                evaluation_id,
+                                {
+                                    "current_model": model_name,
+                                    "current_sequence": sequence_name,
+                                    "current_run": run,
+                                    "completed_tasks": completed_tasks
+                                }
+                            )
+                            
+                            # Create simulated response
+                            response_text = f"Simulated response from {model_name} for prompt '{prompt['name']}' in sequence '{sequence_name}' (Run {run})"
+                            
+                            # Save the response to database
+                            await self.runner.save_response(
+                                evaluation_id=str(evaluation_id),  # Convert ObjectId to string
+                                model_name=model_name,
+                                sequence=sequence_name,
+                                run=run,
+                                prompt_index=prompt_index,
+                                prompt_name=prompt["name"],
+                                prompt_text=prompt["text"],
+                                response_text=response_text,
+                                generation_time=2.5  # Simulated generation time
+                            )
+                            
+                            completed_tasks += 1
+                            
+                            # Simulate processing time
+                            await asyncio.sleep(2)
+                            
+                            logger.info(f"Progress: {completed_tasks}/{evaluation.total_tasks} tasks completed")
             
             # Mark evaluation as completed
-            await self.runner.mark_evaluation_completed(evaluation.id)
-            logger.info(f"Completed evaluation {evaluation_id}")
+            await self.runner.mark_evaluation_completed(evaluation_id)
+            logger.info(f"Completed evaluation {evaluation_id} with {completed_tasks} responses")
             
         except Exception as e:
             logger.error(f"Error processing evaluation {evaluation.id}: {e}")

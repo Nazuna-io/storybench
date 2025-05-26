@@ -49,8 +49,18 @@
       <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
         <h2 class="text-lg font-semibold text-gray-900">Recent Results</h2>
         
-        <!-- Search and Filter Controls -->
+        <!-- Search, Filter and Refresh Controls -->
         <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <!-- Refresh Button -->
+          <button
+            @click="loadResults"
+            :disabled="loading"
+            class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
+          >
+            <span v-if="loading">🔄</span>
+            <span v-else>🔄 Refresh</span>
+          </button>
+          
           <!-- Search Input -->
           <div class="relative">
             <input
@@ -198,7 +208,8 @@
                     class="inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors duration-150"
                     :class="getStatusClass(result.status)"
                   >
-                    {{ result.status }}
+                    <span v-if="result.status === 'in_progress'" class="animate-pulse mr-1">🔄</span>
+                    {{ getStatusText(result.status) }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -262,7 +273,8 @@
                 class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
                 :class="getStatusClass(result.status)"
               >
-                {{ result.status }}
+                <span v-if="result.status === 'in_progress'" class="animate-pulse mr-1">🔄</span>
+                {{ getStatusText(result.status) }}
               </span>
             </div>
             
@@ -361,7 +373,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onActivated } from 'vue'
 import ResultDetailModal from '@/components/ResultDetailModal.vue'
 
 export default {
@@ -381,6 +393,8 @@ export default {
     const selectedResult = ref(null)
     const sortBy = ref('overall_score')
     const sortDirection = ref('desc')
+    
+    let refreshInterval = null
     
     // Computed properties for filtering, sorting and pagination
     const filteredAndSortedResults = computed(() => {
@@ -535,11 +549,28 @@ export default {
         case 'completed':
           return `${baseClasses} bg-green-100 text-green-800`
         case 'in_progress':
-          return `${baseClasses} bg-yellow-100 text-yellow-800 status-in-progress`
+          return `${baseClasses} bg-blue-100 text-blue-800 status-in-progress`
         case 'failed':
           return `${baseClasses} bg-red-100 text-red-800`
+        case 'stopped':
+          return `${baseClasses} bg-yellow-100 text-yellow-800`
         default:
           return `${baseClasses} bg-gray-100 text-gray-800`
+      }
+    }
+    
+    const getStatusText = (status) => {
+      switch (status) {
+        case 'in_progress':
+          return 'Running'
+        case 'completed':
+          return 'Completed'
+        case 'failed':
+          return 'Failed'
+        case 'stopped':
+          return 'Stopped'
+        default:
+          return status
       }
     }
     
@@ -584,8 +615,34 @@ export default {
     }
     
     onMounted(() => {
+      console.log('Results page mounted - loading results')
+      loadResults()
+      
+      // Set up auto-refresh every 15 seconds to catch new evaluations
+      refreshInterval = setInterval(() => {
+        console.log('Auto-refreshing results...')
+        loadResults()
+      }, 15000)
+    })
+    
+    // Also refresh when component becomes active (user navigates back)
+    onActivated(() => {
+      console.log('Results page activated - loading results')
       loadResults()
     })
+    
+    // Clean up interval
+    const cleanup = () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+        refreshInterval = null
+      }
+    }
+    
+    // Clean up on unmount
+    if (typeof onUnmounted !== 'undefined') {
+      onUnmounted(cleanup)
+    }
     
     return {
       loading,
@@ -607,6 +664,7 @@ export default {
       sortDirection,
       formatDate,
       getStatusClass,
+      getStatusText,
       getScoreValue,
       getConfigVersion,
       sortResults,

@@ -19,7 +19,7 @@ class DatabaseResultsService:
     async def get_all_results(self, config_version: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get all evaluation results with optional filtering."""
         try:
-            # Get all evaluations (not just completed ones)
+            # Get all evaluations (including in-progress and completed ones)
             filter_criteria = {}
             if config_version:
                 filter_criteria["config_hash"] = config_version
@@ -30,14 +30,20 @@ class DatabaseResultsService:
             for evaluation in evaluations:
                 evaluation_id = str(evaluation.id)
                 
-                # Get unique models from responses
+                # Get unique models from evaluation.models (for in-progress) or responses (for completed)
+                models_from_eval = evaluation.models or []
+                models_from_responses = []
+                
+                # Also get models from responses if they exist
                 models_pipeline = [
                     {"$match": {"evaluation_id": evaluation_id}},
                     {"$group": {"_id": "$model_name", "count": {"$sum": 1}}}
                 ]
-                models_result = []
                 async for model in self.database.responses.aggregate(models_pipeline):
-                    models_result.append(model["_id"])
+                    models_from_responses.append(model["_id"])
+                
+                # Use models from responses if available, otherwise from evaluation
+                models_result = models_from_responses if models_from_responses else models_from_eval
                 
                 # Get scores from response_llm_evaluations collection
                 model_scores = {}
@@ -48,41 +54,50 @@ class DatabaseResultsService:
                         "model_name": model_name
                     }).to_list(None)
                     
-                    response_ids = [resp["_id"] for resp in responses]
-                    
-                    # Get LLM evaluations for these responses
-                    llm_evaluations = await self.database.response_llm_evaluations.find({
-                        "response_id": {"$in": response_ids}
-                    }).to_list(None)
-                    
-                    if llm_evaluations:
-                        # Calculate average scores across all criteria and evaluations
-                        all_scores = []
-                        criteria_scores = {}
+                    if responses:
+                        response_ids = [resp["_id"] for resp in responses]
                         
-                        for llm_eval in llm_evaluations:
-                            for criterion in llm_eval.get("criteria_results", []):
-                                criterion_name = criterion.get("criterion_name")
-                                score = criterion.get("score")
-                                if criterion_name and score is not None:
-                                    if criterion_name not in criteria_scores:
-                                        criteria_scores[criterion_name] = []
-                                    criteria_scores[criterion_name].append(score)
-                                    all_scores.append(score)
+                        # Get LLM evaluations for these responses
+                        llm_evaluations = await self.database.response_llm_evaluations.find({
+                            "response_id": {"$in": response_ids}
+                        }).to_list(None)
                         
-                        # Calculate averages
-                        overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
-                        detailed_avg = {
-                            criterion: sum(scores) / len(scores)
-                            for criterion, scores in criteria_scores.items()
-                        }
-                        
-                        model_scores[model_name] = {
-                            "overall": round(overall_avg, 2),
-                            "detailed": detailed_avg,
-                            "total_evaluations": len(llm_evaluations),
-                            "total_responses": len(responses)
-                        }
+                        if llm_evaluations:
+                            # Calculate average scores across all criteria and evaluations
+                            all_scores = []
+                            criteria_scores = {}
+                            
+                            for llm_eval in llm_evaluations:
+                                for criterion in llm_eval.get("criteria_results", []):
+                                    criterion_name = criterion.get("criterion_name")
+                                    score = criterion.get("score")
+                                    if criterion_name and score is not None:
+                                        if criterion_name not in criteria_scores:
+                                            criteria_scores[criterion_name] = []
+                                        criteria_scores[criterion_name].append(score)
+                                        all_scores.append(score)
+                            
+                            # Calculate averages
+                            overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
+                            detailed_avg = {
+                                criterion: sum(scores) / len(scores)
+                                for criterion, scores in criteria_scores.items()
+                            }
+                            
+                            model_scores[model_name] = {
+                                "overall": round(overall_avg, 2),
+                                "detailed": detailed_avg,
+                                "total_evaluations": len(llm_evaluations),
+                                "total_responses": len(responses)
+                            }
+                        else:
+                            # No LLM evaluations yet, but responses exist
+                            model_scores[model_name] = {
+                                "overall": None,
+                                "detailed": {},
+                                "total_evaluations": 0,
+                                "total_responses": len(responses)
+                            }
                 
                 # Create result entries for each model
                 for model_name in models_result:

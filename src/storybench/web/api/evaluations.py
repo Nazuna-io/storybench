@@ -188,6 +188,27 @@ async def start_evaluation(
         criteria = {name: criterion.model_dump() for name, criterion in criteria_config.criteria.items()}
         global_settings = models_config.evaluation.model_dump()
         
+        # Generate config hash to check for duplicates
+        config_data = {
+            "models": models,
+            "sequences": sequences,
+            "criteria": criteria,
+            "global_settings": global_settings
+        }
+        config_hash = config_service.generate_config_hash(config_data)
+        
+        # Check if this exact configuration was already completed recently
+        existing_complete = await runner.database.evaluations.find_one({
+            "config_hash": config_hash,
+            "status": "completed"
+        })
+        
+        if existing_complete and not request.resume:
+            # For testing purposes, allow fresh starts by adding timestamp to hash
+            import time
+            config_data["timestamp"] = time.time()
+            config_hash = config_service.generate_config_hash(config_data)
+        
         # Start evaluation
         evaluation = await runner.start_evaluation(
             models=models,
@@ -203,6 +224,8 @@ async def start_evaluation(
             "config_hash": evaluation.config_hash
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start evaluation: {str(e)}")
 

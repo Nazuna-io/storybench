@@ -67,7 +67,7 @@ class DatabaseEvaluationRunner:
         return len(models) * total_prompts * num_runs
         
     async def save_response(self, 
-                          evaluation_id: ObjectId,
+                          evaluation_id,  # Can be ObjectId or string
                           model_name: str,
                           sequence: str,
                           run: int,
@@ -78,8 +78,16 @@ class DatabaseEvaluationRunner:
                           generation_time: float) -> Response:
         """Save a model response to the database."""
         try:
+            # Handle both ObjectId and string types
+            if isinstance(evaluation_id, str):
+                eval_id_obj = ObjectId(evaluation_id)
+                eval_id_str = evaluation_id
+            else:
+                eval_id_obj = evaluation_id
+                eval_id_str = str(evaluation_id)
+            
             response = Response(
-                evaluation_id=evaluation_id,
+                evaluation_id=eval_id_str,  # Response model expects string
                 model_name=model_name,
                 sequence=sequence,
                 run=run,
@@ -94,8 +102,8 @@ class DatabaseEvaluationRunner:
             # Save to database
             response = await self.response_repo.create(response)
             
-            # Update evaluation progress
-            await self._update_evaluation_progress(evaluation_id, model_name, sequence, run)
+            # Update evaluation progress using ObjectId
+            await self._update_evaluation_progress(eval_id_obj, model_name, sequence, run)
             
             return response
             

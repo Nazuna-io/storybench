@@ -127,7 +127,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, onActivated, watch } from 'vue'
 
 export default {
   name: 'EvaluationRunner',
@@ -153,6 +153,7 @@ export default {
     const consoleOutput = ref(null)
     
     let eventSource = null
+    let statusCheckInterval = null
     
     const progressPercentage = computed(() => {
       if (progress.value.total_tasks === 0) return 0
@@ -272,17 +273,33 @@ export default {
     }    
     const loadStatus = async () => {
       try {
+        console.log('Loading evaluation status...')
+        
         // Check current evaluation status
         const statusResponse = await fetch('http://localhost:8000/api/evaluations/status')
         if (statusResponse.ok) {
           const status = await statusResponse.json()
+          console.log('Status response:', status)
+          
+          const wasRunning = isRunning.value
           isRunning.value = status.running
+          
           if (status.progress) {
-            progress.value = status.progress
+            progress.value = { ...progress.value, ...status.progress }
+            console.log('Updated progress:', progress.value)
           }
-          if (isRunning.value) {
-            startSSE()
+          
+          // If evaluation is running and we weren't aware, add a console message
+          if (status.running && !wasRunning) {
+            addConsoleMessage('output', `🔄 Evaluation resuming: ${status.progress?.current_model || 'Processing...'}`)
           }
+          
+          // If evaluation finished and we were tracking it, add completion message
+          if (!status.running && wasRunning) {
+            addConsoleMessage('output', '✅ Evaluation completed')
+          }
+        } else {
+          console.error('Failed to load status:', statusResponse.statusText)
         }
         
         // Check resume status
@@ -290,19 +307,55 @@ export default {
         if (resumeResponse.ok) {
           const resumeData = await resumeResponse.json()
           resumeInfo.value = resumeData.resume_info
+          console.log('Resume info:', resumeInfo.value)
         }
       } catch (error) {
         console.error('Failed to load status:', error)
+        addConsoleMessage('error', `Failed to load status: ${error.message}`)
       }
     }
     
     onMounted(() => {
+      console.log('EvaluationRunner mounted - loading status')
       loadStatus()
+      
+      // Set up periodic status checking every 5 seconds when mounted
+      statusCheckInterval = setInterval(loadStatus, 5000)
+    })
+    
+    // Also refresh when component becomes active (user navigates back)
+    onActivated(() => {
+      console.log('EvaluationRunner activated - loading status')
+      loadStatus()
+      
+      // Ensure we have status checking running
+      if (!statusCheckInterval) {
+        statusCheckInterval = setInterval(loadStatus, 5000)
+      }
+    })
+    
+    // Watch for changes in isRunning to manage SSE connection
+    watch(isRunning, (newValue, oldValue) => {
+      console.log(`isRunning changed from ${oldValue} to ${newValue}`)
+      if (newValue && !eventSource) {
+        console.log('Starting SSE connection')
+        startSSE()
+      } else if (!newValue && eventSource) {
+        console.log('Stopping SSE connection')
+        eventSource.close()
+        eventSource = null
+      }
     })
     
     onUnmounted(() => {
+      console.log('EvaluationRunner unmounted - cleaning up')
       if (eventSource) {
         eventSource.close()
+        eventSource = null
+      }
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval)
+        statusCheckInterval = null
       }
     })
     
