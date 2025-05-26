@@ -44,6 +44,18 @@
           </router-link>
         </li>
         
+        <li>
+          <router-link
+            to="/local-models"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.name === 'local-models' }"
+            @click="handleNavClick"
+          >
+            <span class="nav-icon">💻</span>
+            Local Models
+          </router-link>
+        </li>
+        
         <li class="pt-4">
           <h3 class="nav-section-title">Configuration</h3>
           <ul class="mt-2 space-y-1">

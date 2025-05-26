@@ -14,7 +14,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
 from storybench.database.connection import init_database, close_database
-from .api import models, prompts, evaluations, results, validation, criteria
+from .api import models, prompts, evaluations, results, validation, criteria, local_models, hardware_info
 from .api import sse_database as sse
 from .api import sse_results
 from .services.background_evaluation_service import start_background_service, stop_background_service
@@ -81,17 +81,6 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    lifespan=lifespan  # Add this line
-)
-
-
-# Create FastAPI app
-app = FastAPI(
-    title="Storybench Web UI",
-    description="Web interface for the Storybench LLM creativity evaluation system",
-    version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
     lifespan=lifespan
 )
 # Add CORS middleware
@@ -110,6 +99,8 @@ app.include_router(criteria.router, prefix="/api/config", tags=["Configuration"]
 app.include_router(validation.router, prefix="/api/config", tags=["Configuration"])
 app.include_router(evaluations.router, prefix="/api/evaluations", tags=["Evaluations"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
+app.include_router(local_models.router, prefix="/api", tags=["Local Models"])
+app.include_router(hardware_info.router, prefix="/api", tags=["Hardware Info"])
 app.include_router(sse.router, prefix="/api/sse", tags=["Server-Sent Events"])
 app.include_router(sse_results.router, prefix="/api/sse", tags=["Server-Sent Events"])
 

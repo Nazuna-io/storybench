@@ -5,6 +5,7 @@ import PromptsConfig from '@/views/PromptsConfig.vue'
 import CriteriaConfig from '@/views/CriteriaConfig.vue'
 import EvaluationRunner from '@/views/EvaluationRunner.vue'
 import Results from '@/views/Results.vue'
+import LocalModels from '@/views/LocalModels.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -55,6 +56,14 @@ const router = createRouter({
       component: EvaluationRunner,
       meta: {
         title: 'Run Evaluation'
+      }
+    },
+    {
+      path: '/local-models',
+      name: 'local-models',
+      component: LocalModels,
+      meta: {
+        title: 'Local Models'
       }
     }
   ]
