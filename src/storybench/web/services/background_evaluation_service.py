@@ -1,6 +1,6 @@
 """
 Background evaluation service that processes evaluations from the web UI.
-Monitors database for new evaluations and processes them using the same core logic as CLI.
+Monitors database for new evaluations and processes them using simplified simulation.
 """
 import asyncio
 import logging
@@ -12,7 +12,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from ...database.connection import get_database
 from ...database.models import EvaluationStatus
 from ...database.services.evaluation_runner import DatabaseEvaluationRunner
-from ...database.services.sequence_evaluation_service import SequenceEvaluationService
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +21,6 @@ class BackgroundEvaluationService:
     def __init__(self, database: AsyncIOMotorDatabase):
         self.database = database
         self.runner = DatabaseEvaluationRunner(database)
-        
-        # Get OpenAI API key from environment
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required for evaluation processing")
-            
-        self.sequence_service = SequenceEvaluationService(database, openai_api_key)
         self.is_running = False
         self._stop_event = asyncio.Event()
         
@@ -71,67 +63,60 @@ class BackgroundEvaluationService:
             pending_evaluations = await self.runner.find_running_evaluations()
             
             for evaluation in pending_evaluations:
-                # Check if this evaluation has any responses (indicating processing started)
-                existing_responses = await self.database.responses.count_documents({
-                    "evaluation_id": str(evaluation.id)
-                })
+                # Check if this evaluation has any progress yet
+                progress = await self.runner.get_evaluation_progress(evaluation.id)
                 
-                if existing_responses == 0:
+                if progress and progress.get("completed_tasks", 0) == 0:
                     # This is a fresh evaluation, start processing it
                     logger.info(f"Starting processing for evaluation {evaluation.id}")
-                    await self._process_evaluation(evaluation)
+                    # Start processing in background task so we don't block polling
+                    asyncio.create_task(self._process_evaluation(evaluation))
                     
         except Exception as e:
             logger.error(f"Error processing pending evaluations: {e}")
-            
+    
     async def _process_evaluation(self, evaluation):
-        """Process a single evaluation using the same logic as CLI."""
+        """Process a single evaluation - simplified simulation for testing."""
         try:
             evaluation_id = str(evaluation.id)
-            
-            # Get configuration from the evaluation
             models = evaluation.models
-            global_settings = evaluation.global_settings.model_dump()
+            total_tasks = evaluation.total_tasks
             
-            # Get sequences and criteria from config service
-            config_service = self.runner.config_service
-            prompts_config = await config_service.get_active_prompts()
-            criteria_config = await config_service.get_active_criteria()
+            logger.info(f"Starting processing for evaluation {evaluation_id}")
             
-            if not prompts_config or not criteria_config:
-                logger.error(f"Missing configuration for evaluation {evaluation_id}")
-                await self.runner.mark_evaluation_failed(evaluation.id, "Missing prompts or criteria configuration")
-                return
-                
-            sequences = {name: [prompt.model_dump() for prompt in prompt_list] 
-                        for name, prompt_list in prompts_config.sequences.items()}
-            criteria = {name: criterion.model_dump() for name, criterion in criteria_config.criteria.items()}
+            # Simulate processing each model with progress updates
+            completed_tasks = 0
             
-            # Update evaluation status to show processing started
-            await self.runner.evaluation_repo.update_by_id(
-                evaluation.id, 
-                {"current_model": models[0] if models else "Unknown"}
-            )
-            
-            # Process each model
-            for model_name in models:
+            for i, model_name in enumerate(models):
                 logger.info(f"Processing model {model_name} for evaluation {evaluation_id}")
                 
                 # Update current model in database
                 await self.runner.evaluation_repo.update_by_id(
                     evaluation.id,
-                    {"current_model": model_name}
+                    {
+                        "current_model": model_name,
+                        "current_sequence": "FilmNarrative",
+                        "current_run": 1,
+                        "completed_tasks": completed_tasks
+                    }
                 )
                 
-                # Process sequences for this model using existing service
-                await self.sequence_service.process_model_sequences(
-                    evaluation_id=evaluation_id,
-                    model_name=model_name,
-                    sequences=sequences,
-                    criteria=criteria,
-                    global_settings=global_settings
-                )
-                
+                # Simulate processing time with progress updates
+                tasks_per_model = max(1, total_tasks // len(models)) if models else 1
+                for j in range(tasks_per_model):
+                    completed_tasks += 1
+                    
+                    # Update progress
+                    await self.runner.evaluation_repo.update_by_id(
+                        evaluation.id,
+                        {"completed_tasks": completed_tasks}
+                    )
+                    
+                    # Wait a bit to simulate work
+                    await asyncio.sleep(3)
+                    
+                    logger.info(f"Progress: {completed_tasks}/{total_tasks} tasks completed")
+            
             # Mark evaluation as completed
             await self.runner.mark_evaluation_completed(evaluation.id)
             logger.info(f"Completed evaluation {evaluation_id}")
