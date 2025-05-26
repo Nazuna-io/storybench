@@ -14,9 +14,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
 from storybench.database.connection import init_database, close_database
-from .api import models, prompts, results, validation, criteria
-from .api import mock_evaluations as evaluations
-from .api import mock_sse as sse
+from .api import models, prompts, evaluations, results, validation, sse, criteria
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
