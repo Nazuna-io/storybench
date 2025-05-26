@@ -223,3 +223,24 @@ class DatabaseEvaluationRunner:
         except Exception as e:
             logger.error(f"Failed to pause evaluation: {e}")
             return False
+            
+    async def find_running_evaluations(self) -> List[Evaluation]:
+        """Find currently running evaluations."""
+        try:
+            return await self.evaluation_repo.find_by_status(EvaluationStatus.IN_PROGRESS)
+        except Exception as e:
+            logger.error(f"Failed to find running evaluations: {e}")
+            return []
+            
+    async def stop_evaluation(self, evaluation_id: ObjectId) -> bool:
+        """Stop a running evaluation."""
+        try:
+            await self.evaluation_repo.update_by_id(
+                evaluation_id,
+                {"status": EvaluationStatus.STOPPED.value}
+            )
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to stop evaluation: {e}")
+            return False

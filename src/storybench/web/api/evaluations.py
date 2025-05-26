@@ -6,7 +6,7 @@ from bson import ObjectId
 
 from ..models.requests import EvaluationStartRequest
 from ..models.responses import EvaluationStatus, ProgressInfo, ResumeInfo
-from ...database.connection import get_database
+from ...database.connection import get_database, init_database
 from ...database.services.evaluation_runner import DatabaseEvaluationRunner
 from ...database.services.config_service import ConfigService
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -17,13 +17,144 @@ router = APIRouter()
 # Dependency to get database evaluation runner
 async def get_evaluation_runner() -> DatabaseEvaluationRunner:
     """Get database-backed evaluation runner."""
-    database = await get_database()
-    return DatabaseEvaluationRunner(database)
+    try:
+        # Try to get existing database connection first
+        try:
+            database = await get_database()
+        except ConnectionError:
+            # If no connection exists, initialize it
+            database = await init_database()
+        
+        return DatabaseEvaluationRunner(database)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize evaluation runner: {str(e)}")
 
 async def get_config_service() -> ConfigService:
     """Get database-backed config service."""
-    database = await get_database()
-    return ConfigService(database)
+    try:
+        # Try to get existing database connection first
+        try:
+            database = await get_database()
+        except ConnectionError:
+            # If no connection exists, initialize it
+            database = await init_database()
+            
+        return ConfigService(database)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize config service: {str(e)}")
+
+
+@router.get("/status", response_model=Dict[str, Any])
+async def get_evaluation_status(
+    runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
+):
+    """Get current evaluation status."""
+    try:
+        # Find any running evaluations
+        running_evaluations = await runner.find_running_evaluations()
+        
+        if not running_evaluations:
+            return {
+                "running": False,
+                "status": "idle",
+                "progress": None
+            }
+        
+        # Get the most recent running evaluation
+        current_eval = running_evaluations[0]
+        progress = await runner.get_evaluation_progress(current_eval.id)
+        
+        return {
+            "running": True,
+            "status": "running",
+            "evaluation_id": str(current_eval.id),
+            "progress": progress
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get evaluation status: {str(e)}")
+
+
+@router.get("/resume-status", response_model=Dict[str, Any])
+async def get_resume_status(
+    runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
+):
+    """Get resume status for incomplete evaluations."""
+    try:
+        # Find incomplete evaluations
+        incomplete_evaluations = await runner.find_incomplete_evaluations()
+        
+        if not incomplete_evaluations:
+            return {
+                "resume_info": {
+                    "can_resume": False,
+                    "models_completed": [],
+                    "models_in_progress": [],
+                    "models_pending": []
+                }
+            }
+        
+        # Get the most recent incomplete evaluation
+        latest_incomplete = incomplete_evaluations[0]
+        progress = await runner.get_evaluation_progress(latest_incomplete.id)
+        
+        # Extract model status information
+        models_completed = []
+        models_in_progress = []
+        models_pending = []
+        
+        if progress and "models" in progress:
+            for model_name, model_info in progress["models"].items():
+                if model_info.get("status") == "completed":
+                    models_completed.append(model_name)
+                elif model_info.get("status") in ["running", "in_progress"]:
+                    models_in_progress.append(model_name)
+                else:
+                    models_pending.append(model_name)
+        
+        return {
+            "resume_info": {
+                "can_resume": True,
+                "evaluation_id": str(latest_incomplete.id),
+                "models_completed": models_completed,
+                "models_in_progress": models_in_progress,
+                "models_pending": models_pending
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get resume status: {str(e)}")
+
+
+@router.post("/stop", response_model=Dict[str, Any])
+async def stop_evaluation(
+    runner: DatabaseEvaluationRunner = Depends(get_evaluation_runner)
+):
+    """Stop any currently running evaluation."""
+    try:
+        # Find running evaluations
+        running_evaluations = await runner.find_running_evaluations()
+        
+        if not running_evaluations:
+            return {
+                "status": "no_running_evaluation",
+                "message": "No evaluation currently running"
+            }
+        
+        # Stop all running evaluations
+        stopped_count = 0
+        for evaluation in running_evaluations:
+            success = await runner.stop_evaluation(evaluation.id)
+            if success:
+                stopped_count += 1
+        
+        return {
+            "status": "stopped",
+            "message": f"Stopped {stopped_count} running evaluation(s)"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to stop evaluation: {str(e)}")
 
 
 @router.post("/start", response_model=Dict[str, Any])
@@ -34,6 +165,14 @@ async def start_evaluation(
 ):
     """Start a new evaluation using database storage."""
     try:
+        # Check if there's already a running evaluation
+        running_evaluations = await runner.find_running_evaluations()
+        if running_evaluations:
+            raise HTTPException(
+                status_code=400, 
+                detail="An evaluation is already running. Please stop it before starting a new one."
+            )
+        
         # Get active configurations from database
         models_config = await config_service.get_active_models()
         prompts_config = await config_service.get_active_prompts()

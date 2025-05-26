@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from ..models.requests import PromptsUpdateRequest
 from ..models.responses import PromptsResponse
-from ...database.connection import get_database
+from ...database.connection import get_database, init_database
 from ...database.services.config_service import ConfigService
 
 
@@ -13,8 +13,17 @@ router = APIRouter()
 # Dependency to get database config service
 async def get_config_service() -> ConfigService:
     """Get database-backed config service instance."""
-    database = await get_database()
-    return ConfigService(database)
+    try:
+        # Try to get existing database connection first
+        try:
+            database = await get_database()
+        except ConnectionError:
+            # If no connection exists, initialize it
+            database = await init_database()
+            
+        return ConfigService(database)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize config service: {str(e)}")
 
 
 @router.get("/prompts", response_model=PromptsResponse)

@@ -51,6 +51,7 @@ class EvaluationStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     PAUSED = "paused"
+    STOPPED = "stopped"
 
 class ModelType(str, Enum):
     """Model type enumeration."""

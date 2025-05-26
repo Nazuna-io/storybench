@@ -135,7 +135,7 @@ export default {
     const isRunning = ref(false)
     const startingEvaluation = ref(false)
     const stoppingEvaluation = ref(false)
-    const resumeEnabled = ref(true)
+    const resumeEnabled = ref(false)
     const resumeInfo = ref({
       can_resume: false,
       models_completed: [],

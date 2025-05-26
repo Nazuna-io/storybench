@@ -14,7 +14,9 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 # Make sure this import path is correct for your project structure
 from storybench.database.connection import init_database, close_database
-from .api import models, prompts, evaluations, results, validation, sse, criteria
+from .api import models, prompts, evaluations, results, validation, criteria
+from .api import sse_database as sse
+from .services.background_evaluation_service import start_background_service, stop_background_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +25,12 @@ async def lifespan(app: FastAPI):
     try:
         await init_database()
         print("INFO:     Database connection initialized.")
+        
+        # Start background evaluation service
+        print("INFO:     Starting background evaluation service...")
+        await start_background_service()
+        print("INFO:     Background evaluation service started.")
+        
     except Exception as e:
         print(f"ERROR:    Failed to initialize database: {type(e).__name__}: {e}")
         print(f"ERROR:    Full exception details: {repr(e)}")
@@ -34,6 +42,11 @@ async def lifespan(app: FastAPI):
     # Code to run on shutdown
     print("INFO:     Closing database connection...")
     try:
+        # Stop background evaluation service first
+        print("INFO:     Stopping background evaluation service...")
+        await stop_background_service()
+        print("INFO:     Background evaluation service stopped.")
+        
         await close_database()
         print("INFO:     Database connection closed.")
     except Exception as e:
