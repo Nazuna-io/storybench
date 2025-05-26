@@ -43,10 +43,27 @@ class EncryptionService:
         except Exception:
             raise ValueError("Failed to decrypt data - invalid format or key")
     
-    def mask_key(self, api_key: str, visible_chars: int = 8) -> str:
-        """Mask an API key for display purposes."""
-        if not api_key or len(api_key) <= visible_chars:
+    def mask_key(self, api_key: str, visible_chars: int = None) -> str:
+        """Mask an API key for display purposes with provider-specific prefixes."""
+        if not api_key:
             return "*" * 12
+            
+        # Auto-detect optimal visible characters based on provider
+        if visible_chars is None:
+            if api_key.startswith("sk-proj-"):
+                visible_chars = 11  # Show "sk-proj-xxx"
+            elif api_key.startswith("sk-ant-api03-"):
+                visible_chars = 14  # Show "sk-ant-api03-"
+            elif api_key.startswith("sk-ant-"):
+                visible_chars = 10  # Show "sk-ant-xx"
+            elif api_key.startswith("AIzaSy"):
+                visible_chars = 10  # Show "AIzaSyDbKE"
+            else:
+                visible_chars = 8  # Default
+        
+        if len(api_key) <= visible_chars:
+            return "*" * len(api_key)
+            
         return api_key[:visible_chars] + "*" * (len(api_key) - visible_chars)
 
 

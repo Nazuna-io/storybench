@@ -1,10 +1,10 @@
-# StorybenchLLM
+# Storybench
 
 A modular tool for evaluating the creativity of proprietary and open-source LLMs across various creative writing tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
 ## 🚀 Latest Update: Complete Web Interface & Bug Fixes (May 2025)
 
-**All critical issues resolved - StorybenchLLM is now fully operational!**
+**All critical issues resolved - Storybench is now fully operational!**
 
 ### ✅ **Fixed Issues**
 - **Results Page**: Now correctly displays completed evaluations with scores from database
@@ -21,7 +21,7 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 
 ## 🚀 Phase 5 Complete: Research-Quality Evaluation System
 
-**StorybenchLLM now features sophisticated sequence-aware evaluation with realistic scoring standards!**
+**Storybench now features sophisticated sequence-aware evaluation with realistic scoring standards!**
 
 - **✅ Sequence-Aware Evaluation**: Assesses coherence across multi-prompt creative sequences
 - **✅ Realistic Scoring Standards**: Stringent criteria that properly differentiate quality levels
@@ -487,4 +487,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**StorybenchLLM** - Enterprise-grade LLM creativity evaluation with MongoDB Atlas backend 🚀
+**Storybench** - Enterprise-grade LLM creativity evaluation with MongoDB Atlas backend 🚀

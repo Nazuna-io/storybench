@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional, List, Dict, Any
 
-from ...database.connection import get_database
+from ...database.connection import get_database, init_database
 from ..services.database_results_service import DatabaseResultsService
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -13,7 +13,12 @@ router = APIRouter()
 # Dependency to get database results service
 async def get_results_service() -> DatabaseResultsService:
     """Get database results service instance."""
-    database = await get_database()
+    try:
+        database = await get_database()
+    except ConnectionError:
+        # Database not initialized, initialize it
+        await init_database()
+        database = await get_database()
     return DatabaseResultsService(database)
 
 

@@ -105,6 +105,16 @@ async def get_api_keys(api_keys_repo: ApiKeysRepository = Depends(get_api_keys_r
         raise HTTPException(status_code=500, detail=f"Failed to load API keys: {str(e)}")
 
 
+@router.get("/api-keys/unmasked", response_model=Dict[str, str])
+async def get_unmasked_api_keys(api_keys_repo: ApiKeysRepository = Depends(get_api_keys_repo)):
+    """Get unmasked API keys for display when user chooses to unmask."""
+    try:
+        unmasked_keys = await api_keys_repo.get_all_keys()
+        return unmasked_keys
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load unmasked API keys: {str(e)}")
+
+
 @router.put("/api-keys", response_model=Dict[str, str])
 async def update_api_keys(
     keys: Dict[str, str],
@@ -169,7 +179,7 @@ async def test_model(request: Dict[str, str]):
         
         # For API models, actually test the connection
         try:
-            from ...evaluators.evaluator_factory import EvaluatorFactory
+            from ...evaluators.factory import EvaluatorFactory
             import os
             
             # Get API keys

@@ -414,8 +414,42 @@ const saveGlobalSettings = async () => {
   }
 }
 
-const toggleApiKeysVisibility = () => {
+const toggleApiKeysVisibility = async () => {
   apiKeysVisible.value = !apiKeysVisible.value
+  
+  if (apiKeysVisible.value) {
+    // Load unmasked keys
+    try {
+      const response = await fetch('http://localhost:8000/api/config/api-keys/unmasked')
+      if (response.ok) {
+        const unmaskedKeys = await response.json()
+        apiProviders.value.forEach(provider => {
+          if (unmaskedKeys[provider.name]) {
+            provider.key = unmaskedKeys[provider.name]
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load unmasked keys:', error)
+      showToast('Failed to load unmasked keys', 'error')
+    }
+  } else {
+    // Load masked keys
+    try {
+      const response = await fetch('http://localhost:8000/api/config/api-keys')
+      if (response.ok) {
+        const maskedKeys = await response.json()
+        apiProviders.value.forEach(provider => {
+          if (maskedKeys[provider.name]) {
+            provider.key = maskedKeys[provider.name]
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load masked keys:', error)
+      showToast('Failed to load masked keys', 'error')
+    }
+  }
 }
 
 const saveApiKeys = async () => {
