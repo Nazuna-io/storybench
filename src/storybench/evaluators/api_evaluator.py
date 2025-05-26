@@ -74,18 +74,18 @@ class APIEvaluator(BaseEvaluator):
         try:
             if self.provider == "openai":
                 self.client = openai.AsyncOpenAI(
-                    api_key=self.api_keys.get("OPENAI_API_KEY")
+                    api_key=self.api_keys.get("openai")
                 )
                 await self._test_openai_connection()
                 
             elif self.provider == "anthropic":
                 self.client = anthropic.AsyncAnthropic(
-                    api_key=self.api_keys.get("ANTHROPIC_API_KEY")
+                    api_key=self.api_keys.get("anthropic")
                 )
                 await self._test_anthropic_connection()
                 
             elif self.provider == "gemini":
-                genai.configure(api_key=self.api_keys.get("GOOGLE_API_KEY"))
+                genai.configure(api_key=self.api_keys.get("google"))
                 self.client = genai.GenerativeModel(self.model_name)
                 await self._test_gemini_connection()
                 

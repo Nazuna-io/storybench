@@ -167,19 +167,50 @@ async def test_model(request: Dict[str, str]):
             # For local models, we can only validate the format
             return {"success": True, "message": f"Local model configuration appears valid for {model_name}"}
         
-        # For API models, we'll validate based on provider
-        if provider == "openai":
-            if not model_name.startswith(("gpt-", "o1-", "o3-", "o4-")):
-                return {"success": False, "error": "OpenAI model names typically start with 'gpt-', 'o1-', 'o3-', or 'o4-'"}
-        elif provider == "anthropic":
-            if not any(model_name.startswith(prefix) for prefix in ["claude-", "claude"]):
-                return {"success": False, "error": "Anthropic model names typically start with 'claude'"}
-        elif provider == "google":
-            if not any(model_name.startswith(prefix) for prefix in ["gemini-", "gemma-", "palm-"]):
-                return {"success": False, "error": "Google model names typically start with 'gemini-', 'gemma-', or 'palm-'"}
-        
-        # If we reach here, the model format looks reasonable
-        return {"success": True, "message": f"{provider.title()} model '{model_name}' format is valid"}
+        # For API models, actually test the connection
+        try:
+            from ...evaluators.evaluator_factory import EvaluatorFactory
+            import os
+            
+            # Get API keys
+            api_keys = {
+                "openai": os.getenv("OPENAI_API_KEY"),
+                "anthropic": os.getenv("ANTHROPIC_API_KEY"),
+                "google": os.getenv("GOOGLE_API_KEY")
+            }
+            
+            # Create model config
+            model_config = {
+                "type": model_type,
+                "provider": provider,
+                "model_name": model_name
+            }
+            
+            # Create and test evaluator
+            evaluator = EvaluatorFactory.create_evaluator(
+                f"test_{model_name}",
+                model_config,
+                api_keys
+            )
+            
+            # Setup evaluator (this tests the API connection)
+            setup_success = await evaluator.setup()
+            if not setup_success:
+                return {"success": False, "error": f"Failed to connect to {provider} API with model {model_name}"}
+            
+            # Test a simple API call
+            test_response = await evaluator.generate_response("Test")
+            if not test_response or not test_response.get("response"):
+                return {"success": False, "error": f"Model {model_name} did not generate a valid response"}
+            
+            return {
+                "success": True, 
+                "message": f" {provider.title()} model '{model_name}' is working correctly",
+                "test_response_length": len(test_response.get("response", ""))
+            }
+            
+        except Exception as api_error:
+            return {"success": False, "error": f"API test failed: {str(api_error)}"}
         
     except Exception as e:
         return {"success": False, "error": str(e)}

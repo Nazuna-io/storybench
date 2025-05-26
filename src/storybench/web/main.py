@@ -34,10 +34,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"ERROR:    Failed to initialize database: {type(e).__name__}: {e}")
         print(f"ERROR:    Full exception details: {repr(e)}")
-        import traceback
-        traceback.print_exc()
-        # Re-raise the exception to prevent the app from starting with a broken database
-        raise
+        print("WARNING:  Server will start without database connection.")
+        print("WARNING:  Some features may not work until database is available.")
+        # Don't raise the exception - allow server to start
     yield
     # Code to run on shutdown
     print("INFO:     Closing database connection...")
