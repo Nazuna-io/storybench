@@ -87,7 +87,10 @@ async def results_events(results_service: DatabaseResultsService = Depends(get_r
                     
                     # Get current results
                     current_results = await results_service.get_all_results()
-                    current_hash = hashlib.md5(json.dumps(current_results, sort_keys=True).encode()).hexdigest()
+                    
+                    # Create a JSON-serializable version for hashing
+                    results_for_hash = json.dumps(current_results, default=str, sort_keys=True)
+                    current_hash = hashlib.md5(results_for_hash.encode()).hexdigest()
                     
                     # Check if results changed
                     if current_hash != _results_sse_manager._last_results_hash:
@@ -97,7 +100,7 @@ async def results_events(results_service: DatabaseResultsService = Depends(get_r
                             "timestamp": datetime.now().isoformat(),
                             "change_detected": True
                         }
-                        yield f"data: {json.dumps(update_event)}\\n\\n"
+                        yield f"data: {json.dumps(update_event, default=str)}\\n\\n"
                         _results_sse_manager._last_results_hash = current_hash
                     
                     # Send heartbeat every 30 seconds
