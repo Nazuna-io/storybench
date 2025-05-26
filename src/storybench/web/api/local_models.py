@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/local-models", tags=["local-models"])
 
-# Global variables for SSE
+# Global variables for SSE and service sharing
 output_queue = asyncio.Queue()
 progress_queue = asyncio.Queue()
 evaluation_status = {"status": "idle", "progress": 0, "download_progress": 0}
+_global_service = None
 
 
 async def get_database():
@@ -34,37 +35,42 @@ async def get_database():
 
 
 async def get_local_model_service(database = Depends(get_database)):
-    """Get local model service instance."""
-    service = LocalModelService(database)
+    """Get local model service instance (singleton)."""
+    global _global_service
     
-    # Register output callback
-    def output_callback(message, message_type="info"):
-        asyncio.create_task(
-            output_queue.put({
-                "type": "console",
-                "console_type": message_type,
-                "message": message,
-                "timestamp": datetime.now().isoformat()
-            })
-        )
-    
-    # Register progress callback
-    def progress_callback(progress_percent, status_message):
-        global evaluation_status
-        evaluation_status["download_progress"] = progress_percent
+    # Create service if it doesn't exist
+    if _global_service is None:
+        _global_service = LocalModelService(database)
         
-        asyncio.create_task(
-            output_queue.put({
-                "type": "progress",
-                "progress": progress_percent,
-                "message": status_message,
-                "timestamp": datetime.now().isoformat()
-            })
-        )
+        # Register output callback once
+        def output_callback(message, message_type="info"):
+            asyncio.create_task(
+                output_queue.put({
+                    "type": "console",
+                    "console_type": message_type,
+                    "message": message,
+                    "timestamp": datetime.now().isoformat()
+                })
+            )
+        
+        # Register progress callback once
+        def progress_callback(progress_percent, status_message):
+            global evaluation_status
+            evaluation_status["download_progress"] = progress_percent
+            
+            asyncio.create_task(
+                output_queue.put({
+                    "type": "progress",
+                    "progress": progress_percent,
+                    "message": status_message,
+                    "timestamp": datetime.now().isoformat()
+                })
+            )
+        
+        _global_service.register_output_callback(output_callback)
+        _global_service.register_progress_callback(progress_callback)
     
-    service.register_output_callback(output_callback)
-    service.register_progress_callback(progress_callback)
-    return service
+    return _global_service
 
 
 @router.get("/config")
@@ -116,11 +122,11 @@ async def start_local_evaluation(
     """Start local model evaluation."""
     global evaluation_status
     
-    if evaluation_status["status"] != "idle":
+    if evaluation_status["status"] not in ["idle", "completed", "failed", "stopped"]:
         raise HTTPException(status_code=400, detail="Evaluation already running")
     
-    # Update status
-    evaluation_status = {"status": "in_progress", "progress": 0}
+    # Reset and update status
+    evaluation_status = {"status": "in_progress", "progress": 0, "download_progress": 0}
     
     # Send status update to SSE
     await output_queue.put({
@@ -187,6 +193,14 @@ async def start_local_evaluation(
 async def get_evaluation_status():
     """Get current evaluation status."""
     return evaluation_status
+
+
+@router.post("/reset")
+async def reset_evaluation_status():
+    """Reset evaluation status to idle."""
+    global evaluation_status
+    evaluation_status = {"status": "idle", "progress": 0, "download_progress": 0}
+    return {"success": True, "message": "Evaluation status reset"}
 
 
 @router.post("/stop")

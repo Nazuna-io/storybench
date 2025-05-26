@@ -313,7 +313,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onActivated, onUnmounted, nextTick } from 'vue'
 import axios from 'axios'
 
 export default {
@@ -367,6 +367,13 @@ export default {
     
     // Load configuration on mount
     onMounted(async () => {
+      await loadConfiguration()
+      await checkHardware()
+      await loadSequences()
+    })
+    
+    // Also reload when component becomes active (user navigates back)
+    onActivated(async () => {
       await loadConfiguration()
       await checkHardware()
       await loadSequences()

@@ -404,7 +404,7 @@ class LocalModelService:
                     
                     # Store responses in database
                     try:
-                        if self.database:
+                        if self.database is not None:
                             from ...database.repositories.response_repo import ResponseRepository
                             from ...database.models import Response, ResponseStatus
                             from datetime import datetime
@@ -414,29 +414,42 @@ class LocalModelService:
                             
                             # Generate a unique evaluation ID for this run
                             from bson import ObjectId
-                            from ...database.models import Evaluation, EvaluationStatus
+                            from ...database.models import Evaluation, EvaluationStatus, GlobalSettings
+                            import hashlib
                             
                             # Create an evaluation record
-                            evaluation_id = str(ObjectId())
+                            evaluation_id_obj = ObjectId()
+                            evaluation_id = str(evaluation_id_obj)
+                            
+                            # Create config hash
+                            config_str = f"{gen_model_name}_{sequence_name}_{settings}"
+                            config_hash = hashlib.md5(config_str.encode()).hexdigest()
+                            
+                            # Create global settings
+                            global_settings = GlobalSettings(
+                                temperature=settings.get("temperature", 0.8),
+                                max_tokens=settings.get("max_tokens", 2048),
+                                num_runs=settings.get("num_runs", 1),
+                                vram_limit_percent=settings.get("vram_limit_percent", 80)
+                            )
                             
                             # Create evaluation in database
                             evaluation = Evaluation(
-                                _id=evaluation_id,
-                                name=f"Local Evaluation - {sequence_name}",
+                                _id=evaluation_id_obj,  # Use ObjectId directly for the _id field
+                                config_hash=config_hash,
                                 models=[gen_model_name],
-                                sequences=[sequence_name],
+                                global_settings=global_settings,
+                                total_tasks=len(sequence_prompts) * settings.get("num_runs", 1),
+                                completed_tasks=len(sequence_prompts),
                                 status=EvaluationStatus.COMPLETED,
-                                created_at=datetime.utcnow(),
-                                completed_at=datetime.utcnow(),
-                                settings={
-                                    "temperature": settings.get("temperature", 0.8),
-                                    "max_tokens": settings.get("max_tokens", 2048),
-                                    "num_runs": settings.get("num_runs", 1)
-                                }
+                                started_at=datetime.utcnow(),
+                                completed_at=datetime.utcnow()
                             )
                             
-                            # Save the evaluation
-                            await self.database.evaluations.insert_one(evaluation.dict())
+                            # Save the evaluation using proper dict conversion
+                            eval_dict = evaluation.dict()
+                            eval_dict["_id"] = evaluation_id_obj  # Ensure _id is ObjectId
+                            await self.database.evaluations.insert_one(eval_dict)
                             
                             # Store each response in the database
                             for prompt_idx, response_data in enumerate(responses):
@@ -467,7 +480,7 @@ class LocalModelService:
                                 
                                 # Get evaluation criteria
                                 criteria = None
-                                if self.database and self.config_service:
+                                if self.database is not None and self.config_service:
                                     try:
                                         criteria_config = await self.config_service.get_active_criteria()
                                         if criteria_config and hasattr(criteria_config, 'criteria'):
@@ -512,7 +525,7 @@ class LocalModelService:
                                         eval_text = eval_response.get("text", "")
                                         
                                         # Store evaluation in database if available
-                                        if self.database:
+                                        if self.database is not None:
                                             from ...database.repositories.response_llm_evaluation_repository import ResponseLLMEvaluationRepository
                                             from ...database.models import ResponseLLMEvaluation
                                             
@@ -578,7 +591,7 @@ class LocalModelService:
                                         
                                         # Get evaluation model from config
                                         eval_model_config = None
-                                        if self.database and self.config_service:
+                                        if self.database is not None and self.config_service:
                                             try:
                                                 models_config = await self.config_service.get_active_models()
                                                 if models_config and hasattr(models_config, 'models'):

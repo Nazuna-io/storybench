@@ -80,30 +80,50 @@ class DatabaseResultsService:
                             # Calculate average scores across all criteria and evaluations
                             all_scores = []
                             criteria_scores = {}
+                            valid_evaluations = 0
                             
                             for llm_eval in llm_evaluations:
-                                for criterion in llm_eval.get("criteria_results", []):
+                                criteria_results = llm_eval.get("criteria_results", [])
+                                
+                                # Check if this evaluation has actual scores (not empty)
+                                has_scores = False
+                                for criterion in criteria_results:
                                     criterion_name = criterion.get("criterion_name")
                                     score = criterion.get("score")
                                     if criterion_name and score is not None:
+                                        has_scores = True
                                         if criterion_name not in criteria_scores:
                                             criteria_scores[criterion_name] = []
                                         criteria_scores[criterion_name].append(score)
                                         all_scores.append(score)
+                                
+                                if has_scores:
+                                    valid_evaluations += 1
                             
-                            # Calculate averages
-                            overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
-                            detailed_avg = {
-                                criterion: sum(scores) / len(scores)
-                                for criterion, scores in criteria_scores.items()
-                            }
-                            
-                            model_scores[model_name] = {
-                                "overall": round(overall_avg, 2),
-                                "detailed": detailed_avg,
-                                "total_evaluations": len(llm_evaluations),
-                                "total_responses": len(responses)
-                            }
+                            # Only calculate averages if we have valid evaluations
+                            if all_scores and valid_evaluations > 0:
+                                # Calculate averages
+                                overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
+                                detailed_avg = {
+                                    criterion: sum(scores) / len(scores)
+                                    for criterion, scores in criteria_scores.items()
+                                }
+                                
+                                model_scores[model_name] = {
+                                    "overall": round(overall_avg, 2),
+                                    "detailed": detailed_avg,
+                                    "total_evaluations": valid_evaluations,
+                                    "total_responses": len(responses)
+                                }
+                            else:
+                                # Evaluations exist but are empty (evaluation in progress or failed)
+                                model_scores[model_name] = {
+                                    "overall": None,
+                                    "detailed": {},
+                                    "total_evaluations": 0,
+                                    "total_responses": len(responses),
+                                    "evaluation_status": "pending" if len(llm_evaluations) > 0 else "none"
+                                }
                         else:
                             # No LLM evaluations yet, but responses exist
                             model_scores[model_name] = {

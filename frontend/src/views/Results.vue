@@ -497,7 +497,13 @@ export default {
     })
     
     const getScoreValue = (result, criterion) => {
-      return result.scores?.detailed?.[criterion] ? result.scores.detailed[criterion].toFixed(1) : '-'
+      if (result.scores?.detailed?.[criterion]) {
+        return result.scores.detailed[criterion].toFixed(1)
+      } else if (result.scores?.evaluation_status === 'pending') {
+        return 'Pending'
+      } else {
+        return '-'
+      }
     }
     
     const getConfigVersion = (configHash) => {
