@@ -20,15 +20,16 @@ from storybench.database.services.sequence_evaluation_service import SequenceEva
 from storybench.database.repositories.criteria_repo import CriteriaRepository
 from storybench.database.repositories.response_repo import ResponseRepository
 from storybench.evaluators.factory import EvaluatorFactory
-from storybench.models.config import Config
+from storybench.models.config import Config, ModelConfig
 
 
 @click.command()
 @click.option('--models', help='Comma-separated list of model names to run (default: all)')
 @click.option('--sequences', help='Comma-separated list of sequence names to run (default: all)')
 @click.option('--auto-evaluate', is_flag=True, help='Automatically run LLM evaluation after response generation')
-@click.option('--config', '-c', default='config/models.yaml', help='Path to configuration file')
-def main(models, sequences, auto_evaluate, config):
+@click.option('--config', '-c', default='config/models.yaml', help='Path to API models configuration file (models.yaml)')
+@click.option('--local-config', default=None, help='Path to local models JSON configuration file (e.g., local_models.json)')
+def main(models, sequences, auto_evaluate, config, local_config):
     """Run the complete end-to-end evaluation pipeline."""
     
     # Load environment variables
@@ -41,14 +42,14 @@ def main(models, sequences, auto_evaluate, config):
         return
     
     try:
-        asyncio.run(_run_pipeline(models, sequences, auto_evaluate, config))
+        asyncio.run(_run_pipeline(models, sequences, auto_evaluate, config, local_config))
     except Exception as e:
         click.echo(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
 
 
-async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_path):
+async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_path, local_config_path):
     """Run the complete pipeline."""
     
     # Connect to database
@@ -71,7 +72,66 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                 click.echo(f"   {error}")
             return
         
-        click.echo(f"✅ Configuration valid - {len(cfg.models)} models, {len(cfg.prompts)} prompt sequences")
+        click.echo(f"✅ API model configuration valid - {len(cfg.models)} models, {len(cfg.prompts)} prompt sequences")
+
+        if local_config_path:
+            click.echo(f"📋 Loading local models configuration from {local_config_path}")
+            try:
+                with open(local_config_path, 'r') as f:
+                    local_models_data = json.load(f)
+                
+                parsed_local_models = []
+                for lm_entry in local_models_data.get("models", []):
+                    # Ensure all necessary fields for ModelConfig are present or have defaults
+                    # Map JSON keys to ModelConfig field names
+                    model_config_args = {
+                        "name": lm_entry.get("name"),
+                        "type": "local",
+                        "provider": lm_entry.get("provider", "local_default_provider"),
+                        # model_name in ModelConfig is often the specific API model identifier.
+                        # For local models, the 'name' field is primary for display/selection.
+                        # We can use the filename or a composite for model_name if needed by other parts,
+                        # or just reuse 'name' if that's sufficient.
+                        "model_name": lm_entry.get("model_filename", lm_entry.get("name")), 
+                        "repo_id": lm_entry.get("model_repo_id"), # Map to repo_id
+                        "filename": lm_entry.get("model_filename"), # Map to filename
+                        "subdirectory": lm_entry.get("subdirectory")
+                        # If lm_entry contains a 'settings' dict, and ModelConfig expects it directly:
+                        # "settings": lm_entry.get("settings", {})
+                    }
+                    
+                    # Add any other fields from lm_entry that ModelConfig might accept directly
+                    # and are not already explicitly mapped. Be cautious with this to avoid unexpected args.
+                    # For instance, if ModelConfig had a 'custom_params: dict' field, you'd map to that.
+                    # For now, we assume 'settings' from JSON should be handled if ModelConfig has such a field
+                    # or if LocalEvaluator will pick them up from the evaluator_config.
+
+                    # Filter out None values for optional fields to avoid passing None if not intended
+                    final_mc_args = {k: v for k, v in model_config_args.items() if v is not None}
+
+                    # If lm_entry has a 'settings' field and ModelConfig expects it directly (not the case here)
+                    # if "settings" in lm_entry and hasattr(ModelConfig, 'settings'):
+                    #    final_mc_args["settings"] = lm_entry["settings"]
+                    
+                    # Store the original JSON settings to pass to LocalEvaluator later if needed
+                    # We can attach it to the ModelConfig instance if ModelConfig doesn't have a 'settings' field
+                    # For now, we'll retrieve it from lm_entry when creating evaluator_config
+
+                    parsed_local_models.append(ModelConfig(**final_mc_args))
+                    # To pass original settings from JSON to evaluator, we'll need to access lm_entry again
+                    # or store lm_entry['settings'] on the ModelConfig object if ModelConfig had a field for it.
+                    # Let's refine how settings are passed to LocalEvaluator later.
+                
+                cfg.models.extend(parsed_local_models)
+                click.echo(f"✅ Loaded {len(parsed_local_models)} local models.")
+            except FileNotFoundError:
+                click.echo(f"⚠️ Local models configuration file not found: {local_config_path}")
+            except json.JSONDecodeError:
+                click.echo(f"❌ Error decoding JSON from local models file: {local_config_path}")
+            except Exception as e:
+                click.echo(f"❌ Error loading local models configuration: {e}")
+        
+        click.echo(f"ℹ️ Total models to process: {len(cfg.models)}")
         
         # Parse filters
         models_list = [m.strip() for m in models_filter.split(',')] if models_filter else None
@@ -95,8 +155,12 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
             return
         
         api_keys = _get_api_keys()
-        missing_keys = _check_required_api_keys(cfg.models, api_keys)
-        if missing_keys:
+        api_models_for_key_check = [m for m in cfg.models if m.type == 'api']
+        missing_keys = []
+        if any(api_models_for_key_check):
+            missing_keys = _check_required_api_keys(api_models_for_key_check, api_keys)
+        
+        if missing_keys: # This will only be true if there were API models and keys were missing
             click.echo("❌ Missing required API keys:")
             for key in missing_keys:
                 click.echo(f"   {key}")
@@ -113,24 +177,49 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
         errors = []
         
         for model in cfg.models:
-            if model.type != 'api':
-                click.echo(f"⏭️  Skipping {model.name} - only API models supported")
-                continue
-                
-            click.echo(f"\n🤖 Processing model: {model.name}")
+            click.echo(f"\n🤖 Processing model: {model.name} (Type: {model.type})")
             
-            # Initialize evaluator for this model
-            model_config = {
-                "type": model.type,
-                "provider": model.provider,
-                "model_name": model.model_name
-            }
-            evaluator = EvaluatorFactory.create_evaluator(model.name, model_config, api_keys)
+            evaluator_config = {}
+            current_api_keys = {}
+
+            if model.type == 'api':
+                evaluator_config = {
+                    "type": model.type,
+                    "provider": model.provider,
+                    "model_name": model.model_name
+                }
+                # Pass other API specific settings if ModelConfig has them and EvaluatorFactory/APIEvaluator expects them
+                # For example, if model has a 'settings' attribute: evaluator_config.update(model.settings or {})
+                current_api_keys = api_keys
+            elif model.type == 'local':
+                # LocalEvaluator expects model_repo_id and model_filename.
+                # These should be attributes of the ModelConfig instance `model`.
+                evaluator_config = {
+                    "type": model.type,
+                    "name": model.name, # Pass model name for context
+                    "repo_id": model.repo_id, # Correct key for LocalEvaluator
+                    "filename": model.filename, # Correct key for LocalEvaluator
+                }
+                # Now, let's try to find the original settings from the local_models.json for this model
+                # This is a bit indirect. A cleaner way would be if ModelConfig stored these settings.
+                # Ensure local_models_data is accessible here or passed appropriately if this loop is refactored.
+                if 'local_models_data' in locals() and local_models_data: # Check if local_models_data was loaded
+                    original_lm_entry = next((entry for entry in local_models_data.get("models", []) if entry.get("name") == model.name), None)
+                    if original_lm_entry and "settings" in original_lm_entry:
+                        evaluator_config.update(original_lm_entry["settings"])
+                
+                current_api_keys = {} # No API keys for local models
+            else:
+                click.echo(f"   ⚠️ Unknown model type '{model.type}' for model {model.name}. Skipping.")
+                continue
+            
+            evaluator = EvaluatorFactory.create_evaluator(model.name, evaluator_config, current_api_keys)
             
             # Setup the evaluator
             setup_success = await evaluator.setup()
             if not setup_success:
                 click.echo(f"   ❌ Failed to setup evaluator for {model.name}")
+                errors.append(f"Failed to setup evaluator for {model.name}")
                 continue
             
             for sequence_name, prompts in cfg.prompts.items():
