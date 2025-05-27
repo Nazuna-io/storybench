@@ -73,7 +73,14 @@ Thumbs.db
 output/
 output_backup_*/
 test_export/
-# models/
+# Models directory - exclude all model files
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.h5
 *.log
 frontend.log
 start_server.py
