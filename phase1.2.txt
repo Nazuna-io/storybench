@@ -1,0 +1,5 @@
+Implement functions to fetch a specific PromptSetVersion by its version_number and status: "published".
+These functions should retrieve the PromptSetVersion along with its nested PromptSequences and their nested Prompts, ensuring you filter by status: "published" at each level of the hierarchy (sequences and prompts).
+The client should handle API authentication using the static token.
+Parse the JSON response from Directus into Pydantic models (you might need new Pydantic models that mirror the Directus schema, or adapt existing ones if they are similar enough).
+Testing: Write unit tests for this new client to ensure it correctly fetches and parses data from your Directus instance.

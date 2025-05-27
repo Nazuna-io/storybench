@@ -287,10 +287,12 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                                         boundary_found = True
                                         break
                                 
-                                combined_text = f"[...context truncated - showing recent content...]\n\n{truncated_context}\n\n---\n\n{prompt_text}"
+                                # FIX: Use Gemma-compatible context formatting instead of problematic separators
+                                combined_text = f"Previous story context:\n{truncated_context}\n\nContinue with: {prompt_text}"
                                 logger.info(f"Applied sliding window truncation: {len(full_sequence_text)} -> {len(truncated_context)} chars (boundary: {boundary_found})")
                             else:
-                                combined_text = full_sequence_text + "\n\n---\n\n" + prompt_text
+                                # FIX: Use Gemma-compatible context formatting instead of "\n\n---\n\n"
+                                combined_text = f"Story so far:\n{full_sequence_text}\n\nNext: {prompt_text}"
                         else:
                             combined_text = prompt_text
                             
@@ -320,8 +322,8 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                                             truncated_text = truncated_text[boundary_pos + len(boundary):]
                                             break
                                     
-                                    # Add context marker for clarity and explicit separation
-                                    prompt_text_to_send = "[...earlier context truncated for length...]\n\n" + truncated_text + "\n\n---\n\n" + prompt_text
+                                    # FIX: Use Gemma-compatible context formatting here too
+                                    prompt_text_to_send = f"Previous context:\n{truncated_text}\n\nContinue with: {prompt_text}"
                                     logger.info(f"Context truncated for large sequence: {estimated_tokens} -> ~{estimate_tokens(prompt_text_to_send)} tokens (removed {len(full_sequence_text) - len(truncated_text)} chars)")
                                 else:
                                     prompt_text_to_send = combined_text

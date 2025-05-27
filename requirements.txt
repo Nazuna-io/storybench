@@ -7,6 +7,7 @@ mongomock-motor
 motor
 pydantic
 cryptography
+httpx
 
 # Add other specific dependencies your project uses, e.g.:
 # openai

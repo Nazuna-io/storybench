@@ -651,5 +651,87 @@ async def _run_full_pipeline(config_path, auto_evaluate, models_filter, sequence
         click.echo(f"🔌 Database connection closed")
 
 
+@cli.command(name='sync-prompts')
+@click.option('--version', '-v', type=int, help='Specific version to sync (default: latest published)')
+@click.option('--list-versions', is_flag=True, help='List all available published versions')
+@click.option('--test-connection', is_flag=True, help='Test connection to Directus CMS')
+def sync_prompts_command(version, list_versions, test_connection):
+    """Sync prompts from Directus CMS to MongoDB."""
+    asyncio.run(_sync_prompts_async(version, list_versions, test_connection))
+
+
+async def _sync_prompts_async(version, list_versions, test_connection):
+    """Async implementation of sync_prompts command."""
+    load_dotenv()
+    
+    from .database.connection import init_database
+    from .database.services.directus_integration_service import DirectusIntegrationService
+    from .clients.directus_client import DirectusClient, DirectusClientError
+    
+    try:
+        # Initialize database connection
+        database = await init_database()
+        directus_client = DirectusClient()
+        integration_service = DirectusIntegrationService(database, directus_client)
+        
+        if test_connection:
+            click.echo("Testing connection to Directus CMS...")
+            is_connected = await integration_service.test_directus_connection()
+            if is_connected:
+                click.echo("✅ Connection successful!")
+            else:
+                click.echo("❌ Connection failed!")
+                return
+        
+        if list_versions:
+            click.echo("Fetching available versions from Directus...")
+            versions = await integration_service.list_available_versions()
+            
+            if not versions:
+                click.echo("No published versions found.")
+                return
+            
+            click.echo(f"\nFound {len(versions)} published versions:")
+            for v in versions:
+                click.echo(f"  Version {v['version_number']}: {v['name']}")
+                if v['description']:
+                    click.echo(f"    Description: {v['description']}")
+                click.echo(f"    Created: {v['date_created']}")
+                if v['date_updated']:
+                    click.echo(f"    Updated: {v['date_updated']}")
+                click.echo()
+            return
+        
+        # Sync prompts
+        click.echo(f"Syncing prompts from Directus CMS...")
+        if version:
+            click.echo(f"Requesting version {version}")
+        else:
+            click.echo("Requesting latest published version")
+        
+        prompts = await integration_service.sync_prompts_from_directus(version)
+        
+        if prompts:
+            click.echo("✅ Prompts synced successfully!")
+            click.echo(f"Version: {prompts.version}")
+            click.echo(f"Sequences: {len(prompts.sequences)}")
+            
+            for seq_name, seq_prompts in prompts.sequences.items():
+                click.echo(f"  - {seq_name}: {len(seq_prompts)} prompts")
+            
+            # Show current active prompts
+            active_prompts = await integration_service.get_active_prompts()
+            if active_prompts:
+                click.echo(f"\nActive prompts version: {active_prompts.version}")
+        else:
+            click.echo("❌ No prompts found to sync")
+            
+    except DirectusClientError as e:
+        click.echo(f"❌ Directus error: {e}")
+    except Exception as e:
+        click.echo(f"❌ Error: {e}")
+
+
 if __name__ == '__main__':
     cli()
+

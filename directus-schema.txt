@@ -1,0 +1,72 @@
+Directus provides excellent introspection capabilities through its API. Here are the primary ways you can get this schema information programmatically or for inspection:
+
+1. Using Directus API Endpoints for Schema Introspection:
+
+You'll use the same base URL for your Directus instance (e.g., https://your-service-name.onrender.com) and the same Authorization: Bearer YOUR_STATIC_API_TOKEN_HERE header you tested earlier.
+
+a) Get All Collections Information (including fields):
+
+Endpoint: GET /collections
+What it provides: An array of collection objects. Each object contains:
+collection: The name of the collection (e.g., prompt_set_versions).
+meta: Metadata about the collection, including hidden, singleton, icon, note, etc.
+schema: Information about the collection's schema, including the name (same as collection key).
+fields: Crucially, an array of field objects for that collection (if requested with a parameter, or sometimes included by default for some versions/configurations). To ensure fields are included, you might use a query parameter like meta=*,fields.* but often just /collections gives a good overview and you can then query specific collections for more detail.
+How to get full field details per collection:
+Endpoint: GET /collections/{collection_name} (e.g., GET /collections/prompt_set_versions)
+What it provides: Detailed information for a specific collection, including:
+collection: Name.
+meta: All metadata for the collection.
+fields: An object where keys are field names (e.g., version_number, status) and values are objects describing each field's schema (type, db_type, interface, options, special flags like PRIMARY_KEY, FOREIGN_KEY, ONE_TO_MANY, etc.) and meta (readonly, hidden, required, etc.).
+b) Get All Fields Information (across all collections or for one):
+
+Endpoint: GET /fields (for all fields in the system)
+Endpoint: GET /fields/{collection_name} (e.g., GET /fields/prompt_set_versions)
+What it provides: An array of field objects. Each object details:
+collection: The collection the field belongs to.
+field: The name of the field.
+type: The Directus abstract type (e.g., integer, string, text, boolean, alias, uuid, dateTime, json, csv). This is key for mapping to Pydantic types.
+schema: Detailed schema information like is_primary_key, is_nullable, default_value, max_length, numeric_precision, numeric_scale.
+meta: Information about how the field is managed, its interface, options, if it's a special field (like M2O, O2M, M2M, translations, file), and relationships. For relational fields, meta.special will indicate the type of relation, and meta.options might contain related table/field info.
+c) Get All Relationships Information:
+
+Endpoint: GET /relations
+What it provides: An array of relationship objects. Each object details:
+collection: The "one" side of a one-to-many or the "owning" side in a many-to-many (via junction).
+field: The name of the relational field in that collection.
+related_collection: The name of the "many" side or the other related collection.
+meta:
+one_collection: Name of the "one" side collection.
+one_field (optional): The field on the "one" side (often null for O2M defined on the "one" side).
+many_collection: Name of the "many" side collection.
+many_field (optional): The field on the "many" side that links back (the foreign key field).
+junction_field (for M2M): The field in the junction table that points to this side.
+one_allowed_collections (for polymorphic relations).
+schema: Details about the foreign key constraint, like on_update, on_delete.
+2. Using the OpenAPI Specification:
+
+Endpoint: Your Directus instance likely exposes its OpenAPI (formerly Swagger) schema at /server/specs/oas (e.g., https://your-service-name.onrender.com/server/specs/oas).
+What it provides: A full JSON or YAML description of your API, including:
+All available endpoints.
+The expected request and response schemas for each endpoint (including /items/{collection} endpoints).
+Definitions of the data structures for each of your collections (e.g., what fields a prompt_set_versions item contains and their types).
+How to use: You can paste the URL into an OpenAPI viewer (like Swagger Editor online) or use tools that can generate client code or Pydantic models from an OpenAPI spec.
+Recommended Approach for Your Python Client:
+
+Manual Inspection (Initial Understanding):
+
+Use a tool like Postman, Insomnia, or even your browser (by pasting the URL if it's a simple GET and your token is somehow passed, though tools are better for headers) to hit the /collections/{collection_name} endpoint for each of your three main collections (prompt_set_versions, prompt_sequences, prompts) and the junction collections if you want to be very thorough.
+Save the JSON responses. This will give you a very clear picture of all field names, their Directus types, and relational metadata.
+Focus on /collections/{collection_name} output:
+
+The fields object within the response from GET /collections/{collection_name} is probably the most direct source for defining your Pydantic models. It will show you:
+field_name: (e.g., version_number)
+type: (e.g., integer) -> maps to int in Pydantic.
+schema.is_nullable: -> maps to Optional[...] in Pydantic.
+meta.special: (e.g., ["m2o"], ["o2m"], ["m2m"]) -> indicates a relational field. The meta.options.template or structure within the item data will show how related items are represented (often as an array of IDs, or an array of nested objects if you use fields=*.* in your data queries).
+meta.interface: (e.g., select-dropdown)
+meta.options.choices: (For dropdowns like your status field)
+Use /relations to understand linkage:
+
+The /relations endpoint can help you explicitly see how junction tables are structured or how M2O/O2M fields connect if the /collections/{name} output isn't immediately clear on the exact foreign key names used by Directus for the relationships you set up.
+By querying these schema endpoints, you'll have all the information you need to accurately define your Pydantic models in src/storybench/prompt_management_clients/directus_client.py (or wherever you define them) to match the data structure served by your Directus API. This will make parsing the API responses much more robust and type-safe.
