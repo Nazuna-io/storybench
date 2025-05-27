@@ -252,15 +252,21 @@ class LocalEvaluator(BaseEvaluator):
                 # Reset the KV cache to clean state
                 self.llm.reset()
                 logger.debug(f"Reset model state for {self.name}")
+                
+                # For Gemma models, also try to clear any lingering state
+                # by doing a small test generation after reset
+                try:
+                    test_response = self.llm("Test", max_tokens=1, temperature=0.1)
+                    if test_response and test_response.get("choices") and test_response["choices"][0].get("text"):
+                        logger.debug(f"Model state reset verified for {self.name}")
+                    else:
+                        logger.warning(f"Model state reset verification failed for {self.name}")
+                except Exception as test_error:
+                    logger.warning(f"Model state reset verification error for {self.name}: {test_error}")
+                    
             except Exception as e:
                 logger.warning(f"Failed to reset model state for {self.name}: {e}")
-                # If reset fails, try to reinitialize the model
-                try:
-                    logger.info(f"Reinitializing model {self.name} due to reset failure")
-                    await self.setup()
-                except Exception as setup_error:
-                    logger.error(f"Failed to reinitialize model {self.name}: {setup_error}")
-                    raise RuntimeError(f"Model {self.name} is in corrupted state and cannot be reset")
+                # Don't reinitialize as that's too aggressive, but log the issue
 
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate response using local model.
@@ -310,17 +316,38 @@ class LocalEvaluator(BaseEvaluator):
                     **llm_params
                 )
                 
-                # Extract text from response
-                generated_text = response["choices"][0]["text"].strip()
+                # Validate response structure first
+                if not response or not isinstance(response, dict):
+                    raise RuntimeError("Model returned invalid response structure (not a dict)")
+                    
+                if "choices" not in response or not response["choices"]:
+                    raise RuntimeError("Model returned response without choices")
+                    
+                if not isinstance(response["choices"], list) or len(response["choices"]) == 0:
+                    raise RuntimeError("Model returned empty choices list")
                 
-                # Check if generation was successful (non-empty and reasonable length)
-                if not generated_text or len(generated_text) < 10:
-                    if attempt < max_retries:
-                        logger.warning(f"Generation attempt {attempt + 1} produced minimal output ({len(generated_text)} chars), retrying after model reset...")
-                        await self.reset_model_state()
-                        continue
-                    else:
-                        logger.error(f"All generation attempts failed, final output length: {len(generated_text)} chars")
+                # Extract text from response - be more careful about None values  
+                choice = response["choices"][0]
+                if not isinstance(choice, dict) or "text" not in choice:
+                    raise RuntimeError("Model response choice missing text field")
+                    
+                raw_text = choice["text"]
+                if raw_text is None:
+                    generated_text = ""
+                else:
+                    generated_text = raw_text.strip()
+                
+                # Log what we got for debugging
+                logger.debug(f"Generated text length: {len(generated_text)} chars, raw length: {len(raw_text) if raw_text else 0}")
+                
+                # For story generation, anything under 100 tokens (~300 chars) indicates a problem
+                min_expected_length = 100  # Minimum chars for a reasonable story response
+                
+                if len(generated_text) < min_expected_length and attempt < max_retries:
+                    logger.warning(f"Generation attempt {attempt + 1} produced insufficient output ({len(generated_text)} chars < {min_expected_length} expected), retrying with model reset...")
+                    # For story generation, we DO need to reset the model state when it fails
+                    await self.reset_model_state()
+                    continue
                 
                 # Calculate generation time and performance metrics
                 generation_time = time.time() - start_time
@@ -342,18 +369,20 @@ class LocalEvaluator(BaseEvaluator):
                 
             except Exception as e:
                 if attempt < max_retries:
-                    logger.warning(f"Generation attempt {attempt + 1} failed: {e}, retrying after model reset...")
-                    try:
-                        await self.reset_model_state()
-                    except Exception as reset_error:
-                        logger.error(f"Model reset failed: {reset_error}")
-                        # If we can't reset, raise the original error
-                        raise e
+                    logger.warning(f"Generation attempt {attempt + 1} failed: {e}, retrying...")
+                    await asyncio.sleep(1.0)  # Pause between retries
                     continue
                 else:
-                    # Final attempt failed, raise the error
+                    # Final attempt failed, but don't raise - return empty response instead
                     logger.error(f"All generation attempts failed. Final error: {e}")
-                    raise e
+                    return {
+                        "text": "[Generation error occurred]",
+                        "generation_time": time.time() - start_time,
+                        "tokens_per_second": 0.0,
+                        "completion_tokens": 0,
+                        "prompt_tokens": 0,
+                        "total_tokens": 0
+                    }
         
         # This should never be reached, but just in case
         raise RuntimeError("Generation failed after all retry attempts")
