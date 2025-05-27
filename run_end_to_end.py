@@ -5,8 +5,10 @@ This script runs the complete pipeline from model API calls to evaluation storag
 """
 
 import asyncio
-import os
 import json
+import os
+import logging
+from typing import Dict, List, Optional, Tuple, Any
 import click
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -20,8 +22,11 @@ from storybench.database.services.sequence_evaluation_service import SequenceEva
 from storybench.database.repositories.criteria_repo import CriteriaRepository
 from storybench.database.repositories.response_repo import ResponseRepository
 from storybench.evaluators.factory import EvaluatorFactory
+from storybench.database.models import Response
 from storybench.models.config import Config, ModelConfig
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option('--models', help='Comma-separated list of model names to run (default: all)')
@@ -29,7 +34,8 @@ from storybench.models.config import Config, ModelConfig
 @click.option('--auto-evaluate', is_flag=True, help='Automatically run LLM evaluation after response generation')
 @click.option('--config', '-c', default='config/models.yaml', help='Path to API models configuration file (models.yaml)')
 @click.option('--local-config', default=None, help='Path to local models JSON configuration file (e.g., local_models.json)')
-def main(models, sequences, auto_evaluate, config, local_config):
+@click.option('--evaluator-model', default=None, help='Name of the model to use for evaluation (e.g., "gpt-4-turbo-preview" or a local model name). If not specified, defaults to OpenAI gpt-4-turbo-preview. Ensure the model is defined in API or local configs.')
+def main(models, sequences, auto_evaluate, config, local_config, evaluator_model):
     """Run the complete end-to-end evaluation pipeline."""
     
     # Load environment variables
@@ -42,87 +48,73 @@ def main(models, sequences, auto_evaluate, config, local_config):
         return
     
     try:
-        asyncio.run(_run_pipeline(models, sequences, auto_evaluate, config, local_config))
+        asyncio.run(_run_pipeline(models, sequences, auto_evaluate, config, local_config, evaluator_model))
     except Exception as e:
         click.echo(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
 
 
-async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_path, local_config_path):
+async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_path, local_config_path, evaluator_model_name):
     """Run the complete pipeline."""
     
-    # Connect to database
-    mongodb_uri = os.getenv("MONGODB_URI")
-    client = AsyncIOMotorClient(mongodb_uri)
-    database = client["storybench"]
-    
+    database_client = None  # Initialize to None for finally block
     try:
-        click.echo("🔗 Connected to database")
+        # Connect to database
+        mongodb_uri = os.getenv("MONGODB_URI")
+        if not mongodb_uri:
+            click.echo("❌ MONGODB_URI environment variable is required")
+            return
+            
+        database_client = AsyncIOMotorClient(mongodb_uri)
+        database = database_client["storybench"]
+        logger.info("🔗 Connected to database")
         
-        # Load configuration
-        click.echo(f"📋 Loading configuration from {config_path}")
+        mongo_uri_from_env = os.getenv("MONGODB_URI")
+        db_name_from_env = os.getenv("MONGODB_DATABASE_NAME", "storybench_db")
+        logger.info(f"run_end_to_end.py is configured to use MongoDB URI from env: {mongo_uri_from_env}")
+        logger.info(f"run_end_to_end.py is configured to use Database Name from env: {db_name_from_env}")
+        if database_client:
+            # For SRV, address might be None initially or represent the seed list, nodes is more reliable for connected nodes.
+            logger.info(f"Actual client 'address' (may be seed or None for SRV): {database_client.address}")
+            logger.info(f"Actual client connected 'nodes': {database_client.nodes}")
+        
+        # Load API model configuration
+        click.echo(f"📋 Loading API model configuration from {config_path}")
         cfg = Config.load_config(config_path)
         
-        # Validate configuration
+        # Validate API model configuration
         errors = cfg.validate()
         if errors:
-            click.echo("❌ Configuration errors:")
+            click.echo("❌ API model configuration errors:")
             for error in errors:
                 click.echo(f"   {error}")
             return
-        
         click.echo(f"✅ API model configuration valid - {len(cfg.models)} models, {len(cfg.prompts)} prompt sequences")
 
+        # Load local models configuration if path is provided
+        parsed_local_models = []
         if local_config_path:
             click.echo(f"📋 Loading local models configuration from {local_config_path}")
             try:
                 with open(local_config_path, 'r') as f:
                     local_models_data = json.load(f)
                 
-                parsed_local_models = []
                 for lm_entry in local_models_data.get("models", []):
-                    # Ensure all necessary fields for ModelConfig are present or have defaults
-                    # Map JSON keys to ModelConfig field names
                     model_config_args = {
                         "name": lm_entry.get("name"),
                         "type": "local",
                         "provider": lm_entry.get("provider", "local_default_provider"),
-                        # model_name in ModelConfig is often the specific API model identifier.
-                        # For local models, the 'name' field is primary for display/selection.
-                        # We can use the filename or a composite for model_name if needed by other parts,
-                        # or just reuse 'name' if that's sufficient.
                         "model_name": lm_entry.get("model_filename", lm_entry.get("name")), 
-                        "repo_id": lm_entry.get("model_repo_id"), # Map to repo_id
-                        "filename": lm_entry.get("model_filename"), # Map to filename
-                        "subdirectory": lm_entry.get("subdirectory")
-                        # If lm_entry contains a 'settings' dict, and ModelConfig expects it directly:
-                        # "settings": lm_entry.get("settings", {})
+                        "repo_id": lm_entry.get("model_repo_id"),
+                        "filename": lm_entry.get("model_filename"),
+                        "subdirectory": lm_entry.get("subdirectory"),
+                        "model_settings": lm_entry.get("model_settings", lm_entry.get("settings")) # Try both keys for backwards compatibility
                     }
-                    
-                    # Add any other fields from lm_entry that ModelConfig might accept directly
-                    # and are not already explicitly mapped. Be cautious with this to avoid unexpected args.
-                    # For instance, if ModelConfig had a 'custom_params: dict' field, you'd map to that.
-                    # For now, we assume 'settings' from JSON should be handled if ModelConfig has such a field
-                    # or if LocalEvaluator will pick them up from the evaluator_config.
-
-                    # Filter out None values for optional fields to avoid passing None if not intended
                     final_mc_args = {k: v for k, v in model_config_args.items() if v is not None}
-
-                    # If lm_entry has a 'settings' field and ModelConfig expects it directly (not the case here)
-                    # if "settings" in lm_entry and hasattr(ModelConfig, 'settings'):
-                    #    final_mc_args["settings"] = lm_entry["settings"]
-                    
-                    # Store the original JSON settings to pass to LocalEvaluator later if needed
-                    # We can attach it to the ModelConfig instance if ModelConfig doesn't have a 'settings' field
-                    # For now, we'll retrieve it from lm_entry when creating evaluator_config
-
                     parsed_local_models.append(ModelConfig(**final_mc_args))
-                    # To pass original settings from JSON to evaluator, we'll need to access lm_entry again
-                    # or store lm_entry['settings'] on the ModelConfig object if ModelConfig had a field for it.
-                    # Let's refine how settings are passed to LocalEvaluator later.
                 
-                cfg.models.extend(parsed_local_models)
+                cfg.models.extend(parsed_local_models) # Add local models to the main list
                 click.echo(f"✅ Loaded {len(parsed_local_models)} local models.")
             except FileNotFoundError:
                 click.echo(f"⚠️ Local models configuration file not found: {local_config_path}")
@@ -130,260 +122,313 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                 click.echo(f"❌ Error decoding JSON from local models file: {local_config_path}")
             except Exception as e:
                 click.echo(f"❌ Error loading local models configuration: {e}")
+                return # Stop if local model loading fails critically
         
-        click.echo(f"ℹ️ Total models to process: {len(cfg.models)}")
+        click.echo(f"ℹ️ Total models available: {len(cfg.models)}")
         
-        # Parse filters
-        models_list = [m.strip() for m in models_filter.split(',')] if models_filter else None
-        sequences_list = [s.strip() for s in sequences_filter.split(',')] if sequences_filter else None
+        # Store a full list of all configured models BEFORE filtering for response generation
+        all_loaded_model_configs = list(cfg.models) 
+
+        # Parse filters for models and sequences
+        models_list_filter = [m.strip() for m in models_filter.split(',')] if models_filter else None
+        sequences_list_filter = [s.strip() for s in sequences_filter.split(',')] if sequences_filter else None
         
-        # Filter models and sequences
-        if models_list:
-            cfg.models = [m for m in cfg.models if m.name in models_list]
-            click.echo(f"🎯 Filtered to models: {[m.name for m in cfg.models]}")
+        # Filter models for response generation
+        if models_list_filter:
+            cfg.models = [m for m in cfg.models if m.name in models_list_filter]
+            click.echo(f"🎯 Filtered to models for response generation: {[m.name for m in cfg.models]}")
         
-        if sequences_list:
-            cfg.prompts = {k: v for k, v in cfg.prompts.items() if k in sequences_list}
-            click.echo(f"🎯 Filtered to sequences: {list(cfg.prompts.keys())}")
+        # Filter sequences for response generation
+        if sequences_list_filter:
+            cfg.prompts = {k: v for k, v in cfg.prompts.items() if k in sequences_list_filter}
+            click.echo(f"🎯 Filtered to sequences for response generation: {list(cfg.prompts.keys())}")
         
         if not cfg.models:
-            click.echo("❌ No models to evaluate after filtering")
+            click.echo("❌ No models to process after filtering.")
+            return
+        if not cfg.prompts:
+            click.echo("❌ No prompt sequences to process after filtering.")
             return
             
-        if not cfg.prompts:
-            click.echo("❌ No prompt sequences to evaluate after filtering")
-            return
-        
         api_keys = _get_api_keys()
+        # Check API keys only for the API models selected for response generation
         api_models_for_key_check = [m for m in cfg.models if m.type == 'api']
-        missing_keys = []
-        if any(api_models_for_key_check):
+        if api_models_for_key_check:
             missing_keys = _check_required_api_keys(api_models_for_key_check, api_keys)
-        
-        if missing_keys: # This will only be true if there were API models and keys were missing
-            click.echo("❌ Missing required API keys:")
-            for key in missing_keys:
-                click.echo(f"   {key}")
-            return
+            if missing_keys:
+                click.echo("❌ Missing required API keys for response generation:")
+                for key in missing_keys:
+                    click.echo(f"   {key}")
+                return
         
         # Initialize repositories
         response_repo = ResponseRepository(database)
-        
+            
         # Step 1: Generate responses
         click.echo(f"\n📝 Step 1: Generating responses...")
-        
-        total_responses = 0
-        new_responses = 0
-        errors = []
-        
-        for model in cfg.models:
-            click.echo(f"\n🤖 Processing model: {model.name} (Type: {model.type})")
+        total_responses_generated_count = 0
+        new_responses_created_count = 0
+        generation_errors = []
             
-            evaluator_config = {}
-            current_api_keys = {}
-
-            if model.type == 'api':
-                evaluator_config = {
-                    "type": model.type,
-                    "provider": model.provider,
-                    "model_name": model.model_name
-                }
-                # Pass other API specific settings if ModelConfig has them and EvaluatorFactory/APIEvaluator expects them
-                # For example, if model has a 'settings' attribute: evaluator_config.update(model.settings or {})
-                current_api_keys = api_keys
-            elif model.type == 'local':
-                # LocalEvaluator expects model_repo_id and model_filename.
-                # These should be attributes of the ModelConfig instance `model`.
-                evaluator_config = {
-                    "type": model.type,
-                    "name": model.name, # Pass model name for context
-                    "repo_id": model.repo_id, # Correct key for LocalEvaluator
-                    "filename": model.filename, # Correct key for LocalEvaluator
-                }
-                # Now, let's try to find the original settings from the local_models.json for this model
-                # This is a bit indirect. A cleaner way would be if ModelConfig stored these settings.
-                # Ensure local_models_data is accessible here or passed appropriately if this loop is refactored.
-                if 'local_models_data' in locals() and local_models_data: # Check if local_models_data was loaded
-                    original_lm_entry = next((entry for entry in local_models_data.get("models", []) if entry.get("name") == model.name), None)
-                    if original_lm_entry and "settings" in original_lm_entry:
-                        evaluator_config.update(original_lm_entry["settings"])
-                
-                current_api_keys = {} # No API keys for local models
-            else:
-                click.echo(f"   ⚠️ Unknown model type '{model.type}' for model {model.name}. Skipping.")
-                continue
+        for model_config in cfg.models: # Iterate over filtered models for generation
+            click.echo(f"\n🤖 Processing model: {model_config.name} (Type: {model_config.type})")
             
-            evaluator = EvaluatorFactory.create_evaluator(model.name, evaluator_config, current_api_keys)
-            
-            # Setup the evaluator
-            setup_success = await evaluator.setup()
-            if not setup_success:
-                click.echo(f"   ❌ Failed to setup evaluator for {model.name}")
-                errors.append(f"Failed to setup evaluator for {model.name}")
-                continue
-            
-            for sequence_name, prompts in cfg.prompts.items():
-                click.echo(f"   📚 Sequence: {sequence_name}")
-                
-                for run in range(cfg.global_settings.num_runs):
-                    click.echo(f"      🔄 Run {run + 1}/{cfg.global_settings.num_runs}")
-                    
-                    for prompt_idx, prompt in enumerate(prompts):
-                        prompt_name = prompt.get('name', f'prompt_{prompt_idx}')
-                        prompt_text = prompt['text']
-                        
-                        # Check if response already exists
-                        existing_responses = await response_repo.find_many({
-                            "model_name": model.name,
-                            "sequence": sequence_name,
-                            "run": run,
-                            "prompt_index": prompt_idx
-                        }, limit=1)
-                        
-                        if existing_responses:
-                            click.echo(f"         ⏭️  {prompt_name} (already exists)")
-                            total_responses += 1
-                            continue
-                        
-                        try:
-                            # Generate response
-                            click.echo(f"         🎯 {prompt_name}...")
-                            
-                            start_time = datetime.now(timezone.utc)
-                            response_result = await evaluator.generate_response(prompt_text)
-                            end_time = datetime.now(timezone.utc)
-                            generation_time = (end_time - start_time).total_seconds()
-                            
-                            # Extract response text from the result dict
-                            response_text = response_result.get("response", "")
-                            
-                            # Save to database
-                            from storybench.database.models import Response, ResponseStatus
-                            response = Response(
-                                evaluation_id="end_to_end_run",  # Use a default evaluation ID for standalone runs
-                                model_name=model.name,
-                                sequence=sequence_name,
-                                run=run,
-                                prompt_index=prompt_idx,
-                                prompt_name=prompt_name,
-                                prompt_text=prompt_text,
-                                response=response_text,
-                                generation_time=generation_time,
-                                status=ResponseStatus.COMPLETED
-                            )
-                            
-                            await response_repo.create(response)
-                            
-                            total_responses += 1
-                            new_responses += 1
-                            click.echo(f"         ✅ Generated ({generation_time:.1f}s)")
-                            
-                            # Small delay to be nice to APIs
-                            await asyncio.sleep(1)
-                            
-                        except Exception as e:
-                            error_msg = f"Error generating {model.name}/{sequence_name}/run{run}/{prompt_name}: {str(e)}"
-                            errors.append(error_msg)
-                            click.echo(f"         ❌ {str(e)}")
-        
-        click.echo(f"\n✅ Response generation complete!")
-        click.echo(f"   Total responses: {total_responses}")
-        click.echo(f"   New responses: {new_responses}")
-        click.echo(f"   Errors: {len(errors)}")
-        
-        if errors:
-            click.echo(f"\n⚠️  Errors encountered:")
-            for error in errors[:5]:  # Show first 5 errors
-                click.echo(f"     {error}")
-        
-        # Step 2: Run evaluation if requested
-        if auto_evaluate:
-            click.echo(f"\n🧠 Step 2: Running LLM evaluations...")
-            
-            # Initialize evaluation service
-            openai_api_key = os.getenv("OPENAI_API_KEY")
-            sequence_eval_service = SequenceEvaluationService(database, openai_api_key)
-            
-            # Check if we have active criteria
-            criteria_repo = CriteriaRepository(database)
-            active_criteria = await criteria_repo.find_active()
-            
-            if not active_criteria:
-                click.echo("❌ No active evaluation criteria found!")
-                click.echo("   Please run the criteria setup first")
-                return
-            
-            click.echo(f"✅ Using criteria version {active_criteria.version}")
-            
-            # Run sequence-aware evaluations
-            eval_results = await sequence_eval_service.evaluate_all_sequences()
-            
-            click.echo(f"✅ Evaluation complete!")
-            click.echo(f"   Sequences evaluated: {eval_results['sequences_evaluated']}")
-            click.echo(f"   Total evaluations: {eval_results['total_evaluations_created']}")
-            click.echo(f"   Errors: {len(eval_results.get('errors', []))}")
-            
-            # Generate summary
-            click.echo(f"\n📊 Generating evaluation summary...")
-            summary = await sequence_eval_service.get_evaluation_summary()
-            
-            # Save results to file
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            results_file = f"pipeline_results_{timestamp}.json"
-            
-            output_data = {
-                "pipeline_timestamp": datetime.now(timezone.utc).isoformat(),
-                "config_used": config_path,
-                "filters": {
-                    "models": models_filter,
-                    "sequences": sequences_filter
-                },
-                "response_generation": {
-                    "total_responses": total_responses,
-                    "new_responses": new_responses,
-                    "errors": errors
-                },
-                "evaluation_results": eval_results,
-                "evaluation_summary": summary,
-                "criteria_version": active_criteria.version
+            current_model_api_keys = {}
+            factory_config = {
+                "type": model_config.type,
+                "provider": model_config.provider,
+                "model_name": model_config.model_name, # model_name from ModelConfig
+                "repo_id": model_config.repo_id,       # repo_id from ModelConfig
+                "filename": model_config.filename,     # filename from ModelConfig
+                "subdirectory": model_config.subdirectory # subdirectory from ModelConfig
             }
+
+            if model_config.type == 'local':
+                if model_config.model_settings: # Merge model_settings if they exist
+                    factory_config.update(model_config.model_settings)
+                    click.echo(f"   Using model_settings for local model {model_config.name}: {model_config.model_settings}")
+            elif model_config.type == 'api':
+                current_model_api_keys = api_keys # Pass all keys, factory will pick
+
+            try:
+                # Pass the constructed factory_config dictionary to the factory
+                evaluator = EvaluatorFactory.create_evaluator(
+                    name=model_config.name,
+                    config=factory_config, 
+                    api_keys=current_model_api_keys
+                )
+            except Exception as e:
+                click.echo(f"❌ Error creating evaluator for model {model_config.name}: {e}")
+                generation_errors.append(f"Evaluator creation for {model_config.name}: {e}")
+                continue
+
+            try:
+                click.echo(f"   ⚙️ Setting up evaluator for {model_config.name}...")
+                await evaluator.setup() # Ensure evaluator is set up
+                click.echo(f"   ✅ Evaluator for {model_config.name} ready.")
+            except Exception as e:
+                click.echo(f"❌ Error setting up evaluator for model {model_config.name}: {e}")
+                generation_errors.append(f"Evaluator setup for {model_config.name}: {e}")
+                continue
+
+            for seq_name, prompts in cfg.prompts.items(): # Iterate over filtered sequences
+                click.echo(f"   📚 Sequence: {seq_name}")
+                full_sequence_text = ""
+                for i in range(cfg.global_settings.num_runs):
+                    click.echo(f"      🔄 Run {i+1}/{cfg.global_settings.num_runs}")
+                    for prompt_idx, prompt_obj in enumerate(prompts):
+                        prompt_text_to_send = full_sequence_text + prompt_obj['text']
+                        try:
+                            response_text = await evaluator.generate_response(prompt_text_to_send, **model_config.model_settings if model_config.model_settings else {})
+                            if response_text and isinstance(response_text, dict) and 'text' in response_text and response_text['text']:
+                                generated_text_str = response_text['text']
+                                generation_time_val = response_text.get('generation_time', 0.0) # Get generation_time
+                                full_sequence_text += generated_text_str + "\n\n" # Append for context
+                                response_data = {
+                                    "evaluation_id": "", # Placeholder, model expects str
+                                    "model_name": model_config.name,
+                                    "model_provider": model_config.provider, # Not in Response model, but keep for now if needed elsewhere
+                                    "sequence": seq_name, # Changed from sequence_name
+                                    "run": i + 1, # Changed from run_number
+                                    "prompt_index": prompt_idx, # Added
+                                    "prompt_name": prompt_obj['name'],
+                                    "prompt_text": prompt_obj['text'],
+                                    "full_prompt_text": prompt_text_to_send, # Not in Response model
+                                    "response": generated_text_str, # Changed from response_text
+                                    "generation_time": generation_time_val, # Added
+                                    "created_at": datetime.now(timezone.utc), # Not in Response model, completed_at is auto
+                                    # status is defaulted in model
+                                }
+                                # Filter out keys not in Response model before creating instance
+                                response_fields = Response.model_fields.keys()
+                                filtered_response_data = {k: v for k, v in response_data.items() if k in response_fields}
+                                logger.debug(f"Attempting to create response with data: {{key: val for key, val in filtered_response_data.items() if key != 'response'}} ... Response Text Length: {len(filtered_response_data.get('response',''))}")
+                                response_instance = Response(**filtered_response_data)
+                                try:
+                                    created_response_doc = await response_repo.create(response_instance)
+                                    if created_response_doc and created_response_doc.id:
+                                        logger.info(f"Successfully created response with ID: {created_response_doc.id}, Eval ID: {created_response_doc.evaluation_id}, Model: {created_response_doc.model_name}, Seq: {created_response_doc.sequence}, Run: {created_response_doc.run}, PromptIdx: {created_response_doc.prompt_index}")
+                                    else:
+                                        logger.error("Failed to create response or retrieve ID after creation (created_response_doc is None or has no ID).")
+                                except Exception as e_create:
+                                    logger.error(f"Error during response_repo.create: {e_create}")
+                                    import traceback
+                                    logger.error(traceback.format_exc())
+                                new_responses_created_count += 1
+                            else:
+                                click.echo(f"      ⚠️ Empty response for prompt: {prompt_obj['name']}")
+                                generation_errors.append(f"Empty response: {model_config.name}/{seq_name}/{prompt_obj['name']}/Run{i+1}")
+                        except Exception as e:
+                            click.echo(f"      ❌ Error generating response for prompt {prompt_obj['name']}: {e}")
+                            generation_errors.append(f"Generation error: {model_config.name}/{seq_name}/{prompt_obj['name']}/Run{i+1}: {e}")
+                            # Decide if we should break inner loops or continue
+                    total_responses_generated_count +=1 # Counts a "full sequence run" completion
             
-            with open(results_file, 'w') as f:
-                json.dump(output_data, f, indent=2)
+            if hasattr(evaluator, 'cleanup'): # Cleanup for local models
+                await evaluator.cleanup()
+
+        _print_response_generation_summary(total_responses_generated_count, new_responses_created_count, generation_errors)
+
+        if auto_evaluate:
+            click.echo("\n📊 Step 2: Evaluating responses...")
             
-            click.echo(f"\n🏆 Pipeline Summary:")
-            click.echo(f"   Total responses: {total_responses}")
-            click.echo(f"   Total evaluations: {summary['total_evaluations']}")
-            click.echo(f"   Evaluation coverage: {summary['evaluation_coverage']:.1%}")
+            evaluator_mc_for_eval: Optional[ModelConfig] = None # Will hold the ModelConfig for the evaluator
             
-            # Show top model performance
-            if summary.get('model_sequence_statistics'):
-                click.echo(f"\n📈 Model Performance Preview:")
-                for model_seq, stats in list(summary['model_sequence_statistics'].items())[:3]:
-                    model_name = stats['model_name']
-                    sequence_name = stats['sequence_name']
-                    
-                    # Calculate average score across all criteria
-                    total_score = 0
-                    total_count = 0
-                    for criterion_data in stats['criteria_scores'].values():
-                        total_score += criterion_data['average'] * criterion_data['count']
-                        total_count += criterion_data['count']
-                    
-                    avg_score = total_score / total_count if total_count > 0 else 0
-                    click.echo(f"   {model_name} - {sequence_name}: {avg_score:.2f}/5.0")
+            # Use the comprehensive list of all_loaded_model_configs for evaluator selection
+            if evaluator_model_name:
+                click.echo(f"🔎 Searching for specified evaluator model: {evaluator_model_name} in all loaded models...")
+                for m_conf in all_loaded_model_configs: # Search in the comprehensive list
+                    if m_conf.name == evaluator_model_name:
+                        evaluator_mc_for_eval = m_conf
+                        break
+                if not evaluator_mc_for_eval:
+                    click.echo(f"❌ Evaluator model '{evaluator_model_name}' not found in any loaded configurations. Available: {[m.name for m in all_loaded_model_configs]}")
+                    return 
+                click.echo(f"✅ Using specified evaluator model: {evaluator_mc_for_eval.name} (Type: {evaluator_mc_for_eval.type}, Provider: {evaluator_mc_for_eval.provider})")
+            else:
+                # Default evaluator model if none specified
+                default_eval_model_name = "gpt-4-turbo-preview" # Example default
+                default_eval_provider = "openai"
+                click.echo(f"ℹ️ No --evaluator-model specified. Defaulting to {default_eval_provider}/{default_eval_model_name} for evaluation.")
+                for m_conf in all_loaded_model_configs: # Search in the comprehensive list
+                    if m_conf.name == default_eval_model_name and m_conf.provider == default_eval_provider:
+                        evaluator_mc_for_eval = m_conf
+                        click.echo(f"✅ Found default evaluator model in loaded configurations: {evaluator_mc_for_eval.name}")
+                        break
+                if not evaluator_mc_for_eval: 
+                    click.echo(f"ℹ️ Default evaluator {default_eval_provider}/{default_eval_model_name} not in loaded configs. Creating ModelConfig on-the-fly.")
+                    evaluator_mc_for_eval = ModelConfig(
+                        name=default_eval_model_name, type="api", provider=default_eval_provider, model_name=default_eval_model_name
+                    )
             
-            click.echo(f"\n💾 Detailed results saved to: {results_file}")
-        
+            eval_api_keys_for_service = {}
+            if evaluator_mc_for_eval.type == 'api':
+                missing_eval_keys = _check_required_api_keys([evaluator_mc_for_eval], api_keys) 
+                if missing_eval_keys:
+                    click.echo(f"❌ Missing API key for evaluator model {evaluator_mc_for_eval.name} (Provider: {evaluator_mc_for_eval.provider}): {', '.join(missing_eval_keys)}")
+                    return 
+                eval_api_keys_for_service = api_keys 
+            
+            # Local evaluator model settings are now part of evaluator_mc_for_eval.model_settings
+            if evaluator_mc_for_eval.type == 'local' and evaluator_mc_for_eval.model_settings:
+                click.echo(f"   Local evaluator model {evaluator_mc_for_eval.name} will use its model_settings: {evaluator_mc_for_eval.model_settings}")
+
+            try:
+                logger.info(f"Attempting to initialize SequenceEvaluationService with evaluator_mc_for_eval: Name='{evaluator_mc_for_eval.name}', Type='{evaluator_mc_for_eval.type}', Provider='{evaluator_mc_for_eval.provider}', ModelName='{evaluator_mc_for_eval.model_name}', Settings='{evaluator_mc_for_eval.model_settings}'")
+                click.echo(f"🔧 Initializing SequenceEvaluationService with evaluator: {evaluator_mc_for_eval.name}")
+                evaluation_service = SequenceEvaluationService(
+                    database=database,
+                    evaluator_model_config=evaluator_mc_for_eval, 
+                    api_keys=eval_api_keys_for_service
+                    # evaluator_specific_config argument removed
+                )
+                
+                # Initialize the evaluator within the service (e.g., call setup() for local models)
+                await evaluation_service.initialize()
+                
+                criteria_repo = CriteriaRepository(database)
+                active_criteria = await criteria_repo.find_active()
+                if not active_criteria:
+                    click.echo("❌ No active evaluation criteria found! Please run criteria setup.")
+                    return
+                click.echo(f"✅ Using criteria version {active_criteria.version} for evaluation.")
+
+                eval_results = await evaluation_service.evaluate_all_sequences()
+                
+                click.echo(f"✅ Evaluation complete using {evaluator_mc_for_eval.name}!")
+                click.echo(f"   Sequences evaluated: {eval_results.get('sequences_evaluated', 0)}")
+                click.echo(f"   Total evaluations created: {eval_results.get('total_evaluations_created', 0)}")
+                if eval_results.get('errors'):
+                    click.echo(f"   Evaluation errors: {len(eval_results['errors'])}")
+                    for err_idx, err_msg in enumerate(eval_results['errors'][:3]):
+                        click.echo(f"     Error {err_idx+1}: {err_msg}")
+
+                click.echo(f"\n📊 Generating evaluation summary...")
+                summary = await evaluation_service.get_evaluation_summary()
+                print_evaluation_summary(summary) 
+
+                # Save results to file
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                results_file = f"pipeline_results_{timestamp}.json"
+                output_data = {
+                    "timestamp": timestamp,
+                    "models_filter": models_filter,
+                    "sequences_filter": sequences_filter,
+                    "auto_evaluate": auto_evaluate,
+                    "evaluator_model_used": evaluator_mc_for_eval.name,
+                    "generation_summary": {
+                        "total_runs_processed": total_responses_generated_count,
+                        "new_responses_created": new_responses_created_count,
+                        "errors": generation_errors
+                    },
+                    "evaluation_results_summary": eval_results, # from evaluate_all_sequences
+                    "detailed_evaluation_metrics": summary # from get_evaluation_summary
+                }
+                with open(results_file, 'w') as f:
+                    json.dump(output_data, f, indent=4)
+                click.echo(f"\n💾 Full pipeline results saved to {results_file}")
+
+            except Exception as e:
+                click.echo(f"❌ Error during evaluation step with {evaluator_mc_for_eval.name if evaluator_mc_for_eval else 'default evaluator'}: {e}")
+                import traceback
+                traceback.print_exc()
         else:
-            click.echo(f"\n⏭️  Skipping evaluation (use --auto-evaluate to include)")
-            click.echo(f"   You can run evaluations later with: python3 run_fresh_sequence_evaluations.py")
-        
-        click.echo(f"\n✅ Pipeline complete!")
-        
+            click.echo("\nℹ️ Auto-evaluation skipped as per --no-auto-evaluate flag.")
+
+    except Exception as e: # Catch-all for pipeline-level errors
+        click.echo(f"❌ An unexpected error occurred in the pipeline: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        client.close()
-        click.echo(f"🔌 Database connection closed")
+        if database_client:
+            database_client.close()
+            click.echo("\n🔌 Database connection closed.")
+def _print_response_generation_summary(total_runs, new_responses, errors_list):
+    """Prints a summary of the response generation phase."""
+    click.echo(f"\n✅ Response generation complete!")
+    click.echo(f"   Total sequence runs processed: {total_runs}")
+    click.echo(f"   New responses created in DB: {new_responses}")
+    if errors_list:
+        click.echo(f"   Generation errors encountered: {len(errors_list)}")
+        for i, err in enumerate(errors_list[:5]): # Print first 5 errors
+            click.echo(f"      Error {i+1}: {err}")
+        if len(errors_list) > 5:
+            click.echo(f"      ... and {len(errors_list) - 5} more errors.")
+    else:
+        click.echo(f"   No generation errors.")
+
+def print_evaluation_summary(summary: Dict[str, Any]):
+    """Prints a formatted summary of the evaluation results."""
+    click.echo(f"\n🏆 Evaluation Summary:")
+    click.echo(f"   Total responses in DB: {summary.get('total_responses', 0)}")
+    click.echo(f"   Total evaluations in DB: {summary.get('total_evaluations', 0)}")
+    click.echo(f"   Overall evaluation coverage: {summary.get('evaluation_coverage', 0.0):.1%}")
+
+    if summary.get('model_sequence_statistics'):
+        click.echo(f"\n📈 Model Performance Preview (Top 3 by overall score):")
+        # Sort by average score if possible, or just take first few
+        # This is a simplified preview; more complex sorting could be added
+        preview_count = 0
+        for model_seq_key, stats_val in summary['model_sequence_statistics'].items():
+            if preview_count >= 3: 
+                break
+            
+            model_name_stat = stats_val.get('model_name', 'N/A')
+            sequence_name_stat = stats_val.get('sequence_name', 'N/A')
+            criteria_scores_stat = stats_val.get('criteria_scores', {})
+            
+            total_weighted_score = 0
+            total_criteria_observations = 0
+            
+            for crit_name, crit_data in criteria_scores_stat.items():
+                total_weighted_score += crit_data.get('average', 0) * crit_data.get('count', 0)
+                total_criteria_observations += crit_data.get('count', 0)
+            
+            avg_overall_score = total_weighted_score / total_criteria_observations if total_criteria_observations > 0 else 0
+            click.echo(f"   - {model_name_stat} / {sequence_name_stat}: Avg Score {avg_overall_score:.2f}/5.0 ({total_criteria_observations} criteria observations)")
+            preview_count += 1
+    else:
+        click.echo("   No detailed model/sequence statistics available in this summary.")
 
 
 def _get_api_keys():
