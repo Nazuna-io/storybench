@@ -56,3 +56,17 @@ async def cleanup_database():
                 deleted_count = result.deleted_count
                 total_deleted += deleted_count
                 logger.info(f"🗑️  {collection_name}: Deleted {deleted_count} documents")
+
+        logger.info(f"✅ Total documents deleted across all collections: {total_deleted}")
+
+    except Exception as e:
+        logger.error(f"❌ An error occurred during database cleanup: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+    finally:
+        if 'db' in locals() and db.client:
+            logger.info("🔌 Closing database connection...")
+            await db.client.close()
+            logger.info("Connection closed.")
+        else:
+            logger.warning("Database client not initialized or already closed.")

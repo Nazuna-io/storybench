@@ -27,6 +27,7 @@ class ModelConfig:
     repo_id: Optional[str] = None
     filename: Optional[str] = None
     subdirectory: Optional[str] = None
+    model_settings: Optional[Dict[str, Any]] = None  # For parameters like temperature, max_tokens, n_gpu_layers, etc.
 
 
 @dataclass

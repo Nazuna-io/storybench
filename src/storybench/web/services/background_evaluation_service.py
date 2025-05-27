@@ -83,7 +83,7 @@ class BackgroundEvaluationService:
                     # Start processing in background task so we don't block polling
                     asyncio.create_task(self._process_evaluation(evaluation))
                 elif response_count < evaluation.total_tasks:
-                    # This is a partially completed evaluation - could be resumed
+                    # This is a partially completed evaluation - could be resumed  
                     logger.info(f"Found partially completed evaluation {evaluation.id} ({response_count}/{evaluation.total_tasks} responses)")
                     # For now, we'll skip automatic resume to avoid conflicts
                     # User should explicitly choose to resume via UI
@@ -148,98 +148,143 @@ class BackgroundEvaluationService:
                 {"status": EvaluationStatus.GENERATING_RESPONSES}
             )
             
-            any_responses_generated = False
+            # Build complete response generation plan - ONE evaluation with ALL responses
+            response_plan = []
             for model_name in models:
-                logger.info(f"Processing model {model_name} for evaluation {evaluation_id}")
-                
-                # Get model configuration from database
-                models_config = await config_service.get_active_models()
-                if not models_config:
-                    logger.error(f"No active models configuration found")
-                    continue
-                
-                # Find the specific model configuration
-                model_config = None
-                for model in models_config.models:
-                    if model.name == model_name:
-                        model_config = {
-                            "type": model.type,
-                            "provider": model.provider,
-                            "model_name": model.model_name
-                        }
-                        break
-                
-                if not model_config:
-                    logger.error(f"Model configuration not found for {model_name}")
-                    continue
-                
-                # Create evaluator for this model
-                try:
-                    evaluator = EvaluatorFactory.create_evaluator(model_name, model_config, api_keys)
-                    setup_success = await evaluator.setup()
-                    if not setup_success:
-                        logger.error(f"Failed to setup evaluator for {model_name}")
-                        continue
-                except Exception as e:
-                    logger.error(f"Failed to create evaluator for {model_name}: {e}")
-                    continue
-                
                 for sequence_name, prompts in sequences.items():
-                    logger.info(f"Processing sequence {sequence_name} with {len(prompts)} prompts")
-                    
                     for run in range(1, num_runs + 1):
                         for prompt_index, prompt in enumerate(prompts):
-                            # Update current status
-                            await self.runner.evaluation_repo.update_by_id(
-                                evaluation_id,
-                                {
-                                    "current_model": model_name,
-                                    "current_sequence": sequence_name,
-                                    "current_run": run,
-                                    "completed_tasks": completed_tasks
-                                }
-                            )
-                            
-                            # Generate real response using LLM API
-                            try:
-                                logger.info(f"Generating response for {model_name}/{sequence_name}/run{run}/{prompt['name']}")
-                                start_time = datetime.now()
-                                response_result = await evaluator.generate_response(prompt['text'])
-                                end_time = datetime.now()
-                                generation_time = (end_time - start_time).total_seconds()
-                                
-                                # Extract response text from the result dict
-                                response_text = response_result.get("response", "")
-                                
-                                # Save the response to database
-                                await self.runner.save_response(
-                                    evaluation_id=str(evaluation_id),  # Convert ObjectId to string
-                                    model_name=model_name,
-                                    sequence=sequence_name,
-                                    run=run,
-                                    prompt_index=prompt_index,
-                                    prompt_name=prompt["name"],
-                                    prompt_text=prompt["text"],
-                                    response_text=response_text,
-                                    generation_time=generation_time
-                                )
-                                any_responses_generated = True
-                                completed_tasks += 1
-                                logger.info(f"Generated response ({generation_time:.1f}s) - Progress: {completed_tasks}/{evaluation.total_tasks}")
-                                
-                                # Add delay to be nice to APIs
-                                await asyncio.sleep(1)
-                                
-                            except Exception as e:
-                                logger.error(f"Error generating response for {model_name}/{sequence_name}/run{run}/{prompt['name']}: {e}")
-                                # Continue with next prompt even if one fails
-                                continue
+                            response_plan.append({
+                                "model_name": model_name,
+                                "sequence_name": sequence_name,
+                                "run": run,
+                                "prompt_index": prompt_index,
+                                "prompt": prompt
+                            })
+            
+            total_responses = len(response_plan)
+            logger.info(f"Response generation plan: {total_responses} total responses for evaluation {evaluation_id}")
+            logger.info(f"Plan breakdown: {len(models)} models × {len(sequences)} sequences × {num_runs} runs × {len(list(sequences.values())[0]) if sequences else 0} prompts")
+            
+            any_responses_generated = False
+            model_evaluators = {}  # Cache evaluators to avoid recreating them
+            
+            # Process each response in the unified plan
+            for plan_item in response_plan:
+                model_name = plan_item["model_name"]
+                sequence_name = plan_item["sequence_name"]
+                run = plan_item["run"]
+                prompt_index = plan_item["prompt_index"]
+                prompt = plan_item["prompt"]
                 
-                # Cleanup evaluator
+                # Update current status
+                await self.runner.evaluation_repo.update_by_id(
+                    evaluation_id,
+                    {
+                        "current_model": model_name,
+                        "current_sequence": sequence_name,
+                        "current_run": run,
+                        "completed_tasks": completed_tasks
+                    }
+                )
+                
+                # Get or create evaluator for this model (cache to avoid repeated setup)
+                if model_name not in model_evaluators:
+                    logger.info(f"Setting up evaluator for model {model_name}")
+                    
+                    # Get model configuration from database
+                    models_config = await config_service.get_active_models()
+                    if not models_config:
+                        logger.error(f"No active models configuration found")
+                        continue
+                    
+                    # Find the specific model configuration
+                    model_config = None
+                    for model in models_config.models:
+                        if model.name == model_name:
+                            model_config = {
+                                "type": model.type,
+                                "provider": model.provider,
+                                "model_name": model.model_name
+                            }
+                            break
+                    
+                    if not model_config:
+                        logger.error(f"Model configuration not found for {model_name}")
+                        model_evaluators[model_name] = None
+                        continue
+                    
+                    # Create evaluator for this model
+                    try:
+                        evaluator = EvaluatorFactory.create_evaluator(model_name, model_config, api_keys)
+                        setup_success = await evaluator.setup()
+                        if not setup_success:
+                            logger.error(f"Failed to setup evaluator for {model_name}")
+                            model_evaluators[model_name] = None
+                            continue
+                        model_evaluators[model_name] = evaluator
+                    except Exception as e:
+                        logger.error(f"Failed to create evaluator for {model_name}: {e}")
+                        model_evaluators[model_name] = None
+                        continue
+                
+                evaluator = model_evaluators.get(model_name)
+                if not evaluator:
+                    logger.warning(f"No evaluator available for {model_name}, skipping response")
+                    continue
+                
+                # Generate real response using LLM API
                 try:
-                    await evaluator.cleanup()
+                    logger.info(f"Generating response {completed_tasks + 1}/{total_responses}: {model_name}/{sequence_name}/run{run}/{prompt['name']}")
+                    start_time = datetime.now()
+                    response_result = await evaluator.generate_response(prompt['text'])
+                    end_time = datetime.now()
+                    generation_time = (end_time - start_time).total_seconds()
+                    
+                    # Extract response text from the result dict
+                    response_text = response_result.get("response", "")
+                    
+                    # Save the response to database - ALL responses belong to the SAME evaluation
+                    await self.runner.save_response(
+                        evaluation_id=str(evaluation_id),  # Convert ObjectId to string
+                        model_name=model_name,
+                        sequence=sequence_name,
+                        run=run,
+                        prompt_index=prompt_index,
+                        prompt_name=prompt["name"],
+                        prompt_text=prompt["text"],
+                        response_text=response_text,
+                        generation_time=generation_time
+                    )
+                    any_responses_generated = True
+                    completed_tasks += 1
+                    logger.info(f"Generated response ({generation_time:.1f}s) - Progress: {completed_tasks}/{total_responses}")
+                    
+                    # Update evaluation progress
+                    await self.runner.evaluation_repo.update_by_id(
+                        evaluation_id,
+                        {"completed_tasks": completed_tasks}
+                    )
+                    
+                    # Add delay to be nice to APIs
+                    await asyncio.sleep(1)
+                    
                 except Exception as e:
-                    logger.warning(f"Error cleaning up evaluator for {model_name}: {e}")
+                    logger.error(f"Error generating response for {model_name}/{sequence_name}/run{run}/{prompt['name']}: {e}")
+                    # Continue with next response even if one fails
+                    continue
+            
+            # Cleanup all evaluators
+            for model_name, evaluator in model_evaluators.items():
+                if evaluator:
+                    try:
+                        await evaluator.cleanup()
+                    except Exception as e:
+                        logger.warning(f"Error cleaning up evaluator for {model_name}: {e}")
+            
+            # Summary of response generation phase
+            logger.info(f"Response generation completed for evaluation {evaluation_id}")
+            logger.info(f"✅ Generated {completed_tasks}/{total_responses} responses successfully")
             
             # If no responses were generated, mark evaluation as failed and exit
             if not any_responses_generated:
@@ -249,6 +294,11 @@ class BackgroundEvaluationService:
                     "No responses were generated for any model. All models may have failed or been rate-limited."
                 )
                 return
+            
+            # If some responses failed, log warning but continue
+            if completed_tasks < total_responses:
+                failed_count = total_responses - completed_tasks
+                logger.warning(f"⚠️  {failed_count} responses failed to generate, but continuing with {completed_tasks} successful responses")
 
             # Update evaluation status to responses complete
             await self.runner.evaluation_repo.update_by_id(

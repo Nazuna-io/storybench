@@ -25,9 +25,28 @@ from storybench.database.repositories.response_repo import ResponseRepository
 from storybench.evaluators.factory import EvaluatorFactory
 from storybench.database.models import Response
 from storybench.models.config import Config, ModelConfig
+from storybench.context_manager import build_context_token_aware
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+class TokenizerAdapter:
+    """Adapter to make LocalEvaluator compatible with context manager."""
+    
+    def __init__(self, evaluator):
+        self.evaluator = evaluator
+    
+    def tokenize(self, text: bytes, add_bos: bool = True, special: bool = False) -> list:
+        # Convert bytes to string and use evaluator's tokenize method
+        text_str = text.decode('utf-8')
+        return self.evaluator.tokenize_text(text_str, add_bos=add_bos)
+    
+    def detokenize(self, tokens: list) -> bytes:
+        # Use evaluator's detokenize method and convert to bytes
+        text_str = self.evaluator.detokenize_tokens(tokens)
+        return text_str.encode('utf-8')
+
 
 @click.command()
 @click.option('--models', help='Comma-separated list of model names to run (default: all)')
@@ -226,9 +245,9 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
 
             for seq_name, prompts in cfg.prompts.items(): # Iterate over filtered sequences
                 click.echo(f"   📚 Sequence: {seq_name}")
-                full_sequence_text = ""
                 for i in range(cfg.global_settings.num_runs):
                     click.echo(f"      🔄 Run {i+1}/{cfg.global_settings.num_runs}")
+                    full_sequence_text = ""  # Reset context for each run to ensure independence
                     for prompt_idx, prompt_obj in enumerate(prompts):
                         # Handle both dictionary (JSON) and object (database) formats
                         if hasattr(prompt_obj, 'text'):

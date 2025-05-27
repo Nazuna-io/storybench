@@ -358,6 +358,67 @@ class LocalEvaluator(BaseEvaluator):
         # This should never be reached, but just in case
         raise RuntimeError("Generation failed after all retry attempts")
 
+    def tokenize_text(self, text: str, add_bos: bool = False) -> List[int]:
+        """
+        Tokenize text using the loaded model's tokenizer.
+        
+        Args:
+            text: Text to tokenize
+            add_bos: Whether to add beginning-of-sequence token
+            
+        Returns:
+            List of token IDs
+            
+        Raises:
+            RuntimeError: If the model is not loaded
+        """
+        if not self.llm:
+            raise RuntimeError(f"Model {self.name} is not loaded. Call setup() first.")
+        
+        try:
+            tokens = self.llm.tokenize(text.encode('utf-8'), add_bos=add_bos)
+            return tokens
+        except Exception as e:
+            logger.error(f"Tokenization failed for model {self.name}: {e}")
+            raise RuntimeError(f"Tokenization failed: {e}")
+    
+    def detokenize_tokens(self, tokens: List[int]) -> str:
+        """
+        Convert token IDs back to text using the loaded model's tokenizer.
+        
+        Args:
+            tokens: List of token IDs
+            
+        Returns:
+            Decoded text string
+            
+        Raises:
+            RuntimeError: If the model is not loaded
+        """
+        if not self.llm:
+            raise RuntimeError(f"Model {self.name} is not loaded. Call setup() first.")
+        
+        try:
+            text_bytes = self.llm.detokenize(tokens)
+            return text_bytes.decode('utf-8', errors='replace')
+        except Exception as e:
+            logger.error(f"Detokenization failed for model {self.name}: {e}")
+            raise RuntimeError(f"Detokenization failed: {e}")
+    
+    def get_available_context_tokens(self) -> int:
+        """
+        Calculate the number of tokens available for input context.
+        
+        Returns:
+            Number of tokens available for context (total - generation - buffer)
+        """
+        total_ctx = self.model_parameters.get("n_ctx", 4096)
+        max_generation = self.model_parameters.get("max_tokens", 2048)
+        safety_buffer = 500  # Buffer for safety
+        
+        available = total_ctx - max_generation - safety_buffer
+        return max(0, available)
+
     async def cleanup(self) -> None:
         """Clean up local model resources."""
         if self.llm:

@@ -4,11 +4,14 @@ This service evaluates responses by sequence to properly assess coherence across
 """
 
 import asyncio
+from bson import ObjectId
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from openai import AsyncOpenAI
 
+# Removed: from openai import AsyncOpenAI
+from ...evaluators.factory import EvaluatorFactory # Added
+from ...models.config import ModelConfig as StoryBenchModelConfig # ModelConfig is our updated one
 from ..repositories.response_repo import ResponseRepository
 from ..repositories.criteria_repo import CriteriaRepository
 from ..repositories.response_llm_evaluation_repository import ResponseLLMEvaluationRepository
@@ -19,13 +22,50 @@ logger = logging.getLogger(__name__)
 class SequenceEvaluationService:
     """Service for evaluating creative writing responses with sequence context for proper coherence assessment."""
     
-    def __init__(self, database: AsyncIOMotorDatabase, openai_api_key: str):
+    def __init__(self, database: AsyncIOMotorDatabase, 
+                 evaluator_model_config: StoryBenchModelConfig, 
+                 api_keys: Dict[str, str]):
         self.database = database
         self.response_repo = ResponseRepository(database)
         self.criteria_repo = CriteriaRepository(database)
         self.evaluation_repo = ResponseLLMEvaluationRepository(database)
-        self.openai_client = AsyncOpenAI(api_key=openai_api_key)
         
+        self.evaluator_model_config = evaluator_model_config # Store for later use
+
+        factory_eval_config = {
+            "type": evaluator_model_config.type,
+            "provider": evaluator_model_config.provider,
+            "model_name": evaluator_model_config.model_name,
+        }
+
+        if evaluator_model_config.type == "local":
+            if evaluator_model_config.repo_id:
+                factory_eval_config["repo_id"] = evaluator_model_config.repo_id
+            if evaluator_model_config.filename:
+                factory_eval_config["filename"] = evaluator_model_config.filename
+            if evaluator_model_config.subdirectory:
+                factory_eval_config["subdirectory"] = evaluator_model_config.subdirectory
+            
+            # Merge model_settings if they exist. These are parameters like temperature, n_gpu_layers, etc.
+            if evaluator_model_config.model_settings:
+                factory_eval_config.update(evaluator_model_config.model_settings)
+                logger.info(f"SequenceEvaluationService: Using model_settings for local evaluator {evaluator_model_config.name}: {evaluator_model_config.model_settings}")
+
+        self.evaluator = EvaluatorFactory.create_evaluator(
+            name=evaluator_model_config.name, # This is the display name / identifier
+            config=factory_eval_config, # This dict goes to the evaluator's __init__ as 'config'
+            api_keys=api_keys if evaluator_model_config.type == "api" else {}
+        )
+
+    async def initialize(self):
+        """Initializes the evaluator by calling its setup method."""
+        if hasattr(self.evaluator, 'setup') and callable(self.evaluator.setup):
+            logger.info(f"Setting up evaluator {self.evaluator.name} for SequenceEvaluationService...")
+            await self.evaluator.setup()
+            logger.info(f"Evaluator {self.evaluator.name} setup complete for SequenceEvaluationService.")
+        else:
+            logger.warning(f"Evaluator {self.evaluator.name} does not have a callable setup method.")
+
     async def evaluate_all_sequences(self) -> Dict[str, Any]:
         """Evaluate all response sequences that haven't been evaluated yet."""
         
@@ -118,18 +158,32 @@ class SequenceEvaluationService:
             # Build sequence evaluation prompt with all responses in context
             evaluation_prompt = self._build_sequence_evaluation_prompt(responses, criteria_config)
             
-            # Call OpenAI API
-            completion = await self.openai_client.chat.completions.create(
-                model="gpt-4-turbo-preview",  # Use GPT-4 Turbo with 128k context window
-                messages=[
-                    {"role": "system", "content": "You are an expert evaluator of creative writing sequences. Evaluate how well responses work together as a coherent narrative, with particular attention to how each response builds upon previous ones."},
-                    {"role": "user", "content": evaluation_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=4096  # Use full context for accuracy
-            )
+            # System prompt for the evaluator
+            system_prompt_content = "You are an expert evaluator of creative writing sequences. Evaluate how well responses work together as a coherent narrative, with particular attention to how each response builds upon previous ones."
+            # User prompt containing the actual sequence and criteria
+            user_prompt_content = self._build_sequence_evaluation_prompt(responses, criteria_config)
+
+            # Combine prompts. Specific formatting might be needed depending on the evaluator model.
+            # For many models, prepending system prompt to user prompt is a common approach.
+            full_prompt_for_evaluator = f"{system_prompt_content}\n\n{user_prompt_content}"
             
-            evaluation_text = completion.choices[0].message.content
+            evaluator_call_settings = {
+                "temperature": 0.3, # Consistent with original settings
+                "max_tokens": 4096  # Consistent with original settings
+            }
+
+            # Call the generic evaluator
+            eval_result_dict = await self.evaluator.generate_response(
+                prompt=full_prompt_for_evaluator,  
+                **evaluator_call_settings          
+            )
+        
+            evaluation_text = eval_result_dict.get("text")  
+            if not evaluation_text:
+                logger.error(f"Evaluator {self.evaluator.name} did not return a response text for sequence evaluation.")
+                # Consider how to handle this - perhaps raise an error or return None to skip this sequence.
+                # For now, returning None as the original code did on other exceptions.
+                return None
             
             # Parse the evaluation response for each response in the sequence
             sequence_evaluations = self._parse_sequence_evaluation_response(
@@ -141,8 +195,8 @@ class SequenceEvaluationService:
             for response, criterion_evaluations in sequence_evaluations:
                 llm_evaluation = ResponseLLMEvaluation(
                     response_id=response.id,
-                    evaluating_llm_provider="openai",
-                    evaluating_llm_model="gpt-4-turbo-preview",
+                    evaluating_llm_provider=self.evaluator_model_config.provider,
+                    evaluating_llm_model=self.evaluator_model_config.name, # Or model_name if more specific
                     evaluation_criteria_id=criteria_config.id,
                     criteria_results=criterion_evaluations,
                     raw_evaluator_output=evaluation_text
@@ -157,6 +211,62 @@ class SequenceEvaluationService:
         except Exception as e:
             logger.error(f"Error evaluating sequence: {str(e)}")
             return None
+
+    async def get_evaluation_summary(self) -> Dict[str, Any]:
+        """Calculate and return a summary of all evaluations in the database."""
+        all_responses = await self.response_repo.find_many({})
+        all_evaluations = await self.evaluation_repo.find_many({})
+
+        total_responses_count = len(all_responses)
+        total_evaluations_count = len(all_evaluations)
+
+        evaluation_coverage = (total_evaluations_count / total_responses_count) if total_responses_count > 0 else 0
+
+        # For model_sequence_statistics, we need to map evaluations back to responses to get model and sequence names
+        # Create a lookup for responses by ID
+        response_map: Dict[str, Response] = {str(r.id): r for r in all_responses}
+        
+        model_sequence_stats: Dict[Tuple[str, str], Dict[str, Any]] = {}
+
+        active_criteria_config = await self.criteria_repo.find_active()
+        criteria_names = list(active_criteria_config.criteria.keys()) if active_criteria_config else []
+
+        for evaluation in all_evaluations:
+            response = response_map.get(str(evaluation.response_id))
+            if not response:
+                logger.warning(f"Evaluation {evaluation.id} references a non-existent response {evaluation.response_id}. Skipping.")
+                continue
+
+            key = (response.model_name, response.sequence)
+            if key not in model_sequence_stats:
+                model_sequence_stats[key] = {
+                    "model_name": response.model_name,
+                    "sequence_name": response.sequence,
+                    "count": 0, # Number of responses in this model/sequence group that have evaluations
+                    "criteria_scores": {cn: {"total_score": 0, "count": 0, "average": 0.0} for cn in criteria_names}
+                }
+            
+            model_sequence_stats[key]["count"] += 1
+            for crit_eval in evaluation.criteria_results:
+                if crit_eval.criterion_name in model_sequence_stats[key]["criteria_scores"]:
+                    stat_entry = model_sequence_stats[key]["criteria_scores"][crit_eval.criterion_name]
+                    stat_entry["total_score"] += crit_eval.score
+                    stat_entry["count"] += 1
+        
+        # Calculate averages for criteria scores
+        for stats in model_sequence_stats.values():
+            for crit_name in stats["criteria_scores"]:
+                entry = stats["criteria_scores"][crit_name]
+                if entry["count"] > 0:
+                    entry["average"] = entry["total_score"] / entry["count"]
+                del entry["total_score"] # Clean up intermediate calculation field
+
+        return {
+            "total_responses": total_responses_count,
+            "total_evaluations": total_evaluations_count,
+            "evaluation_coverage": evaluation_coverage,
+            "model_sequence_statistics": {f"{k[0]}_{k[1]}": v for k, v in model_sequence_stats.items()} # Flatten key for JSON
+        }
     
     def _build_sequence_evaluation_prompt(self, responses: List[Response], criteria_config: EvaluationCriteria) -> str:
         """Build the sequence evaluation prompt that includes all responses in context."""
