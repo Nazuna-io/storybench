@@ -104,37 +104,32 @@ class BackgroundEvaluationService:
             
             logger.info(f"Starting processing for evaluation {evaluation_id}")
             
-            # Get the actual sequences from the evaluation's stored configuration
-            # We need to reconstruct this from the active configuration
-            from ...database.services.config_service import ConfigService
-            config_service = ConfigService(self.database)
+            # Get the actual sequences directly from Directus CMS
+            # Always fetch fresh prompts - never use MongoDB or local cache
+            from ...clients.directus_client import DirectusClient, DirectusClientError
+            import logging
+            
+            logger.info("🔄 Fetching fresh prompts directly from Directus CMS for evaluation")
             
             try:
-                # Get the current active prompts configuration
-                prompts_config = await config_service.get_active_prompts()
-                if prompts_config and hasattr(prompts_config, 'sequences'):
-                    sequences = {name: [prompt.model_dump() for prompt in prompt_list] 
-                               for name, prompt_list in prompts_config.sequences.items()}
+                directus_client = DirectusClient()
+                fresh_prompts = await directus_client.fetch_prompts()
+                
+                if fresh_prompts and fresh_prompts.sequences:
+                    sequences = {name: [{"name": prompt.name, "text": prompt.text} for prompt in prompt_list] 
+                               for name, prompt_list in fresh_prompts.sequences.items()}
+                    logger.info(f"✅ Successfully fetched {len(sequences)} prompt sequences directly from Directus (version {fresh_prompts.version})")
+                    logger.info(f"📋 Available sequences: {list(sequences.keys())}")
                 else:
-                    # Fallback to hardcoded sequences if config is missing
-                    logger.warning("No prompts config found, using fallback sequences")
-                    sequences = {
-                        "FilmNarrative": [
-                            {"name": "Initial Concept", "text": "Create a feature film concept..."},
-                            {"name": "Character Development", "text": "Develop the main characters..."},
-                            {"name": "Plot Structure", "text": "Outline the plot structure..."}
-                        ]
-                    }
-            except Exception as config_error:
-                logger.error(f"Error loading prompts config: {config_error}")
-                # Use minimal fallback
-                sequences = {
-                    "FilmNarrative": [
-                        {"name": "Initial Concept", "text": "Create a feature film concept..."},
-                        {"name": "Scene Development", "text": "Develop a pivotal scene..."},
-                        {"name": "Visual Realization", "text": "Describe the most striking visual..."}
-                    ]
-                }
+                    logger.error("❌ No published prompts found in Directus CMS")
+                    raise Exception("No published prompts available in Directus")
+                    
+            except DirectusClientError as directus_error:
+                logger.error(f"❌ Failed to fetch prompts from Directus: {directus_error}")
+                raise Exception(f"Unable to fetch prompts from Directus: {directus_error}")
+            except Exception as fetch_error:
+                logger.error(f"❌ Unexpected error fetching prompts from Directus: {fetch_error}")
+                raise Exception(f"Prompt fetch failed: {fetch_error}")
             
             # Get API keys from environment
             api_keys = self._get_api_keys()

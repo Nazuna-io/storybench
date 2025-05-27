@@ -245,33 +245,30 @@ class LocalModelService:
             settings: Generation settings
             api_keys: API keys for API evaluator (if not using local evaluator)
         """
-        # For demonstration purposes, we'll use some sample prompts if database is not available
-        prompts_dict = {}
+        # Always fetch fresh prompts directly from Directus CMS
+        from ...clients.directus_client import DirectusClient, DirectusClientError
         
-        if self.config_service:
-            try:
-                # Load prompts from database if available
-                prompts_config = await self.config_service.get_active_prompts()
-                if prompts_config and hasattr(prompts_config, 'prompts') and isinstance(prompts_config.prompts, dict):
-                    prompts_dict = prompts_config.prompts
-            except Exception as e:
-                self._send_output(f"Error loading prompts from database: {str(e)}", "warning")
+        self._send_output("🔄 Fetching fresh prompts directly from Directus CMS", "info")
         
-        # If no prompts from database, use sample prompts
-        if not prompts_dict:
-            self._send_output("Using sample prompts for demonstration", "info")
-            prompts_dict = {
-                "FilmNarrative": [
-                    {"name": "Premise", "text": "Write a film premise about a character who discovers an unexpected talent."},
-                    {"name": "Character", "text": "Describe the main character in detail, including their background, personality, and motivations. {{context}}"},
-                    {"name": "Scene", "text": "Write a key scene where the character's talent is revealed. {{context}}"}
-                ],
-                "LiteraryNarrative": [
-                    {"name": "Setting", "text": "Create a vivid setting for a short story."},
-                    {"name": "Character", "text": "Introduce the protagonist who inhabits this setting. {{context}}"},
-                    {"name": "Conflict", "text": "Describe the central conflict that drives the story. {{context}}"}
-                ]
-            }
+        try:
+            directus_client = DirectusClient()
+            fresh_prompts = await directus_client.fetch_prompts()
+            
+            if fresh_prompts and fresh_prompts.sequences:
+                prompts_dict = {name: [{"name": prompt.name, "text": prompt.text} for prompt in prompt_list] 
+                               for name, prompt_list in fresh_prompts.sequences.items()}
+                self._send_output(f"✅ Successfully fetched {len(prompts_dict)} prompt sequences from Directus (version {fresh_prompts.version})", "info")
+                self._send_output(f"📋 Available sequences: {list(prompts_dict.keys())}", "info")
+            else:
+                self._send_output("❌ No published prompts found in Directus CMS", "error")
+                return
+                
+        except DirectusClientError as directus_error:
+            self._send_output(f"❌ Failed to fetch prompts from Directus: {directus_error}", "error")
+            return
+        except Exception as fetch_error:
+            self._send_output(f"❌ Unexpected error fetching prompts from Directus: {fetch_error}", "error")
+            return
             
         # Filter sequences
         available_sequences = set(prompts_dict.keys())

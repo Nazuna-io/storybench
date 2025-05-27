@@ -345,7 +345,40 @@ def status():
             
             # Get active configurations
             models_config = await config_service.get_active_models()
-            prompts_config = await config_service.get_active_prompts()
+            
+            # Always fetch fresh prompts directly from Directus CMS
+            click.echo("🔄 Fetching fresh prompts directly from Directus CMS...")
+            from .clients.directus_client import DirectusClient, DirectusClientError
+            
+            try:
+                directus_client = DirectusClient()
+                fresh_prompts = await directus_client.fetch_prompts()
+                
+                if fresh_prompts and fresh_prompts.sequences:
+                    # Convert to the format expected by the evaluation system
+                    sequences_dict = {name: [{"name": prompt.name, "text": prompt.text} for prompt in prompt_list] 
+                                    for name, prompt_list in fresh_prompts.sequences.items()}
+                    
+                    # Create a mock prompts_config object with the sequences
+                    class MockPromptsConfig:
+                        def __init__(self, sequences):
+                            self.sequences = {name: [type('PromptConfig', (), prompt) for prompt in prompt_list] 
+                                            for name, prompt_list in sequences.items()}
+                    
+                    prompts_config = MockPromptsConfig(sequences_dict)
+                    click.echo(f"✅ Successfully fetched {len(sequences_dict)} prompt sequences from Directus (version {fresh_prompts.version})")
+                    click.echo(f"📋 Available sequences: {list(sequences_dict.keys())}")
+                else:
+                    click.echo("❌ No published prompts found in Directus CMS")
+                    return
+                    
+            except DirectusClientError as directus_error:
+                click.echo(f"❌ Failed to fetch prompts from Directus: {directus_error}")
+                return
+            except Exception as fetch_error:
+                click.echo(f"❌ Unexpected error fetching prompts from Directus: {fetch_error}")
+                return
+            
             criteria_config = await config_service.get_active_criteria()
             
             click.echo("Current Configuration Status:")

@@ -103,17 +103,34 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
         click.echo(f"📋 Loading API model configuration from {config_path}")
         cfg = Config.load_config(config_path)
         
-        # Load prompts from database (override JSON file prompts)
+        # Load prompts directly from Directus CMS (never use JSON files or MongoDB)
+        from src.storybench.clients.directus_client import DirectusClient, DirectusClientError
+        
+        click.echo("🔄 Fetching fresh prompts directly from Directus CMS...")
+        
         try:
-            config_service = ConfigService(database)
-            prompts_config = await config_service.get_active_prompts()
-            if prompts_config and hasattr(prompts_config, 'sequences') and isinstance(prompts_config.sequences, dict):
-                cfg.prompts = prompts_config.sequences
-                click.echo(f"✅ Loaded prompts from database: {len(cfg.prompts)} sequences")
+            directus_client = DirectusClient()
+            fresh_prompts = await directus_client.fetch_prompts()
+            
+            if fresh_prompts and fresh_prompts.sequences:
+                # Convert to the format expected by the config
+                sequences_dict = {}
+                for name, prompt_list in fresh_prompts.sequences.items():
+                    sequences_dict[name] = [{"name": prompt.name, "text": prompt.text} for prompt in prompt_list]
+                
+                cfg.prompts = sequences_dict
+                click.echo(f"✅ Successfully loaded {len(sequences_dict)} prompt sequences directly from Directus (version {fresh_prompts.version})")
+                click.echo(f"📋 Available sequences: {list(sequences_dict.keys())}")
             else:
-                click.echo("⚠️ No prompts found in database, using prompts from JSON file")
-        except Exception as e:
-            click.echo(f"⚠️ Error loading prompts from database: {str(e)}, using prompts from JSON file")
+                click.echo("❌ No published prompts found in Directus CMS")
+                return
+                
+        except DirectusClientError as directus_error:
+            click.echo(f"❌ Failed to fetch prompts from Directus: {directus_error}")
+            return
+        except Exception as fetch_error:
+            click.echo(f"❌ Unexpected error fetching prompts from Directus: {fetch_error}")
+            return
         
         # Validate API model configuration
         errors = cfg.validate()

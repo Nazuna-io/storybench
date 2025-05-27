@@ -175,16 +175,41 @@ async def start_evaluation(
         
         # Get active configurations from database
         models_config = await config_service.get_active_models()
-        prompts_config = await config_service.get_active_prompts()
+        
+        # Always fetch fresh prompts directly from Directus CMS
+        from ...clients.directus_client import DirectusClient, DirectusClientError
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info("🔄 API: Fetching fresh prompts directly from Directus CMS for evaluation creation")
+        
+        try:
+            directus_client = DirectusClient()
+            fresh_prompts = await directus_client.fetch_prompts()
+            
+            if fresh_prompts and fresh_prompts.sequences:
+                sequences = {name: [{"name": prompt.name, "text": prompt.text} for prompt in prompt_list] 
+                           for name, prompt_list in fresh_prompts.sequences.items()}
+                logger.info(f"✅ API: Successfully fetched {len(sequences)} prompt sequences from Directus (version {fresh_prompts.version})")
+            else:
+                logger.error("❌ API: No published prompts found in Directus CMS")
+                raise HTTPException(status_code=500, detail="No published prompts available in Directus CMS")
+                
+        except DirectusClientError as directus_error:
+            logger.error(f"❌ API: Failed to fetch prompts from Directus: {directus_error}")
+            raise HTTPException(status_code=500, detail=f"Unable to fetch prompts from Directus: {directus_error}")
+        except Exception as fetch_error:
+            logger.error(f"❌ API: Unexpected error fetching prompts from Directus: {fetch_error}")
+            raise HTTPException(status_code=500, detail=f"Prompt fetch failed: {fetch_error}")
+        
         criteria_config = await config_service.get_active_criteria()
         
-        if not models_config or not prompts_config or not criteria_config:
+        if not models_config or not criteria_config:
             raise HTTPException(status_code=400, detail="Missing required configurations")
             
         # Extract data for evaluation
         models = [model.name for model in models_config.models]
-        sequences = {name: [prompt.model_dump() for prompt in prompt_list] 
-                    for name, prompt_list in prompts_config.sequences.items()}
+        # sequences already defined above from Directus
         criteria = {name: criterion.model_dump() for name, criterion in criteria_config.criteria.items()}
         global_settings = models_config.evaluation.model_dump()
         
