@@ -19,6 +19,7 @@ import sys
 sys.path.append('src')
 
 from storybench.database.services.sequence_evaluation_service import SequenceEvaluationService
+from storybench.database.services.config_service import ConfigService
 from storybench.database.repositories.criteria_repo import CriteriaRepository
 from storybench.database.repositories.response_repo import ResponseRepository
 from storybench.evaluators.factory import EvaluatorFactory
@@ -82,6 +83,18 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
         # Load API model configuration
         click.echo(f"📋 Loading API model configuration from {config_path}")
         cfg = Config.load_config(config_path)
+        
+        # Load prompts from database (override JSON file prompts)
+        try:
+            config_service = ConfigService(database)
+            prompts_config = await config_service.get_active_prompts()
+            if prompts_config and hasattr(prompts_config, 'sequences') and isinstance(prompts_config.sequences, dict):
+                cfg.prompts = prompts_config.sequences
+                click.echo(f"✅ Loaded prompts from database: {len(cfg.prompts)} sequences")
+            else:
+                click.echo("⚠️ No prompts found in database, using prompts from JSON file")
+        except Exception as e:
+            click.echo(f"⚠️ Error loading prompts from database: {str(e)}, using prompts from JSON file")
         
         # Validate API model configuration
         errors = cfg.validate()
@@ -217,7 +230,15 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                 for i in range(cfg.global_settings.num_runs):
                     click.echo(f"      🔄 Run {i+1}/{cfg.global_settings.num_runs}")
                     for prompt_idx, prompt_obj in enumerate(prompts):
-                        prompt_text_to_send = full_sequence_text + prompt_obj['text']
+                        # Handle both dictionary (JSON) and object (database) formats
+                        if hasattr(prompt_obj, 'text'):
+                            prompt_text = prompt_obj.text
+                            prompt_name = prompt_obj.name
+                        else:
+                            prompt_text = prompt_obj['text']
+                            prompt_name = prompt_obj['name']
+                            
+                        prompt_text_to_send = full_sequence_text + prompt_text
                         try:
                             response_text = await evaluator.generate_response(prompt_text_to_send, **model_config.model_settings if model_config.model_settings else {})
                             if response_text and isinstance(response_text, dict) and 'text' in response_text and response_text['text']:
@@ -231,8 +252,8 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                                     "sequence": seq_name, # Changed from sequence_name
                                     "run": i + 1, # Changed from run_number
                                     "prompt_index": prompt_idx, # Added
-                                    "prompt_name": prompt_obj['name'],
-                                    "prompt_text": prompt_obj['text'],
+                                    "prompt_name": prompt_name,
+                                    "prompt_text": prompt_text,
                                     "full_prompt_text": prompt_text_to_send, # Not in Response model
                                     "response": generated_text_str, # Changed from response_text
                                     "generation_time": generation_time_val, # Added
@@ -256,11 +277,11 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                                     logger.error(traceback.format_exc())
                                 new_responses_created_count += 1
                             else:
-                                click.echo(f"      ⚠️ Empty response for prompt: {prompt_obj['name']}")
-                                generation_errors.append(f"Empty response: {model_config.name}/{seq_name}/{prompt_obj['name']}/Run{i+1}")
+                                click.echo(f"      ⚠️ Empty response for prompt: {prompt_name}")
+                                generation_errors.append(f"Empty response: {model_config.name}/{seq_name}/{prompt_name}/Run{i+1}")
                         except Exception as e:
-                            click.echo(f"      ❌ Error generating response for prompt {prompt_obj['name']}: {e}")
-                            generation_errors.append(f"Generation error: {model_config.name}/{seq_name}/{prompt_obj['name']}/Run{i+1}: {e}")
+                            click.echo(f"      ❌ Error generating response for prompt {prompt_name}: {e}")
+                            generation_errors.append(f"Generation error: {model_config.name}/{seq_name}/{prompt_name}/Run{i+1}: {e}")
                             # Decide if we should break inner loops or continue
                     total_responses_generated_count +=1 # Counts a "full sequence run" completion
             

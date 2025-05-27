@@ -59,7 +59,8 @@ class LocalEvaluator(BaseEvaluator):
         self.model_parameters = {
             "n_gpu_layers": model_settings.get("n_gpu_layers", -1),  # -1 for all layers to GPU
             "n_ctx": model_settings.get("n_ctx", 4096),
-            "n_batch": model_settings.get("n_batch", 512),
+            "n_batch": model_settings.get("n_batch", 2048),  # Increased for better GPU utilization
+            "n_ubatch": model_settings.get("n_ubatch", 512),  # Micro-batch size
             "temperature": model_settings.get("temperature", 0.8),
             "max_tokens": model_settings.get("max_tokens", 2048),
             "stop": model_settings.get("stop", None),
@@ -67,6 +68,12 @@ class LocalEvaluator(BaseEvaluator):
             "top_k": model_settings.get("top_k", 40),
             "top_p": model_settings.get("top_p", 0.95),
             "repeat_penalty": model_settings.get("repeat_penalty", 1.1),
+            # Performance optimization parameters
+            "flash_attn": model_settings.get("flash_attn", False),
+            "offload_kqv": model_settings.get("offload_kqv", True),
+            "use_mmap": model_settings.get("use_mmap", True),
+            "use_mlock": model_settings.get("use_mlock", False),
+            "split_mode": model_settings.get("split_mode", 1),
             # RoPE scaling parameters
             "rope_freq_base": model_settings.get("rope_freq_base"),
             "rope_freq_scale": model_settings.get("rope_freq_scale"),
@@ -169,8 +176,14 @@ class LocalEvaluator(BaseEvaluator):
                 llama_args = {
                     "model_path": str(self.model_path),
                     "n_ctx": self.model_parameters.get("n_ctx", 4096),
-                    "n_batch": self.model_parameters.get("n_batch", 512),
+                    "n_batch": self.model_parameters.get("n_batch", 2048),
+                    "n_ubatch": self.model_parameters.get("n_ubatch", 512),
                     "n_gpu_layers": n_gpu_layers_to_use,
+                    "flash_attn": self.model_parameters.get("flash_attn", False),
+                    "offload_kqv": self.model_parameters.get("offload_kqv", True),
+                    "use_mmap": self.model_parameters.get("use_mmap", True),
+                    "use_mlock": self.model_parameters.get("use_mlock", False),
+                    "split_mode": self.model_parameters.get("split_mode", 1),
                     "verbose": False
                 }
                 
@@ -272,8 +285,14 @@ class LocalEvaluator(BaseEvaluator):
             # Extract text from response
             generated_text = response["choices"][0]["text"].strip()
             
-            # Calculate generation time
+            # Calculate generation time and performance metrics
             generation_time = time.time() - start_time
+            completion_tokens = response["usage"]["completion_tokens"]
+            tokens_per_second = completion_tokens / generation_time if generation_time > 0 else 0
+            
+            # Log performance metrics
+            logger.info(f"Generation completed: {completion_tokens} tokens in {generation_time:.2f}s "
+                       f"({tokens_per_second:.1f} tokens/sec)")
             
             # Format response similar to API evaluators
             return {
@@ -285,7 +304,8 @@ class LocalEvaluator(BaseEvaluator):
                     "completion_tokens": response["usage"]["completion_tokens"],
                     "total_tokens": response["usage"]["total_tokens"]
                 },
-                "generation_time": generation_time
+                "generation_time": generation_time,
+                "tokens_per_second": tokens_per_second
             }
             
         except Exception as e:
