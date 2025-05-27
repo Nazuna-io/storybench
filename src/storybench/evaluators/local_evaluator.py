@@ -241,6 +241,27 @@ class LocalEvaluator(BaseEvaluator):
                     logger.warning(f"Failed to clean up model file: {str(cleanup_error)}")
             return False
         
+    async def reset_model_state(self):
+        """Reset model state between generations to prevent context corruption.
+        
+        This is particularly important for long sequences where the KV cache
+        might get corrupted or full after large (14k+ token) generations.
+        """
+        if self.llm:
+            try:
+                # Reset the KV cache to clean state
+                self.llm.reset()
+                logger.debug(f"Reset model state for {self.name}")
+            except Exception as e:
+                logger.warning(f"Failed to reset model state for {self.name}: {e}")
+                # If reset fails, try to reinitialize the model
+                try:
+                    logger.info(f"Reinitializing model {self.name} due to reset failure")
+                    await self.setup()
+                except Exception as setup_error:
+                    logger.error(f"Failed to reinitialize model {self.name}: {setup_error}")
+                    raise RuntimeError(f"Model {self.name} is in corrupted state and cannot be reset")
+
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate response using local model.
         
@@ -274,44 +295,69 @@ class LocalEvaluator(BaseEvaluator):
         llm_params = {k: v for k, v in llm_params.items() if v is not None}
 
         start_time = time.time()
+        max_retries = 2  # Allow retries for stuck generations
         
-        try:
-            # Generate response
-            response = self.llm(
-                prompt,
-                **llm_params
-            )
-            
-            # Extract text from response
-            generated_text = response["choices"][0]["text"].strip()
-            
-            # Calculate generation time and performance metrics
-            generation_time = time.time() - start_time
-            completion_tokens = response["usage"]["completion_tokens"]
-            tokens_per_second = completion_tokens / generation_time if generation_time > 0 else 0
-            
-            # Log performance metrics
-            logger.info(f"Generation completed: {completion_tokens} tokens in {generation_time:.2f}s "
-                       f"({tokens_per_second:.1f} tokens/sec)")
-            
-            # Format response similar to API evaluators
-            return {
-                "text": generated_text,
-                "model": self.name,
-                "finish_reason": "stop",
-                "usage": {
+        for attempt in range(max_retries + 1):
+            try:
+                # Log generation attempt details
+                estimated_prompt_tokens = len(prompt) // 3  # Rough estimation
+                max_gen_tokens = llm_params.get("max_tokens", 2048)
+                logger.debug(f"Generation attempt {attempt + 1}/{max_retries + 1}: ~{estimated_prompt_tokens} prompt tokens, max {max_gen_tokens} generation tokens")
+                
+                # Generate response
+                response = self.llm(
+                    prompt,
+                    **llm_params
+                )
+                
+                # Extract text from response
+                generated_text = response["choices"][0]["text"].strip()
+                
+                # Check if generation was successful (non-empty and reasonable length)
+                if not generated_text or len(generated_text) < 10:
+                    if attempt < max_retries:
+                        logger.warning(f"Generation attempt {attempt + 1} produced minimal output ({len(generated_text)} chars), retrying after model reset...")
+                        await self.reset_model_state()
+                        continue
+                    else:
+                        logger.error(f"All generation attempts failed, final output length: {len(generated_text)} chars")
+                
+                # Calculate generation time and performance metrics
+                generation_time = time.time() - start_time
+                completion_tokens = response["usage"]["completion_tokens"]
+                tokens_per_second = completion_tokens / generation_time if generation_time > 0 else 0
+                
+                # Log performance metrics
+                logger.info(f"Generation completed: {completion_tokens} tokens in {generation_time:.2f}s "
+                           f"({tokens_per_second:.1f} tokens/sec)")
+                
+                return {
+                    "text": generated_text,
+                    "generation_time": generation_time,
+                    "tokens_per_second": tokens_per_second,
+                    "completion_tokens": completion_tokens,
                     "prompt_tokens": response["usage"]["prompt_tokens"],
-                    "completion_tokens": response["usage"]["completion_tokens"],
                     "total_tokens": response["usage"]["total_tokens"]
-                },
-                "generation_time": generation_time,
-                "tokens_per_second": tokens_per_second
-            }
-            
-        except Exception as e:
-            logger.error(f"Error generating response with {self.name}: {str(e)}")
-            raise
+                }
+                
+            except Exception as e:
+                if attempt < max_retries:
+                    logger.warning(f"Generation attempt {attempt + 1} failed: {e}, retrying after model reset...")
+                    try:
+                        await self.reset_model_state()
+                    except Exception as reset_error:
+                        logger.error(f"Model reset failed: {reset_error}")
+                        # If we can't reset, raise the original error
+                        raise e
+                    continue
+                else:
+                    # Final attempt failed, raise the error
+                    logger.error(f"All generation attempts failed. Final error: {e}")
+                    raise e
         
+        # This should never be reached, but just in case
+        raise RuntimeError("Generation failed after all retry attempts")
+
     async def cleanup(self) -> None:
         """Clean up local model resources."""
         if self.llm:

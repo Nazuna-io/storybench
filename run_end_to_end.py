@@ -238,13 +238,98 @@ async def _run_pipeline(models_filter, sequences_filter, auto_evaluate, config_p
                             prompt_text = prompt_obj['text']
                             prompt_name = prompt_obj['name']
                             
-                        prompt_text_to_send = full_sequence_text + prompt_text
+                        # Smart context management to prevent token overflow
+                        max_context_tokens = model_config.model_settings.get('n_ctx', 32768) if model_config.model_settings else 32768
+                        max_generation_tokens = model_config.model_settings.get('max_tokens', 16384) if model_config.model_settings else 16384
+                        
+                        # Reserve tokens for generation (ensure we have room to generate)
+                        available_context_tokens = max_context_tokens - max_generation_tokens - 500  # 500 token safety buffer for large responses
+                        
+                        # Improved token estimation (3 chars ≈ 1 token for modern models, more accurate)
+                        def estimate_tokens(text):
+                            return len(text) // 3
+                        
+                        # Prepare context with intelligent truncation for large responses
+                        # CRITICAL: Use explicit separators for Gemma model - direct concatenation fails
+                        # CRITICAL: Implement aggressive truncation for context > 5000 chars to prevent failures
+                        
+                        if full_sequence_text:
+                            # Implement sliding window for very long contexts (>5000 chars)
+                            if len(full_sequence_text) > 5000:
+                                # Keep only the most recent 3000 characters to stay well under failure threshold
+                                truncated_context = full_sequence_text[-3000:]
+                                
+                                # Find a natural boundary in the first 500 chars to avoid mid-sentence cuts
+                                boundary_found = False
+                                for boundary in ['\n\n', '. ', '! ', '? ', '\n']:
+                                    boundary_pos = truncated_context.find(boundary)
+                                    if 0 < boundary_pos < 500:
+                                        truncated_context = truncated_context[boundary_pos + len(boundary):]
+                                        boundary_found = True
+                                        break
+                                
+                                combined_text = f"[...context truncated - showing recent content...]\n\n{truncated_context}\n\n---\n\n{prompt_text}"
+                                logger.info(f"Applied sliding window truncation: {len(full_sequence_text)} -> {len(truncated_context)} chars (boundary: {boundary_found})")
+                            else:
+                                combined_text = full_sequence_text + "\n\n---\n\n" + prompt_text
+                        else:
+                            combined_text = prompt_text
+                            
+                        estimated_tokens = estimate_tokens(combined_text)
+                        
+                        # Debug logging for context management
+                        logger.info(f"Context management - Prompt {prompt_idx+1}: sequence_length={len(full_sequence_text)}, prompt_length={len(prompt_text)}, estimated_tokens={estimated_tokens}, max_context={max_context_tokens}")
+                        
+                        if estimated_tokens > available_context_tokens:
+                            # Need to truncate context - keep the most recent context and the current prompt
+                            prompt_tokens = estimate_tokens(prompt_text)
+                            available_for_history = available_context_tokens - prompt_tokens - 200  # Extra buffer for large contexts
+                            
+                            if available_for_history > 0:
+                                # For very long sequences (14k+ token responses), use sliding window approach
+                                target_history_chars = available_for_history * 3  # Using improved token estimation
+                                
+                                if len(full_sequence_text) > target_history_chars:
+                                    # Keep the most recent portion that fits
+                                    truncation_point = len(full_sequence_text) - target_history_chars
+                                    truncated_text = full_sequence_text[truncation_point:]
+                                    
+                                    # Look for natural boundaries in first 1000 chars to avoid mid-sentence cuts
+                                    for boundary in ['\n\n---\n\n', '\n\n', '. ', '! ', '? ', '\n']:
+                                        boundary_pos = truncated_text.find(boundary)
+                                        if 0 < boundary_pos < 1000:
+                                            truncated_text = truncated_text[boundary_pos + len(boundary):]
+                                            break
+                                    
+                                    # Add context marker for clarity and explicit separation
+                                    prompt_text_to_send = "[...earlier context truncated for length...]\n\n" + truncated_text + "\n\n---\n\n" + prompt_text
+                                    logger.info(f"Context truncated for large sequence: {estimated_tokens} -> ~{estimate_tokens(prompt_text_to_send)} tokens (removed {len(full_sequence_text) - len(truncated_text)} chars)")
+                                else:
+                                    prompt_text_to_send = combined_text
+                            else:
+                                # Context budget too tight, use only the prompt
+                                prompt_text_to_send = prompt_text
+                                logger.warning(f"Context budget exhausted with large responses, using prompt only ({prompt_tokens} tokens)")
+                        else:
+                            prompt_text_to_send = combined_text
+                            logger.debug(f"Using context ({estimated_tokens} tokens, within {available_context_tokens} limit)")
+                            
                         try:
                             response_text = await evaluator.generate_response(prompt_text_to_send, **model_config.model_settings if model_config.model_settings else {})
                             if response_text and isinstance(response_text, dict) and 'text' in response_text and response_text['text']:
                                 generated_text_str = response_text['text']
                                 generation_time_val = response_text.get('generation_time', 0.0) # Get generation_time
                                 full_sequence_text += generated_text_str + "\n\n" # Append for context
+                                
+                                # Reset model state after large generations to prevent context corruption
+                                # This is crucial for 14k+ token responses to prevent subsequent failures
+                                if len(generated_text_str) > 5000 and hasattr(evaluator, 'reset_model_state'):  # Reset after large responses
+                                    try:
+                                        await evaluator.reset_model_state()
+                                        logger.info(f"Reset model state after large response ({len(generated_text_str)} chars)")
+                                    except Exception as reset_error:
+                                        logger.warning(f"Failed to reset model state: {reset_error}")
+                                
                                 response_data = {
                                     "evaluation_id": "", # Placeholder, model expects str
                                     "model_name": model_config.name,
