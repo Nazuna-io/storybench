@@ -1,0 +1,25 @@
+{
+  "status": "complete_success",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success",
+    "response_generation": "success",
+    "evaluation": "success",
+    "data_persistence": "success"
+  },
+  "performance": {
+    "prompt_fetch_time": 0.171154,
+    "criteria_fetch_time": 0.140259,
+    "response_generation_time": 0.132655,
+    "evaluation_time": 0.134165,
+    "total_time": 0.578233
+  },
+  "data": {
+    "responses_stored": 3,
+    "evaluations_stored": 6
+  },
+  "timestamp": "2025-05-28T07:14:20.121870",
+  "test_type": "end_to_end_local_models_real_apis",
+  "errors": []
+}

@@ -102,11 +102,11 @@ class UnifiedContextManager(LangChainContextManager):
         return self.max_context_tokens
 
 
-class UnifiedLlamaCppWrapper(LlamaCpp):
+class UnifiedLlamaCppWrapper:
     """
-    LLM wrapper that inherits context limits from context manager.
+    LLM wrapper that uses composition with LangChain LlamaCpp instead of inheritance.
     
-    Single source of truth - no separate context limit configuration.
+    This avoids Pydantic field validation issues while maintaining functionality.
     """
     
     def __init__(
@@ -136,7 +136,9 @@ class UnifiedLlamaCppWrapper(LlamaCpp):
             repeat_penalty: Repetition penalty
             **kwargs: Additional arguments for LlamaCpp
         """
-        self.model_name = name
+        print(f"DEBUG: UnifiedLlamaCppWrapper.__init__ called with name={name}")
+        
+        self._display_name = name
         self.model_path = Path(model_path)
         self.context_manager = context_manager
         
@@ -146,24 +148,45 @@ class UnifiedLlamaCppWrapper(LlamaCpp):
         # Get context size from context manager (single source of truth)
         n_ctx = context_manager.get_max_context_tokens()
         
-        # Initialize parent class with inherited context size
-        super().__init__(
-            model_path=str(model_path),
-            n_ctx=n_ctx,  # Inherited from context manager
-            n_batch=n_batch,
-            n_threads=n_threads,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=top_p,
-            repeat_penalty=repeat_penalty,
-            verbose=False,
-            **kwargs
-        )
+        print(f"DEBUG: About to create LlamaCpp instance with n_ctx={n_ctx}")
+        
+        # Create internal LlamaCpp instance instead of inheriting
+        try:
+            print(f"DEBUG: Preparing LlamaCpp() with parameters:")
+            print(f"  model_path: {str(model_path)}")
+            print(f"  n_ctx: {n_ctx}")
+            print(f"  n_batch: {n_batch}")
+            print(f"  n_threads: {n_threads}")
+            print(f"  temperature: {temperature}")
+            print(f"  max_tokens: {max_tokens}")
+            print(f"  top_p: {top_p}")
+            print(f"  repeat_penalty: {repeat_penalty}")
+            print(f"  kwargs: {kwargs}")
+            
+            self._llm = LlamaCpp(
+                model_path=str(model_path),
+                n_ctx=n_ctx,  # Inherited from context manager
+                n_batch=n_batch,
+                n_threads=n_threads,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p,
+                repeat_penalty=repeat_penalty,
+                verbose=False,
+                **kwargs
+            )
+            print(f"DEBUG: LlamaCpp() instance created successfully")
+        except Exception as e:
+            print(f"DEBUG: Error creating LlamaCpp instance: {e}")
+            print(f"DEBUG: Error type: {type(e)}")
+            import traceback
+            print(f"DEBUG: Traceback: {traceback.format_exc()}")
+            raise
         
         logger.info(f"Initialized {name} with inherited context size: {n_ctx} tokens")
     
     def __call__(self, prompt: str, **kwargs) -> str:
-        """Generate response with context limit validation."""
+        """Generate response to the given prompt."""
         # Validate context size before generation
         size_info = self.context_manager.check_context_size(prompt)
         
@@ -173,26 +196,37 @@ class UnifiedLlamaCppWrapper(LlamaCpp):
                 f"{size_info['estimated_tokens']} tokens > {size_info['max_tokens']} max"
             )
         
-        # Proceed with generation
-        return super().__call__(prompt, **kwargs)
-    
-    @property
-    def _llm_type(self) -> str:
-        """Return the type of language model."""
-        return "unified-llamacpp"
+        # Use the internal LlamaCpp instance
+        return self._llm(prompt, **kwargs)
     
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about the loaded model."""
         return {
-            "name": self.model_name,
+            "name": self._display_name,
             "model_path": str(self.model_path),
-            "context_size": self.n_ctx,  # Inherited from context manager
-            "batch_size": self.n_batch,
-            "threads": self.n_threads,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
+            "context_size": self._llm.n_ctx,  # From internal LlamaCpp instance
+            "batch_size": self._llm.n_batch,
+            "temperature": self._llm.temperature,
+            "max_tokens": self._llm.max_tokens,
             "context_manager_max": self.context_manager.get_max_context_tokens()
         }
+    
+    # Expose commonly used properties from the internal LlamaCpp instance
+    @property
+    def n_ctx(self):
+        return self._llm.n_ctx
+    
+    @property
+    def n_batch(self):
+        return self._llm.n_batch
+    
+    @property
+    def temperature(self):
+        return self._llm.temperature
+    
+    @property
+    def max_tokens(self):
+        return self._llm.max_tokens
 
 
 def create_unified_system(

@@ -160,6 +160,8 @@ class ScoringInVersion(BaseModel):
 
 class DirectusEvaluationVersion(BaseModel):
     """Evaluation version from Directus CMS."""
+    model_config = {"populate_by_name": True}  # Allow both field name and alias
+    
     id: int
     version_number: int
     version_name: str
@@ -169,7 +171,7 @@ class DirectusEvaluationVersion(BaseModel):
     date_updated: Optional[datetime] = None
     user_created: Optional[str] = None
     user_updated: Optional[str] = None
-    published_at: Optional[datetime] = None  # Note: field name was misspelled in API as "pubslihed_at"
+    published_at: Optional[datetime] = Field(None, alias='pubslihed_at')  # Handle Directus typo
     published_by: Optional[str] = None
     based_on_version_number: Optional[int] = None
     

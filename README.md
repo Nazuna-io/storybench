@@ -488,3 +488,16 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Storybench** - Enterprise-grade LLM creativity evaluation with MongoDB Atlas backend 🚀
+**Comprehensive Testing**: 100% success rate across all test scenarios
+- 📋 **Detailed Reporting**: Rich test reports with performance metrics
+
+### Version 0.3.1 - Critical Bug Fixes & Web Interface Completion (May 2025)
+- 🔧 **Fixed Results Page**: Now correctly displays evaluation data from database
+- ⚙️ **Fixed Global Settings**: Proper defaults (temperature: 1.0, max_tokens: 8192) working
+- 🔧 **Enhanced Models Management**: Complete workflow for API providers → API keys → models
+- 🔐 **Fixed API Keys**: Proper encryption, validation, and testing functionality  
+- 🌐 **Fixed Web Server**: Resolved import errors, encryption keys, and frontend serving
+
+---
+
+**Storybench** - Production-ready LLM creativity evaluation with complete local model support 🚀

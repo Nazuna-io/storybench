@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-05-28T06:52:11.971520",
+  "mode": "real_directus_integration",
+  "steps": {
+    "environment_check": "success",
+    "mongodb_connection": "success",
+    "directus_connection": "success"
+  },
+  "errors": [
+    "prompt_fetching: 'DirectusClient' object has no attribute 'get_latest_published_prompt_version'",
+    "overall_test: 'DirectusClient' object has no attribute 'get_latest_published_prompt_version'"
+  ]
+}

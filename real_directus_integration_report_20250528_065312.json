@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-05-28T06:53:11.386986",
+  "mode": "real_directus_integration",
+  "steps": {
+    "environment_check": "success",
+    "mongodb_connection": "success",
+    "directus_connection": "success"
+  },
+  "errors": [
+    "prompt_fetching: 'coroutine' object has no attribute 'version'",
+    "overall_test: 'coroutine' object has no attribute 'version'"
+  ]
+}

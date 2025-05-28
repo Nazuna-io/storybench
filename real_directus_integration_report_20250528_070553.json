@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-05-28T07:05:52.572643",
+  "mode": "real_directus_integration",
+  "steps": {
+    "environment_check": "success",
+    "mongodb_connection": "success",
+    "directus_connection": "success",
+    "prompt_fetching": {
+      "status": "success",
+      "version": 1,
+      "sequences": 1,
+      "total_prompts": 3
+    },
+    "evaluation_criteria": {
+      "status": "success",
+      "version": 1,
+      "version_name": "Legacy",
+      "criteria_count": 7,
+      "criteria_names": [
+        "creativity",
+        "coherence",
+        "character_depth",
+        "dialogue_quality",
+        "visual_imagination",
+        "conceptual_depth",
+        "adaptability"
+      ]
+    },
+    "overall": "success"
+  },
+  "errors": [],
+  "summary": {
+    "directus_url": "https://prompt-library-cms.onrender.com",
+    "mongodb_connected": true,
+    "prompt_integration": {
+      "version": 1,
+      "sequences": 1,
+      "total_prompts": 3
+    },
+    "evaluation_integration": {
+      "version": 1,
+      "criteria_count": 7,
+      "criteria_names": [
+        "creativity",
+        "coherence",
+        "character_depth",
+        "dialogue_quality",
+        "visual_imagination",
+        "conceptual_depth",
+        "adaptability"
+      ]
+    },
+    "integration_status": "fully_functional"
+  }
+}

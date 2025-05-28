@@ -1,0 +1,18 @@
+{
+  "status": "failed",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success"
+  },
+  "performance": {
+    "prompt_fetching_time": 0.249036,
+    "criteria_fetching_time": 0.154699
+  },
+  "data": {},
+  "timestamp": "2025-05-28T07:27:18.339975",
+  "test_type": "end_to_end_gemma_local",
+  "errors": [
+    "Failed to setup generation model"
+  ]
+}

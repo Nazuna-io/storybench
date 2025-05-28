@@ -1,0 +1,27 @@
+{
+  "status": "success",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success",
+    "model_setup": "success",
+    "response_generation": "success",
+    "local_evaluation": "success",
+    "data_persistence": "success"
+  },
+  "performance": {
+    "prompt_fetching_time": 0.500701,
+    "criteria_fetching_time": 0.452556,
+    "model_setup_time": 1.488105,
+    "generation_time": 8.708832,
+    "evaluation_time": 4.34239,
+    "total_time": 16.225775
+  },
+  "data": {
+    "responses_stored": 2,
+    "evaluations_stored": 2
+  },
+  "timestamp": "2025-05-28T08:19:01.923065",
+  "test_type": "end_to_end_gemma_local",
+  "errors": []
+}

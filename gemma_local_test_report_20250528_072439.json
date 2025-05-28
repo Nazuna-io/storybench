@@ -1,0 +1,29 @@
+{
+  "status": "success",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success",
+    "model_setup": "success",
+    "response_generation": "success",
+    "local_evaluation": "success",
+    "data_persistence": "success"
+  },
+  "performance": {
+    "prompt_fetching_time": 0.241891,
+    "criteria_fetching_time": 0.13194,
+    "model_setup_time": 0.101471,
+    "generation_time": 6e-05,
+    "evaluation_time": 1e-06,
+    "total_time": 1.015096
+  },
+  "data": {
+    "responses_stored": 0,
+    "evaluations_stored": 0
+  },
+  "timestamp": "2025-05-28T07:24:37.969606",
+  "test_type": "end_to_end_gemma_local",
+  "errors": [
+    "Generation error: Model gemma-generation is not loaded. Call setup() first."
+  ]
+}

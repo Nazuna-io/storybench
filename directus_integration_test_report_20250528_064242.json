@@ -1,0 +1,271 @@
+{
+  "timestamp": "2025-05-28T06:42:42.039237",
+  "steps": {
+    "prompt_fetching": "success_3_prompts",
+    "response_generation": "success_9_responses",
+    "evaluation_setup": "demo_mode",
+    "evaluation_generation": "success_9_evaluations"
+  },
+  "responses": [
+    {
+      "model": "gpt-4o-mini",
+      "prompt": "opening_scene",
+      "length": 877
+    },
+    {
+      "model": "gpt-4o-mini",
+      "prompt": "character_introduction",
+      "length": 885
+    },
+    {
+      "model": "gpt-4o-mini",
+      "prompt": "plot_twist",
+      "length": 988
+    },
+    {
+      "model": "claude-3-haiku",
+      "prompt": "opening_scene",
+      "length": 880
+    },
+    {
+      "model": "claude-3-haiku",
+      "prompt": "character_introduction",
+      "length": 888
+    },
+    {
+      "model": "claude-3-haiku",
+      "prompt": "plot_twist",
+      "length": 991
+    },
+    {
+      "model": "gemini-1.5-flash",
+      "prompt": "opening_scene",
+      "length": 882
+    },
+    {
+      "model": "gemini-1.5-flash",
+      "prompt": "character_introduction",
+      "length": 890
+    },
+    {
+      "model": "gemini-1.5-flash",
+      "prompt": "plot_twist",
+      "length": 993
+    }
+  ],
+  "evaluations": [
+    {
+      "response_id": "6836b0626e49dd77921b03e3",
+      "model_name": "gpt-4o-mini",
+      "prompt_name": "opening_scene",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.5,
+        "coherence": 4.0,
+        "character_depth": 3.9,
+        "world_building": 3.4
+      },
+      "justifications": {
+        "creativity": "The response demonstrates strong creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains excellent logical flow with strong consistency.",
+        "character_depth": "Characters are well-developed with adequate motivations.",
+        "world_building": "The setting demonstrates solid detail with engaging atmosphere."
+      },
+      "overall_score": 3.7,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039404"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e4",
+      "model_name": "gpt-4o-mini",
+      "prompt_name": "character_introduction",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.3,
+        "coherence": 3.9,
+        "character_depth": 3.5,
+        "world_building": 3.8
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are well-developed with adequate motivations.",
+        "world_building": "The setting demonstrates rich detail with engaging atmosphere."
+      },
+      "overall_score": 3.6,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039430"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e5",
+      "model_name": "gpt-4o-mini",
+      "prompt_name": "plot_twist",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.1,
+        "coherence": 3.7,
+        "character_depth": 3.3,
+        "world_building": 3.3
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are moderately developed with adequate motivations.",
+        "world_building": "The setting demonstrates solid detail with engaging atmosphere."
+      },
+      "overall_score": 3.4,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039452"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e6",
+      "model_name": "claude-3-haiku",
+      "prompt_name": "opening_scene",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.6,
+        "coherence": 3.8,
+        "character_depth": 4.0,
+        "world_building": 3.6
+      },
+      "justifications": {
+        "creativity": "The response demonstrates strong creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are well-developed with adequate motivations.",
+        "world_building": "The setting demonstrates rich detail with engaging atmosphere."
+      },
+      "overall_score": 3.8,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039471"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e7",
+      "model_name": "claude-3-haiku",
+      "prompt_name": "character_introduction",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.2,
+        "coherence": 3.7,
+        "character_depth": 3.7,
+        "world_building": 3.3
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are well-developed with adequate motivations.",
+        "world_building": "The setting demonstrates solid detail with engaging atmosphere."
+      },
+      "overall_score": 3.5,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039492"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e8",
+      "model_name": "claude-3-haiku",
+      "prompt_name": "plot_twist",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.2,
+        "coherence": 3.6,
+        "character_depth": 3.6,
+        "world_building": 3.1
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with some unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are well-developed with adequate motivations.",
+        "world_building": "The setting demonstrates solid detail with engaging atmosphere."
+      },
+      "overall_score": 3.4,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039512"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03e9",
+      "model_name": "gemini-1.5-flash",
+      "prompt_name": "opening_scene",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 3.0,
+        "coherence": 3.8,
+        "character_depth": 3.4,
+        "world_building": 3.7
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with few unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are moderately developed with adequate motivations.",
+        "world_building": "The setting demonstrates rich detail with engaging atmosphere."
+      },
+      "overall_score": 3.5,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039533"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03ea",
+      "model_name": "gemini-1.5-flash",
+      "prompt_name": "character_introduction",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 2.8,
+        "coherence": 3.5,
+        "character_depth": 3.5,
+        "world_building": 3.9
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with few unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with strong consistency.",
+        "character_depth": "Characters are moderately developed with adequate motivations.",
+        "world_building": "The setting demonstrates rich detail with engaging atmosphere."
+      },
+      "overall_score": 3.4,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039556"
+    },
+    {
+      "response_id": "6836b0626e49dd77921b03eb",
+      "model_name": "gemini-1.5-flash",
+      "prompt_name": "plot_twist",
+      "sequence": "sci_fi_sequence",
+      "scores": {
+        "creativity": 2.8,
+        "coherence": 3.2,
+        "character_depth": 3.0,
+        "world_building": 3.4
+      },
+      "justifications": {
+        "creativity": "The response demonstrates adequate creative elements with few unique perspectives.",
+        "coherence": "The narrative maintains good logical flow with adequate consistency.",
+        "character_depth": "Characters are moderately developed with limited motivations.",
+        "world_building": "The setting demonstrates solid detail with engaging atmosphere."
+      },
+      "overall_score": 3.1,
+      "evaluation_version": 2,
+      "evaluation_timestamp": "2025-05-28T06:42:42.039574"
+    }
+  ],
+  "errors": [],
+  "summary": {
+    "total_prompts": 3,
+    "total_models": 3,
+    "total_responses": 9,
+    "total_evaluations": 9,
+    "model_scores": {
+      "gpt-4o-mini": 3.57,
+      "claude-3-haiku": 3.57,
+      "gemini-1.5-flash": 3.33
+    },
+    "prompt_scores": {
+      "opening_scene": 3.67,
+      "character_introduction": 3.5,
+      "plot_twist": 3.3
+    },
+    "criterion_scores": {
+      "creativity": 3.17,
+      "coherence": 3.69,
+      "character_depth": 3.54,
+      "world_building": 3.5
+    },
+    "evaluation_version": 2
+  }
+}

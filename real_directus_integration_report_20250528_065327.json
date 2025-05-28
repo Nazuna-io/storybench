@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-05-28T06:53:27.143716",
+  "mode": "real_directus_integration",
+  "steps": {
+    "environment_check": "success",
+    "mongodb_connection": "success",
+    "directus_connection": "success"
+  },
+  "errors": [
+    "prompt_fetching: 'list' object has no attribute 'prompts'",
+    "overall_test: 'list' object has no attribute 'prompts'"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-05-28T06:59:22.961310",
+  "mode": "real_directus_integration",
+  "steps": {
+    "environment_check": "success",
+    "mongodb_connection": "success",
+    "directus_connection": "success",
+    "prompt_fetching": {
+      "status": "success",
+      "version": 1,
+      "sequences": 1,
+      "total_prompts": 3
+    },
+    "evaluation_criteria": {
+      "status": "success",
+      "version": 1,
+      "version_name": "Legacy",
+      "criteria_count": 7,
+      "criteria_names": [
+        "creativity",
+        "coherence",
+        "character_depth",
+        "dialogue_quality",
+        "visual_imagination",
+        "conceptual_depth",
+        "adaptability"
+      ]
+    }
+  },
+  "errors": [
+    "overall_test: 'StorybenchPromptsStructure' object has no attribute 'version_name'"
+  ]
+}

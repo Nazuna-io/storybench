@@ -194,14 +194,26 @@ class DirectusClient:
     
     async def get_latest_published_evaluation_version(self) -> Optional[DirectusEvaluationVersion]:
         """Get the latest published evaluation version."""
-        params = {
+        # First try with junction table fields
+        params_with_fields = {
             'filter[status][_eq]': 'published',
             'sort': '-version_number',
             'limit': '1',
             'fields': '*,evaluation_criteria_in_version.evaluation_criteria_id.*,scoring_in_version.scoring_id.*'
         }
         
-        response_data = await self._make_request('GET', '/items/evaluation_versions', params=params)
+        response_data = await self._make_request('GET', '/items/evaluation_versions', params=params_with_fields)
+        
+        # If no results with junction fields, try without them
+        if not response_data.get('data'):
+            params_basic = {
+                'filter[status][_eq]': 'published',
+                'sort': '-version_number',
+                'limit': '1',
+                'fields': '*'
+            }
+            
+            response_data = await self._make_request('GET', '/items/evaluation_versions', params=params_basic)
         
         if not response_data.get('data'):
             return None

@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success",
+    "model_setup": "success"
+  },
+  "performance": {
+    "prompt_fetching_time": 0.252615,
+    "criteria_fetching_time": 0.162936,
+    "model_setup_time": 0.105284
+  },
+  "data": {},
+  "timestamp": "2025-05-28T07:23:48.688792",
+  "test_type": "end_to_end_gemma_local",
+  "errors": [
+    "'StorybenchPromptConfig' object is not subscriptable"
+  ]
+}

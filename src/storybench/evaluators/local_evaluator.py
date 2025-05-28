@@ -118,7 +118,9 @@ class LocalEvaluator(BaseEvaluator):
             
             # Download model if needed
             self._send_progress(0, f"Checking model: {self.filename}")
+            print(f"DEBUG: About to download model for {self.name}")
             self.model_path = await self._download_model()
+            print(f"DEBUG: Model download completed for {self.name}")
             
             if not self.model_path or not self.model_path.exists():
                 logger.error(f"Model file not found after download: {self.model_path}")
@@ -129,16 +131,19 @@ class LocalEvaluator(BaseEvaluator):
             # Create unified LangChain system - context manager + LLM wrapper
             context_size = self.model_parameters["n_ctx"]
             logger.info(f"Initializing LangChain system with {context_size} context size")
+            print(f"DEBUG: About to create unified system for {self.name}")
             
             # Create the unified system based on context size
             if context_size <= 32768:
                 # Use 32K system
                 logger.info("Using 32K unified context system")
                 model_params = {k: v for k, v in self.model_parameters.items() if k != 'n_ctx'}
+                print(f"DEBUG: Calling create_32k_system for {self.name}")
                 unified_context_manager, self.llm = create_32k_system(
                     model_path=str(self.model_path),
                     **model_params
                 )
+                print(f"DEBUG: create_32k_system completed for {self.name}")
                 # Replace our context manager with the unified one for consistency
                 self.context_manager = unified_context_manager
                 
@@ -162,6 +167,7 @@ class LocalEvaluator(BaseEvaluator):
                 )
                 self.context_manager = unified_context_manager
             
+            print(f"DEBUG: Unified system created, about to test for {self.name}")
             logger.info(f"LangChain system initialized with {self.context_manager.max_context_tokens} token context")
             
             # Test the model with a simple prompt
@@ -169,23 +175,30 @@ class LocalEvaluator(BaseEvaluator):
             test_prompt = "Hello, this is a test."
             
             try:
+                print(f"DEBUG: About to validate context for {self.name}")
                 # Validate test prompt doesn't exceed context
                 self.validate_context_size(test_prompt)
+                print(f"DEBUG: Context validation passed for {self.name}")
                 
                 # Test generation
+                print(f"DEBUG: About to test generation for {self.name}")
                 test_response = self.llm(test_prompt, max_tokens=10, temperature=0.1)
+                print(f"DEBUG: Test generation completed for {self.name}")
                 logger.info(f"Model test successful: {len(test_response)} chars generated")
                 
             except Exception as e:
                 logger.error(f"Model test failed: {e}")
+                print(f"DEBUG: Model test failed for {self.name}: {e}")
                 return False
             
             self.is_setup = True
             self._send_progress(100, f"Model {self.name} ready")
             logger.info(f"LocalEvaluator {self.name} setup complete")
+            print(f"DEBUG: Setup completed successfully for {self.name}")
             return True            
         except Exception as e:
             logger.error(f"Failed to setup LocalEvaluator {self.name}: {e}")
+            print(f"DEBUG: Setup failed for {self.name}: {e}")
             self._send_progress(0, f"Setup failed: {str(e)}")
             return False
     
@@ -254,9 +267,14 @@ class LocalEvaluator(BaseEvaluator):
                         continue
                     
                     # Success - return response with context stats
+                    try:
+                        model_name = getattr(self.llm, 'model_name', self.name)
+                    except AttributeError:
+                        model_name = self.name
+                    
                     metadata = {
-                        "model_name": self.name,
-                        "model_path": str(self.model_path),
+                        "model_name": model_name,
+                        "model_path": str(self.model_path) if hasattr(self, 'model_path') else "unknown",
                         "generation_params": llm_params,
                         "attempts": attempt + 1
                     }

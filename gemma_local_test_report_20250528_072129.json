@@ -1,0 +1,25 @@
+{
+  "status": "failed",
+  "steps": {
+    "environment_setup": "success",
+    "prompt_fetching": "success",
+    "criteria_fetching": "success",
+    "model_setup": "success",
+    "response_generation": "success",
+    "local_evaluation": "success"
+  },
+  "performance": {
+    "prompt_fetching_time": 0.242926,
+    "criteria_fetching_time": 0.380522,
+    "model_setup_time": 8.189368,
+    "generation_time": 0.000124,
+    "evaluation_time": 1.2e-05
+  },
+  "data": {},
+  "timestamp": "2025-05-28T07:21:20.506977",
+  "test_type": "end_to_end_gemma_local",
+  "errors": [
+    "Generation error: 'LocalEvaluator' object has no attribute 'evaluate_response'",
+    "cannot access local variable 'evaluations_collection' where it is not associated with a value"
+  ]
+}

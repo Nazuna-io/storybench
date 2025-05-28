@@ -1,0 +1,212 @@
+{
+  "timestamp": "2025-05-28T07:04:26.581744",
+  "prompt_schema": {
+    "versions": {
+      "collection": "prompt_set_versions",
+      "count": 1,
+      "fields": [
+        "id",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "version_number",
+        "version_name",
+        "status",
+        "description",
+        "published_at",
+        "published_by",
+        "based_on_version_number",
+        "sequences_in_set"
+      ],
+      "sample": {
+        "id": 1,
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-27T14:16:51.934Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-27T14:21:18.213Z",
+        "version_number": 1,
+        "version_name": "Initial - Film Narrative Only",
+        "status": "published",
+        "description": "Film Narrative sequence only, for testing",
+        "published_at": "2025-05-27T14:16:00.000Z",
+        "published_by": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "based_on_version_number": null,
+        "sequences_in_set": [
+          1
+        ]
+      }
+    },
+    "sequences": {
+      "collection": "prompt_sequences",
+      "count": 1,
+      "fields": [
+        "id",
+        "status",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "sequence_name",
+        "sequence_description",
+        "prompts_in_sequence"
+      ],
+      "sample": {
+        "id": 1,
+        "status": "published",
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-27T14:00:54.889Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-27T14:20:55.746Z",
+        "sequence_name": "FilmNarrative",
+        "sequence_description": "Asks the model to create an original feature film concept, then a scene that reveals character psychology, then a visually striking frame from this film",
+        "prompts_in_sequence": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "prompts": {
+      "collection": "prompts",
+      "count": 3,
+      "fields": [
+        "id",
+        "status",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "name",
+        "text",
+        "guidance_notes",
+        "expected_outcome_summary",
+        "tags",
+        "order_in_sequence"
+      ],
+      "sample": {
+        "id": 1,
+        "status": "published",
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-27T14:00:54.969Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-27T14:20:28.220Z",
+        "name": "Film Narrative Initial Concept",
+        "text": "Create a completely original feature film concept set 15-20 years in the future that explores whether objective reality exists. Include a synopsis, main characters, and setting. Your concept should feature innovative visual elements that would be distinctive on screen, avoid common sci-fi tropes (no simulations, no 'it was all a dream'), and present a genuinely new perspective on perception vs reality.",
+        "guidance_notes": null,
+        "expected_outcome_summary": null,
+        "tags": null,
+        "order_in_sequence": 1
+      }
+    }
+  },
+  "evaluation_schema": {
+    "versions": {
+      "collection": "evaluation_versions",
+      "count": 1,
+      "fields": [
+        "id",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "version_number",
+        "version_name",
+        "status",
+        "description",
+        "pubslihed_at",
+        "published_by",
+        "based_on_version_number",
+        "evaluation_criteria_in_version",
+        "scoring_in_version"
+      ],
+      "sample": {
+        "id": 1,
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-28T05:47:22.749Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-28T06:56:42.931Z",
+        "version_number": 1,
+        "version_name": "Legacy",
+        "status": "published",
+        "description": "Legacy criteria and scoring rubric that i've been using",
+        "pubslihed_at": null,
+        "published_by": null,
+        "based_on_version_number": null,
+        "evaluation_criteria_in_version": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "scoring_in_version": [
+          1
+        ]
+      }
+    },
+    "criteria": {
+      "collection": "evaluation_criteria",
+      "count": 7,
+      "fields": [
+        "id",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "name",
+        "description",
+        "scale",
+        "criteria"
+      ],
+      "sample": {
+        "id": 1,
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-28T05:16:52.703Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-28T05:18:51.906Z",
+        "name": "creativity",
+        "description": "Originality, avoidance of tropes, innovative perspectives",
+        "scale": 5,
+        "criteria": "Evaluate: Originality, avoidance of tropes, innovative perspectives\nLook for: Fresh approaches, unique angles, unexpected elements, departure from clich\u00e9s\nAvoid high scores for: Predictable plots, overused character types, generic scenarios"
+      }
+    },
+    "scoring": {
+      "collection": "scoring",
+      "count": 1,
+      "fields": [
+        "id",
+        "sort",
+        "user_created",
+        "date_created",
+        "user_updated",
+        "date_updated",
+        "name",
+        "guidelines"
+      ],
+      "sample": {
+        "id": 1,
+        "sort": null,
+        "user_created": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_created": "2025-05-28T05:24:08.221Z",
+        "user_updated": "0aa64f2d-55f9-41d3-b10a-23ac5b8cee38",
+        "date_updated": "2025-05-28T05:24:20.572Z",
+        "name": "scoring_guideline",
+        "guidelines": "- Provide a numerical score (1-5) for each criterion where 1 = Poor/Inadequate, 2 = Below Average, 3 = Average/Acceptable, 4 = Good/Above Average, and 5 = Excellent/Outstanding\n- Include brief justification for each score\n- Calculate overall average if needed\n- Note any exceptional strengths or critical weaknesses"
+      }
+    }
+  },
+  "comparison": {}
+}
