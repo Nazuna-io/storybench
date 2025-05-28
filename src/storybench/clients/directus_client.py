@@ -8,7 +8,8 @@ from datetime import datetime
 from .directus_models import (
     DirectusPromptSetVersion, DirectusPromptSequence, DirectusPrompt,
     DirectusListResponse, DirectusItemResponse, PublicationStatus,
-    StorybenchPromptsStructure, StorybenchPromptConfig
+    StorybenchPromptsStructure, StorybenchPromptConfig,
+    DirectusEvaluationVersion, StorybenchEvaluationStructure, StorybenchEvaluationCriterion
 )
 
 
@@ -190,3 +191,68 @@ class DirectusClient:
             return True
         except DirectusClientError:
             return False
+    
+    async def get_latest_published_evaluation_version(self) -> Optional[DirectusEvaluationVersion]:
+        """Get the latest published evaluation version."""
+        params = {
+            'filter[status][_eq]': 'published',
+            'sort': '-version_number',
+            'limit': '1',
+            'fields': '*,evaluation_criteria_in_version.evaluation_criteria_id.*,scoring_in_version.scoring_id.*'
+        }
+        
+        response_data = await self._make_request('GET', '/items/evaluation_versions', params=params)
+        
+        if not response_data.get('data'):
+            return None
+            
+        version_data = response_data['data'][0]
+        return DirectusEvaluationVersion(**version_data)
+    
+    async def get_evaluation_version_by_number(self, version_number: int) -> Optional[DirectusEvaluationVersion]:
+        """Get a specific evaluation version by version number."""
+        params = {
+            'filter[version_number][_eq]': str(version_number),
+            'filter[status][_eq]': 'published',
+            'fields': '*,evaluation_criteria_in_version.evaluation_criteria_id.*,scoring_in_version.scoring_id.*'
+        }
+        
+        response_data = await self._make_request('GET', '/items/evaluation_versions', params=params)
+        
+        if not response_data.get('data'):
+            return None
+            
+        version_data = response_data['data'][0]
+        return DirectusEvaluationVersion(**version_data)
+    
+    async def convert_to_storybench_evaluation_format(self, version: DirectusEvaluationVersion) -> StorybenchEvaluationStructure:
+        """Convert Directus evaluation format to storybench evaluation structure."""
+        criteria = {}
+        scoring_guidelines = ""
+        
+        if version.evaluation_criteria_in_version:
+            for criterion_junction in version.evaluation_criteria_in_version:
+                criterion = criterion_junction.evaluation_criteria_id
+                
+                # Convert criterion to storybench format
+                criteria[criterion.name] = StorybenchEvaluationCriterion(
+                    name=criterion.name.replace('_', ' ').title(),  # "character_depth" -> "Character Depth"
+                    description=criterion.description,
+                    scale=[1, criterion.scale],  # Convert to [min, max] format
+                    criteria=criterion.criteria
+                )
+        
+        if version.scoring_in_version:
+            # Use the first scoring guideline if multiple exist
+            scoring_junction = version.scoring_in_version[0]
+            scoring = scoring_junction.scoring_id
+            scoring_guidelines = scoring.guidelines
+        
+        return StorybenchEvaluationStructure(
+            criteria=criteria,
+            scoring_guidelines=scoring_guidelines,
+            version=version.version_number,
+            version_name=version.version_name,
+            directus_id=version.id,
+            created_at=datetime.now()
+        )
