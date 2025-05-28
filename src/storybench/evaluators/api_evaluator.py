@@ -61,6 +61,10 @@ GEMINI_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
     google_exceptions.Unauthenticated,
 )
 
+# DeepInfra uses OpenAI-compatible API, so we reuse OpenAI exceptions
+DEEPINFRA_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = OPENAI_RETRYABLE_EXCEPTIONS
+DEEPINFRA_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = OPENAI_NON_RETRYABLE_ERRORS
+
 # Default context limits for different providers (tokens)
 PROVIDER_CONTEXT_LIMITS = {
     'openai': {
@@ -82,6 +86,14 @@ PROVIDER_CONTEXT_LIMITS = {
         'gemini-pro': 30720,
         'gemini-1.5-pro': 1000000,
         'gemini-1.5-flash': 1000000,
+    },
+    'deepinfra': {
+        'deepseek-ai/DeepSeek-R1': 128000,
+        'deepseek-ai/DeepSeek-R1-Turbo': 128000,
+        'meta-llama/Meta-Llama-3-70B-Instruct': 8192,
+        'meta-llama/Meta-Llama-3-8B-Instruct': 8192,
+        'mistralai/Mistral-7B-Instruct-v0.1': 32768,
+        'Qwen/Qwen2.5-72B-Instruct': 32768,
     }
 }
 
@@ -166,6 +178,18 @@ class APIEvaluator(BaseEvaluator):
                 # Test with a minimal request
                 response = await self.client.generate_content_async("Test")
                 
+            elif self.provider == "deepinfra":
+                self.client = openai.AsyncOpenAI(
+                    api_key=self.api_keys.get("deepinfra"),
+                    base_url="https://api.deepinfra.com/v1/openai"
+                )
+                # Test with a minimal request
+                await self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": "Test"}],
+                    max_tokens=1
+                )
+                
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
             
@@ -202,6 +226,8 @@ class APIEvaluator(BaseEvaluator):
                         response_text = await self._generate_anthropic(prompt, **kwargs)
                     elif self.provider == "gemini":
                         response_text = await self._generate_gemini(prompt, **kwargs)
+                    elif self.provider == "deepinfra":
+                        response_text = await self._generate_deepinfra(prompt, **kwargs)
                     else:
                         raise ValueError(f"Unsupported provider: {self.provider}")
                     
@@ -220,8 +246,8 @@ class APIEvaluator(BaseEvaluator):
                     )
 
                 except OPENAI_NON_RETRYABLE_ERRORS as e:
-                    if self.provider == "openai":
-                        logger.error(f"Non-retryable OpenAI error for {self.name}: {type(e).__name__} - {e}")
+                    if self.provider in ["openai", "deepinfra"]:
+                        logger.error(f"Non-retryable {self.provider} error for {self.name}: {type(e).__name__} - {e}")
                         last_exception = e
                         break 
                 except ANTHROPIC_NON_RETRYABLE_ERRORS as e:
@@ -236,18 +262,19 @@ class APIEvaluator(BaseEvaluator):
                         break
                 
                 except OPENAI_RETRYABLE_EXCEPTIONS as e:
-                    if self.provider == "openai":
+                    if self.provider in ["openai", "deepinfra"]:
                         last_exception = e
                         if attempt < max_retries:
                             delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
-                            logger.warning(f"Retryable OpenAI error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
+                            logger.warning(f"Retryable {self.provider} error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
                             await asyncio.sleep(delay)
                         else:
-                            logger.error(f"Max retries reached for OpenAI error: {type(e).__name__} - {e}")
+                            logger.error(f"Max retries reached for {self.provider} error: {type(e).__name__} - {e}")
                             break
                     else:
                         raise
-                except ANTHROPIC_RETRYABLE_EXCEPTIONS as e:                    if self.provider == "anthropic":
+                except ANTHROPIC_RETRYABLE_EXCEPTIONS as e:
+                    if self.provider == "anthropic":
                         last_exception = e
                         if attempt < max_retries:
                             delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
@@ -326,3 +353,13 @@ class APIEvaluator(BaseEvaluator):
         """Generate response using Gemini API."""
         response = await self.client.generate_content_async(prompt)
         return response.text
+    
+    async def _generate_deepinfra(self, prompt: str, **kwargs) -> str:
+        """Generate response using DeepInfra API (OpenAI-compatible)."""
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=kwargs.get("temperature", 0.9),
+            max_tokens=kwargs.get("max_tokens", 4096)
+        )
+        return response.choices[0].message.content

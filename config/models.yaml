@@ -22,6 +22,12 @@ models:
     provider: "gemini"
     model_name: "gemini-2.5-pro-preview-05-06"
     
+  - name: "DeepSeek-R1"
+    type: "api"
+    provider: "deepinfra"
+    model_name: "deepseek-ai/DeepSeek-R1"
+    context_size: 128000
+    
   # Local GGUF Models (commented out for initial API focus)
   # - name: "Llama-7B-Chat"
   #   type: "local"

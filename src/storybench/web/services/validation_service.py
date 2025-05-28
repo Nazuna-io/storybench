@@ -261,7 +261,7 @@ class ValidationService:
                 errors.append(f"API key {required_key} not configured")
             elif required_key and api_keys.get(required_key):
                 # Test this specific model if we have the API key
-                if lightweight_test and model.provider in ["openai", "anthropic", "gemini"]:
+                if lightweight_test and model.provider in ["openai", "anthropic", "gemini", "deepinfra"]:
                     # Use lightweight test for supported providers
                     try:
                         connected, error, latency = await LightweightAPITester.test_provider(

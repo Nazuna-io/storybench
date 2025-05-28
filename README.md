@@ -2,7 +2,22 @@
 
 A modular tool for evaluating the creativity of proprietary and open-source LLMs across various creative writing tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
-## 🚀 Latest Update: Complete Web Interface & Bug Fixes (May 2025)
+## 🚀 Latest Update: DeepInfra Integration (May 2025)
+
+**New Provider Added: DeepInfra with DeepSeek-R1 Support!**
+
+### ✅ **DeepInfra Integration**
+- **DeepSeek-R1 Model**: Access to state-of-the-art reasoning model via DeepInfra API
+- **OpenAI-Compatible**: Uses familiar chat completions API format for easy integration
+- **Production Ready**: Full generation and evaluation workflow tested and validated
+- **Cost Effective**: Access to powerful models at competitive pricing through DeepInfra
+
+### ✅ **Enhanced Provider Support**
+- **4 Major Providers**: OpenAI, Anthropic, Google, and now DeepInfra
+- **20+ Models Available**: Wide variety of models for comprehensive evaluation
+- **Unified Interface**: Consistent API across all providers with provider-specific optimizations
+
+## 🚀 Previous Update: Complete Web Interface & Bug Fixes (May 2025)
 
 **All critical issues resolved - Storybench is now fully operational!**
 
@@ -46,7 +61,7 @@ A modular tool for evaluating the creativity of proprietary and open-source LLMs
 
 ### Core Evaluation Engine
 - **Modular Architecture**: Easy to add new model types and evaluators
-- **API & Local Support**: Works with API-based models (OpenAI, Anthropic, Google) and local GGUF models
+- **API & Local Support**: Works with API-based models (OpenAI, Anthropic, Google, DeepInfra) and local GGUF models
 - **Resume Functionality**: Smart resume from interruption points with database-backed progress tracking
 - **Automated Evaluation**: Uses GPT-4 Turbo to score creativity metrics with configurable criteria
 
@@ -194,6 +209,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/storybench?retry
 OPENAI_API_KEY=your_openai_key_here
 ANTHROPIC_API_KEY=your_anthropic_key_here
 GOOGLE_API_KEY=your_google_key_here
+DEEPINFRA_API_KEY=your_deepinfra_key_here
 
 # Optional: Custom endpoints
 GROK_BASE_URL=https://api.x.ai/v1
@@ -207,6 +223,12 @@ models:
     type: "api"
     provider: "anthropic"
     model_name: "claude-3-5-sonnet-20241022"
+  
+  - name: "DeepSeek-R1"
+    type: "api"
+    provider: "deepinfra"
+    model_name: "deepseek-ai/DeepSeek-R1"
+    context_size: 128000
   
   - name: "Local-Llama"
     type: "local"

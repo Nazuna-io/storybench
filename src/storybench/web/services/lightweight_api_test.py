@@ -123,6 +123,45 @@ class LightweightAPITester:
             return False, str(e), latency
     
     @staticmethod
+    async def test_deepinfra(api_key: str) -> Tuple[bool, Optional[str], Optional[float]]:
+        """Test DeepInfra API connectivity."""
+        start_time = time.time()
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Use a simple chat completions test with minimal model
+        url = "https://api.deepinfra.com/v1/openai/chat/completions"
+        
+        payload = {
+            "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+            "messages": [{"role": "user", "content": "Hi"}],
+            "max_tokens": 1
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload, timeout=15) as response:
+                    latency = (time.time() - start_time) * 1000
+                    
+                    if response.status == 200:
+                        return True, None, latency
+                    elif response.status == 401:
+                        return False, "Invalid API key", latency
+                    else:
+                        error_text = await response.text()
+                        return False, f"HTTP {response.status}: {error_text}", latency
+                        
+        except asyncio.TimeoutError:
+            latency = (time.time() - start_time) * 1000
+            return False, "Request timeout", latency
+        except Exception as e:
+            latency = (time.time() - start_time) * 1000
+            return False, str(e), latency
+    
+    @staticmethod
     async def test_provider(provider: str, api_key: str) -> Tuple[bool, Optional[str], Optional[float]]:
         """Test any supported provider."""
         if provider == "openai":
@@ -131,5 +170,7 @@ class LightweightAPITester:
             return await LightweightAPITester.test_anthropic(api_key)
         elif provider == "gemini":
             return await LightweightAPITester.test_google(api_key)
+        elif provider == "deepinfra":
+            return await LightweightAPITester.test_deepinfra(api_key)
         else:
             return False, f"Provider '{provider}' not supported for lightweight testing", 0.0
