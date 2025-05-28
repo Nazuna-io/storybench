@@ -16,43 +16,43 @@ from ..unified_context_system import ContextLimitExceededError
 
 logger = logging.getLogger(__name__)
 
-# Define retryable exceptions for each provider
+# Define retryable exceptions for each provider if specific ones are known
+# OpenAI specific retryable exceptions (example, adjust as needed)
 OPENAI_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
     openai.RateLimitError,
     openai.APITimeoutError,
     openai.APIConnectionError,
     openai.InternalServerError,
 )
-
+# Anthropic specific retryable exceptions
 ANTHROPIC_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
     anthropic.RateLimitError,
     anthropic.APITimeoutError,
     anthropic.APIConnectionError,
     anthropic.InternalServerError,
 )
-
+# Google Gemini specific retryable exceptions
 GEMINI_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
     google_exceptions.DeadlineExceeded,
     google_exceptions.ServiceUnavailable,
-    google_exceptions.ResourceExhausted,
+    google_exceptions.ResourceExhausted, # Can sometimes be a rate limit
+    # google_exceptions.InternalServerError, # Covered by general ServiceUnavailable or others
 )
 
-# Non-retryable API errors
+# Non-retryable API errors (e.g., auth, invalid request)
 OPENAI_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
     openai.AuthenticationError,
     openai.PermissionDeniedError,
     openai.NotFoundError,
-    openai.BadRequestError,
-    openai.UnprocessableEntityError,
+    openai.BadRequestError, # Typically for invalid inputs
+    openai.UnprocessableEntityError, # e.g. content policy violation
 )
-
 ANTHROPIC_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
     anthropic.AuthenticationError,
     anthropic.PermissionDeniedError,
     anthropic.NotFoundError,
     anthropic.BadRequestError,
 )
-
 GEMINI_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
     google_exceptions.PermissionDenied,
     google_exceptions.NotFound,
@@ -90,7 +90,16 @@ class APIEvaluator(BaseEvaluator):
     """Enhanced evaluator for API-based LLM services with context management."""
     
     def __init__(self, name: str, config: Dict[str, Any], api_keys: Dict[str, str]):
-        """Initialize API evaluator with context management."""
+        """Initialize API evaluator with context management.
+        
+        Args:
+            name: Display name for the model
+            config: Model configuration containing:
+                - provider: API provider (openai, anthropic, gemini)
+                - model_name: Specific model name
+                - context_size: Override default context size
+            api_keys: Dictionary of API keys for different providers
+        """
         # Determine context size before calling super().__init__
         provider = config.get("provider", "").lower()
         model_name = config.get("model_name", "")
@@ -136,7 +145,7 @@ class APIEvaluator(BaseEvaluator):
         # Default fallback - conservative 32K
         logger.warning(f"Unknown model {model_name} for provider {provider}, defaulting to 32K context")
         return 32768
-    
+        
     async def setup(self) -> bool:
         """Setup API clients and test connectivity."""
         try:
@@ -176,7 +185,21 @@ class APIEvaluator(BaseEvaluator):
         except Exception as e:
             logger.error(f"Failed to setup APIEvaluator {self.name}: {e}")
             return False
-    
+                
+            elif self.provider == "gemini":
+                genai.configure(api_key=self.api_keys.get("google"))
+                self.client = genai.GenerativeModel(self.model_name)
+                await self._test_gemini_connection()
+                
+            else:
+                raise ValueError(f"Unsupported provider: {self.provider}")
+                
+            self.is_setup = True
+            return True            
+        except Exception as e:
+            print(f"Failed to setup {self.name}: {e}")
+            return False
+            
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate response using the appropriate API with context validation."""
         if not self.is_setup:
@@ -220,67 +243,76 @@ class APIEvaluator(BaseEvaluator):
                     )
 
                 except OPENAI_NON_RETRYABLE_ERRORS as e:
-                    if self.provider == "openai":
-                        logger.error(f"Non-retryable OpenAI error for {self.name}: {type(e).__name__} - {e}")
-                        last_exception = e
-                        break 
-                except ANTHROPIC_NON_RETRYABLE_ERRORS as e:
-                    if self.provider == "anthropic":
-                        logger.error(f"Non-retryable Anthropic error for {self.name}: {type(e).__name__} - {e}")
-                        last_exception = e
-                        break
-                except GEMINI_NON_RETRYABLE_ERRORS as e:
-                    if self.provider == "gemini":
-                        logger.error(f"Non-retryable Gemini error for {self.name}: {type(e).__name__} - {e}")
-                        last_exception = e
-                        break
-                
-                except OPENAI_RETRYABLE_EXCEPTIONS as e:
-                    if self.provider == "openai":
-                        last_exception = e
-                        if attempt < max_retries:
-                            delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
-                            logger.warning(f"Retryable OpenAI error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
-                            await asyncio.sleep(delay)
-                        else:
-                            logger.error(f"Max retries reached for OpenAI error: {type(e).__name__} - {e}")
-                            break
-                    else:
-                        raise
-                except ANTHROPIC_RETRYABLE_EXCEPTIONS as e:                    if self.provider == "anthropic":
-                        last_exception = e
-                        if attempt < max_retries:
-                            delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
-                            logger.warning(f"Retryable Anthropic error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
-                            await asyncio.sleep(delay)
-                        else:
-                            logger.error(f"Max retries reached for Anthropic error: {type(e).__name__} - {e}")
-                            break
-                    else:
-                        raise
-                except GEMINI_RETRYABLE_EXCEPTIONS as e:
-                    if self.provider == "gemini":
-                        last_exception = e
-                        if attempt < max_retries:
-                            delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
-                            logger.warning(f"Retryable Gemini error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
-                            await asyncio.sleep(delay)
-                        else:
-                            logger.error(f"Max retries reached for Gemini error: {type(e).__name__} - {e}")
-                            break
-                    else:
-                        raise
-                
-                except Exception as e:
-                    logger.error(f"Unexpected error for {self.name} ({self.provider}): {type(e).__name__} - {e}")
+                if self.provider == "openai":
+                    print(f"Attempt {attempt+1}/{max_retries+1}: Non-retryable OpenAI error for {self.name}: {type(e).__name__} - {e}")
+                    last_exception = e
+                    break 
+            except ANTHROPIC_NON_RETRYABLE_ERRORS as e:
+                if self.provider == "anthropic":
+                    print(f"Attempt {attempt+1}/{max_retries+1}: Non-retryable Anthropic error for {self.name}: {type(e).__name__} - {e}")
                     last_exception = e
                     break
+            except GEMINI_NON_RETRYABLE_ERRORS as e:
+                if self.provider == "gemini":
+                    print(f"Attempt {attempt+1}/{max_retries+1}: Non-retryable Gemini error for {self.name}: {type(e).__name__} - {e}")
+                    last_exception = e
+                    break
+            
+            except OPENAI_RETRYABLE_EXCEPTIONS as e:
+                if self.provider == "openai":
+                    last_exception = e
+                    if attempt < max_retries:
+                        delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Retryable OpenAI error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
+                        await asyncio.sleep(delay)
+                    else:
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Max retries reached for OpenAI error: {type(e).__name__} - {e}")
+                        break
+                else: # Not an OpenAI error, re-raise if not caught by other specific handlers
+                    raise
+            except ANTHROPIC_RETRYABLE_EXCEPTIONS as e:
+                if self.provider == "anthropic":
+                    last_exception = e
+                    if attempt < max_retries:
+                        delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Retryable Anthropic error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
+                        await asyncio.sleep(delay)
+                    else:
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Max retries reached for Anthropic error: {type(e).__name__} - {e}")
+                        break
+                else:
+                    raise
+            except GEMINI_RETRYABLE_EXCEPTIONS as e:
+                if self.provider == "gemini":
+                    last_exception = e
+                    if attempt < max_retries:
+                        delay = (base_delay * (2 ** attempt)) + random.uniform(0, 1)
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Retryable Gemini error for {self.name}: {type(e).__name__} - {e}. Retrying in {delay:.2f}s...")
+                        await asyncio.sleep(delay)
+                    else:
+                        print(f"Attempt {attempt+1}/{max_retries+1}: Max retries reached for Gemini error: {type(e).__name__} - {e}")
+                        break
+                else:
+                    raise
+            
+            except (openai.APIError, anthropic.APIError, google_exceptions.GoogleAPIError) as e: # Catch broader API errors if not caught by specifics
+                # These are generally non-retryable unless specified above
+                print(f"Attempt {attempt+1}/{max_retries+1}: General API error for {self.name} ({self.provider}): {type(e).__name__} - {e}")
+                last_exception = e
+                break # Stop retrying for generic API errors not in retryable lists
 
-            # If all retries failed or a non-retryable error occurred
-            error_msg = f"Error generating response after {max_retries + 1} attempts: {type(last_exception).__name__} - {str(last_exception)}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-                    
+            except Exception as e:
+                print(f"Attempt {attempt+1}/{max_retries+1}: Unexpected error for {self.name} ({self.provider}): {type(e).__name__} - {e}")
+                last_exception = e
+                break # Stop retrying for unexpected errors
+
+        # If all retries failed or a non-retryable error occurred
+        return self._create_response_dict(
+            f"Error generating response after {max_retries + 1} attempts: {type(last_exception).__name__} - {str(last_exception)}",
+            time.time(), # This will be the time of the last failure, not the initial start
+            {"error": True, "error_type": type(last_exception).__name__, "final_attempt_count": attempt + 1}
+        )
+                
         except ContextLimitExceededError:
             # Re-raise context errors without modification
             raise
@@ -288,20 +320,15 @@ class APIEvaluator(BaseEvaluator):
             error_msg = f"Generation failed for {self.name}: {str(e)}"
             logger.error(error_msg)
             raise RuntimeError(error_msg)
-    
+            
     async def cleanup(self) -> None:
         """Clean up API connections."""
-        try:
-            if self.client:
-                # Close any persistent connections
-                if hasattr(self.client, 'close'):
-                    await self.client.close()
-            self.client = None
-            self.is_setup = False
-            logger.info(f"APIEvaluator {self.name} cleaned up")
-        except Exception as e:
-            logger.warning(f"Error during cleanup for {self.name}: {e}")
-    
+        if self.client:
+            # Close any persistent connections
+            if hasattr(self.client, 'close'):
+                await self.client.close()
+        self.client = None
+        self.is_setup = False
     async def _generate_openai(self, prompt: str, **kwargs) -> str:
         """Generate response using OpenAI API."""
         response = await self.client.chat.completions.create(
@@ -311,7 +338,7 @@ class APIEvaluator(BaseEvaluator):
             max_tokens=kwargs.get("max_tokens", 4096)
         )
         return response.choices[0].message.content
-    
+        
     async def _generate_anthropic(self, prompt: str, **kwargs) -> str:
         """Generate response using Anthropic API."""
         response = await self.client.messages.create(
@@ -321,8 +348,28 @@ class APIEvaluator(BaseEvaluator):
             messages=[{"role": "user", "content": prompt}]
         )
         return response.content[0].text
-    
+        
     async def _generate_gemini(self, prompt: str, **kwargs) -> str:
         """Generate response using Gemini API."""
         response = await self.client.generate_content_async(prompt)
         return response.text
+        
+    async def _test_openai_connection(self) -> None:
+        """Test OpenAI API connection."""
+        await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": "Test"}],
+            max_tokens=1
+        )
+        
+    async def _test_anthropic_connection(self) -> None:
+        """Test Anthropic API connection."""
+        await self.client.messages.create(
+            model=self.model_name,
+            max_tokens=1,
+            messages=[{"role": "user", "content": "Test"}]
+        )
+        
+    async def _test_gemini_connection(self) -> None:
+        """Test Gemini API connection."""
+        await self.client.generate_content_async("Test")

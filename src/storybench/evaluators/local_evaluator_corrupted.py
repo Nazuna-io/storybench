@@ -59,7 +59,8 @@ class LocalEvaluator(BaseEvaluator):
             model_settings = config["settings"]
         else:
             # Flattened format - use the config directly
-            model_settings = config        
+            model_settings = config
+        
         self.model_parameters = {
             "n_gpu_layers": model_settings.get("n_gpu_layers", -1),  # -1 for all layers to GPU
             "n_ctx": context_size,  # Use configured context size
@@ -122,7 +123,8 @@ class LocalEvaluator(BaseEvaluator):
             
             if not self.model_path or not self.model_path.exists():
                 logger.error(f"Model file not found after download: {self.model_path}")
-                return False            
+                return False
+            
             logger.info(f"Model path confirmed: {self.model_path}")
             self._send_progress(50, "Loading model with LangChain...")
             
@@ -183,7 +185,8 @@ class LocalEvaluator(BaseEvaluator):
             self.is_setup = True
             self._send_progress(100, f"Model {self.name} ready")
             logger.info(f"LocalEvaluator {self.name} setup complete")
-            return True            
+            return True
+            
         except Exception as e:
             logger.error(f"Failed to setup LocalEvaluator {self.name}: {e}")
             self._send_progress(0, f"Setup failed: {str(e)}")
@@ -195,6 +198,9 @@ class LocalEvaluator(BaseEvaluator):
         Args:
             prompt: The prompt to send to the model
             **kwargs: Additional parameters for generation
+                - temperature: Sampling temperature (default: 0.8)
+                - max_tokens: Maximum tokens to generate (default: 2048)
+                - stop: List of strings to stop generation (default: None)
         
         Returns:
             Dict containing the generated response and metadata
@@ -203,14 +209,6 @@ class LocalEvaluator(BaseEvaluator):
             RuntimeError: If the model is not loaded
             ContextLimitExceededError: If prompt exceeds context limits
         """
-        if not self.llm:
-            raise RuntimeError(f"Model {self.name} is not loaded. Call setup() first.")
-        
-        start_time = time.time()
-        
-        try:
-            # STRICT CONTEXT VALIDATION - No truncation allowed
-            context_stats = self.validate_context_size(prompt)
             logger.debug(f"Context validation passed: {context_stats}")
             
             # Extract generation parameters, using self.model_parameters as defaults
@@ -246,7 +244,8 @@ class LocalEvaluator(BaseEvaluator):
                     logger.debug(f"Generated text length: {len(generated_text)} chars")
                     
                     # For story generation, anything under 100 chars indicates a problem
-                    min_expected_length = 100  # Minimum chars for a reasonable story response                    
+                    min_expected_length = 100  # Minimum chars for a reasonable story response
+                    
                     if len(generated_text) < min_expected_length and attempt < max_retries:
                         logger.warning(f"Generation attempt {attempt + 1} produced insufficient output ({len(generated_text)} chars < {min_expected_length} expected), retrying...")
                         # Reset model state for retry
@@ -355,24 +354,66 @@ class LocalEvaluator(BaseEvaluator):
                 temp_path = model_path.with_suffix(f".download.{attempt}")
                 
                 try:
-                    # Use huggingface_hub for download
-                    downloaded_path = hf_hub_download(
-                        repo_id=self.repo_id,
-                        filename=self.filename,
-                        subfolder=self.subdirectory,
-                        local_dir=model_dir,
-                        local_dir_use_symlinks=False,
-                        resume_download=True,  # Resume partial downloads
-                        force_download=False    # Don't redownload if exists
-                    )
+                    # Direct download from Hugging Face
+                    repo_url = f"https://huggingface.co/{self.repo_id}/resolve/main"
+                    if self.subdirectory:
+                        file_url = f"{repo_url}/{self.subdirectory}/{self.filename}"
+                    else:
+                        file_url = f"{repo_url}/{self.filename}"
                     
-                    logger.info(f"Successfully downloaded model to {downloaded_path}")
+                    response = requests.get(file_url, stream=True, timeout=30)
+                    response.raise_for_status()
+                    
+                    total_size = int(response.headers.get('content-length', 0))
+                    downloaded_size = 0
+                    
+                    with open(temp_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded_size += len(chunk)
+                                
+                                # Update progress
+                                if total_size > 0:
+                                    progress = min(100, (downloaded_size / total_size) * 100)
+                                    self._send_progress(progress, f"Downloading {self.filename}... {progress:.1f}%")
+                    
+                    # Move completed download to final location
+                    shutil.move(temp_path, model_path)
+                    logger.info(f"Successfully downloaded model to {model_path}")
                     self._send_progress(100, f"Download complete: {self.filename}")
-                    return Path(downloaded_path)
+                    return model_path
                     
-                except Exception as hub_error:
-                    logger.error(f"Failed to download model using huggingface_hub: {str(hub_error)}")
-                    last_error = hub_error
+                except Exception as e:
+                    logger.warning(f"Direct download failed: {str(e)}")
+                    last_error = e
+                    
+                    # Only try huggingface_hub on the last attempt
+                    if attempt == max_retries:
+                        logger.warning("Falling back to huggingface_hub...")
+                        self._send_progress(0, "Direct download failed, trying alternative method...")
+                        
+                        try:
+                            # Download model from Hugging Face
+                            downloaded_path = hf_hub_download(
+                                repo_id=self.repo_id,
+                                filename=self.filename,
+                                subfolder=self.subdirectory,
+                                local_dir=model_dir,
+                                local_dir_use_symlinks=False,
+                                resume_download=True,  # Resume partial downloads
+                                force_download=False    # Don't redownload if exists
+                            )
+                            
+                            logger.info(f"Successfully downloaded model to {downloaded_path}")
+                            self._send_progress(100, f"Download complete: {self.filename}")
+                            return Path(downloaded_path)
+                            
+                        except Exception as hub_error:
+                            logger.error(f"Failed to download model using huggingface_hub: {str(hub_error)}")
+                            last_error = hub_error
+                    else:
+                        logger.warning(f"Download attempt {attempt}/{max_retries} failed, retrying...")
                         
             except Exception as e:
                 last_error = e

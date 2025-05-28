@@ -1,4 +1,4 @@
-"""Enhanced Local GGUF model evaluator using LangChain and llama-cpp-python."""
+"""Local GGUF model evaluator using LangChain and llama-cpp-python."""
 
 import os
 import time
@@ -59,7 +59,8 @@ class LocalEvaluator(BaseEvaluator):
             model_settings = config["settings"]
         else:
             # Flattened format - use the config directly
-            model_settings = config        
+            model_settings = config
+        
         self.model_parameters = {
             "n_gpu_layers": model_settings.get("n_gpu_layers", -1),  # -1 for all layers to GPU
             "n_ctx": context_size,  # Use configured context size
@@ -83,7 +84,6 @@ class LocalEvaluator(BaseEvaluator):
             "rope_freq_scale": model_settings.get("rope_freq_scale"),
             "rope_scaling_type": model_settings.get("rope_scaling_type")
         }
-        
         # Capture any other settings passed in the config that are not standard init args for Llama
         # These might be other specific GGUF parameters the user wants to pass.
         known_config_keys = ["repo_id", "filename", "subdirectory", "type", "provider", "name", "model_name", "model_settings", "settings", "context_size"]
@@ -94,7 +94,7 @@ class LocalEvaluator(BaseEvaluator):
         # Check for required configuration
         if not self.repo_id or not self.filename:
             raise ValueError(f"Local model {name} missing required configuration: repo_id and filename")
-    
+            
     def register_progress_callback(self, callback):
         """Register a callback for download progress updates.
         
@@ -102,15 +102,30 @@ class LocalEvaluator(BaseEvaluator):
             callback: Function that takes (progress_percent, status_message) as arguments
         """
         self._progress_callbacks.add(callback)
-    
-    def _send_progress(self, progress: float, status: str):
-        """Send progress updates to registered callbacks."""
+        
+    def unregister_progress_callback(self, callback):
+        """Unregister a progress callback.
+        
+        Args:
+            callback: The callback function to remove
+        """
+        if callback in self._progress_callbacks:
+            self._progress_callbacks.remove(callback)
+            
+    def _send_progress(self, progress_percent: float, status_message: str):
+        """Send progress update to all registered callbacks.
+        
+        Args:
+            progress_percent: Download progress percentage (0-100)
+            status_message: Status message to display
+        """
         for callback in self._progress_callbacks:
             try:
-                callback(progress, status)
+                callback(progress_percent, status_message)
             except Exception as e:
-                logger.warning(f"Progress callback failed: {e}")
-    
+                logger.error(f"Error in progress callback: {str(e)}")
+                # Don't remove callback on error, it might be temporary
+        
     async def setup(self) -> bool:
         """Setup the evaluator by downloading and loading the model with LangChain."""
         try:
@@ -122,7 +137,8 @@ class LocalEvaluator(BaseEvaluator):
             
             if not self.model_path or not self.model_path.exists():
                 logger.error(f"Model file not found after download: {self.model_path}")
-                return False            
+                return False
+            
             logger.info(f"Model path confirmed: {self.model_path}")
             self._send_progress(50, "Loading model with LangChain...")
             
@@ -183,18 +199,43 @@ class LocalEvaluator(BaseEvaluator):
             self.is_setup = True
             self._send_progress(100, f"Model {self.name} ready")
             logger.info(f"LocalEvaluator {self.name} setup complete")
-            return True            
+            return True
+            
         except Exception as e:
             logger.error(f"Failed to setup LocalEvaluator {self.name}: {e}")
             self._send_progress(0, f"Setup failed: {str(e)}")
             return False
-    
+                    logger.error(f"Failed to load GGUF model. The file might be corrupted or incompatible. Error: {str(e)}")
+                else:
+                    logger.error(f"Runtime error while loading model: {str(e)}")
+                return False
+                
+            except Exception as e:
+                logger.error(f"Unexpected error while loading model: {str(e)}")
+                return False
+    async def reset_model_state(self):
+        """Reset model state for retry attempts."""
+        try:
+            # For LangChain LlamaCpp wrapper, we don't have direct access to reset
+            # But we can clear any cached state if needed
+            if hasattr(self.llm, 'reset'):
+                self.llm.reset()
+            logger.debug(f"Model state reset for {self.name}")
+        except Exception as e:
+            logger.warning(f"Failed to reset model state: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to reset model state for {self.name}: {e}")
+                # Don't reinitialize as that's too aggressive, but log the issue
+
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """Generate response using LangChain-wrapped local model.
         
         Args:
             prompt: The prompt to send to the model
             **kwargs: Additional parameters for generation
+                - temperature: Sampling temperature (default: 0.8)
+                - max_tokens: Maximum tokens to generate (default: 2048)
+                - stop: List of strings to stop generation (default: None)
         
         Returns:
             Dict containing the generated response and metadata
@@ -246,7 +287,8 @@ class LocalEvaluator(BaseEvaluator):
                     logger.debug(f"Generated text length: {len(generated_text)} chars")
                     
                     # For story generation, anything under 100 chars indicates a problem
-                    min_expected_length = 100  # Minimum chars for a reasonable story response                    
+                    min_expected_length = 100  # Minimum chars for a reasonable story response
+                    
                     if len(generated_text) < min_expected_length and attempt < max_retries:
                         logger.warning(f"Generation attempt {attempt + 1} produced insufficient output ({len(generated_text)} chars < {min_expected_length} expected), retrying...")
                         # Reset model state for retry
@@ -281,19 +323,6 @@ class LocalEvaluator(BaseEvaluator):
         except Exception as e:
             error_msg = f"Generation failed for {self.name}: {str(e)}"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
-    
-    async def reset_model_state(self):
-        """Reset model state for retry attempts."""
-        try:
-            # For LangChain LlamaCpp wrapper, we don't have direct access to reset
-            # But we can clear any cached state if needed
-            if hasattr(self.llm, 'reset'):
-                self.llm.reset()
-            logger.debug(f"Model state reset for {self.name}")
-        except Exception as e:
-            logger.warning(f"Failed to reset model state: {e}")
-    
     async def cleanup(self):
         """Clean up model resources."""
         try:
@@ -306,15 +335,135 @@ class LocalEvaluator(BaseEvaluator):
             logger.info(f"LocalEvaluator {self.name} cleaned up")
         except Exception as e:
             logger.warning(f"Error during cleanup for {self.name}: {e}")
+                
+                if len(generated_text) < min_expected_length and attempt < max_retries:
+                    logger.warning(f"Generation attempt {attempt + 1} produced insufficient output ({len(generated_text)} chars < {min_expected_length} expected), retrying with model reset...")
+                    # For story generation, we DO need to reset the model state when it fails
+                    await self.reset_model_state()
+                    continue
+                
+                # Calculate generation time and performance metrics
+                generation_time = time.time() - start_time
+                completion_tokens = response["usage"]["completion_tokens"]
+                tokens_per_second = completion_tokens / generation_time if generation_time > 0 else 0
+                
+                # Log performance metrics
+                logger.info(f"Generation completed: {completion_tokens} tokens in {generation_time:.2f}s "
+                           f"({tokens_per_second:.1f} tokens/sec)")
+                
+                return {
+                    "text": generated_text,
+                    "generation_time": generation_time,
+                    "tokens_per_second": tokens_per_second,
+                    "completion_tokens": completion_tokens,
+                    "prompt_tokens": response["usage"]["prompt_tokens"],
+                    "total_tokens": response["usage"]["total_tokens"]
+                }
+                
+            except Exception as e:
+                if attempt < max_retries:
+                    logger.warning(f"Generation attempt {attempt + 1} failed: {e}, retrying...")
+                    await asyncio.sleep(1.0)  # Pause between retries
+                    continue
+                else:
+                    # Final attempt failed, but don't raise - return empty response instead
+                    logger.error(f"All generation attempts failed. Final error: {e}")
+                    return {
+                        "text": "[Generation error occurred]",
+                        "generation_time": time.time() - start_time,
+                        "tokens_per_second": 0.0,
+                        "completion_tokens": 0,
+                        "prompt_tokens": 0,
+                        "total_tokens": 0
+                    }
+        
+        # This should never be reached, but just in case
+        raise RuntimeError("Generation failed after all retry attempts")
+
+    def tokenize_text(self, text: str, add_bos: bool = False) -> List[int]:
+        """
+        Tokenize text using the loaded model's tokenizer.
+        
+        Args:
+            text: Text to tokenize
+            add_bos: Whether to add beginning-of-sequence token
+            
+        Returns:
+            List of token IDs
+            
+        Raises:
+            RuntimeError: If the model is not loaded
+        """
+        if not self.llm:
+            raise RuntimeError(f"Model {self.name} is not loaded. Call setup() first.")
+        
+        try:
+            tokens = self.llm.tokenize(text.encode('utf-8'), add_bos=add_bos)
+            return tokens
+        except Exception as e:
+            logger.error(f"Tokenization failed for model {self.name}: {e}")
+            raise RuntimeError(f"Tokenization failed: {e}")
     
-    async def _download_model(self, max_retries: int = 3) -> Path:
-        """Ensure model is downloaded and return path to model file.
+    def detokenize_tokens(self, tokens: List[int]) -> str:
+        """
+        Convert token IDs back to text using the loaded model's tokenizer.
+        
+        Args:
+            tokens: List of token IDs
+            
+        Returns:
+            Decoded text string
+            
+        Raises:
+            RuntimeError: If the model is not loaded
+        """
+        if not self.llm:
+            raise RuntimeError(f"Model {self.name} is not loaded. Call setup() first.")
+        
+        try:
+            text_bytes = self.llm.detokenize(tokens)
+            return text_bytes.decode('utf-8', errors='replace')
+        except Exception as e:
+            logger.error(f"Detokenization failed for model {self.name}: {e}")
+            raise RuntimeError(f"Detokenization failed: {e}")
+    
+    def get_available_context_tokens(self) -> int:
+        """
+        Calculate the number of tokens available for input context.
+        
+        Returns:
+            Number of tokens available for context (total - generation - buffer)
+        """
+        total_ctx = self.model_parameters.get("n_ctx", 4096)
+        max_generation = self.model_parameters.get("max_tokens", 2048)
+        safety_buffer = 500  # Buffer for safety
+        
+        available = total_ctx - max_generation - safety_buffer
+        return max(0, available)
+
+    async def cleanup(self) -> None:
+        """Clean up local model resources."""
+        if self.llm:
+            # No explicit cleanup needed for llama-cpp-python
+            # Just remove the reference to free memory
+            self.llm = None
+            
+        # Clean up model file if it exists
+        if hasattr(self, 'model_path') and self.model_path and self.model_path.exists():
+            try:
+                self.model_path.unlink()
+                logger.info(f"Cleaned up model file: {self.model_path}")
+            except Exception as cleanup_error:
+                logger.warning(f"Failed to clean up model file: {str(cleanup_error)}")
+    
+    async def _download_model(self, max_retries: int = 3) -> Optional[Path]:
+        """Download model from Hugging Face if not already present.
         
         Args:
             max_retries: Maximum number of download attempts
             
         Returns:
-            Path to the downloaded model file
+            Path to the downloaded model file, or None if download failed
             
         Raises:
             RuntimeError: If download fails after all retries
@@ -332,13 +481,13 @@ class LocalEvaluator(BaseEvaluator):
         if model_path.exists():
             try:
                 # Quick check if file is not corrupted
-                min_size_mb = 10  # At least 10MB to be considered valid
-                file_size_mb = model_path.stat().st_size / (1024 * 1024)
-                if file_size_mb > min_size_mb:
-                    logger.info(f"Using existing model file: {model_path} ({file_size_mb:.1f}MB)")
+                min_size = 1024  # At least 1KB to be considered valid
+                file_size = model_path.stat().st_size
+                if file_size > min_size:
+                    logger.info(f"Using existing model file: {model_path} ({file_size/1024/1024:.1f}MB)")
                     return model_path
                     
-                logger.warning(f"Existing model file appears too small ({file_size_mb:.1f}MB < {min_size_mb}MB), will re-download: {model_path}")
+                logger.warning(f"Existing model file appears too small ({file_size} bytes), will re-download: {model_path}")
                 model_path.unlink()  # Remove corrupted file
             except OSError as e:
                 logger.warning(f"Error checking existing model file, will re-download: {str(e)}")
@@ -347,36 +496,86 @@ class LocalEvaluator(BaseEvaluator):
         # Try multiple times to download the file
         last_error = None
         for attempt in range(1, max_retries + 1):
+            temp_path = model_path.with_suffix(f".download.{attempt}")
+            
             try:
-                logger.info(f"Download attempt {attempt}/{max_retries}: {self.filename}")
+                # Show progress
                 self._send_progress(0, f"Downloading {self.filename} (attempt {attempt}/{max_retries})...")
                 
-                # Try direct download first
-                temp_path = model_path.with_suffix(f".download.{attempt}")
+                # Download with progress using requests for better control
+                url = f"https://huggingface.co/{self.repo_id}/resolve/main/"
+                if self.subdirectory:
+                    url += f"{self.subdirectory}/"
+                url += self.filename
                 
-                try:
-                    # Use huggingface_hub for download
-                    downloaded_path = hf_hub_download(
-                        repo_id=self.repo_id,
-                        filename=self.filename,
-                        subfolder=self.subdirectory,
-                        local_dir=model_dir,
-                        local_dir_use_symlinks=False,
-                        resume_download=True,  # Resume partial downloads
-                        force_download=False    # Don't redownload if exists
-                    )
+                # Use a session for connection pooling
+                with requests.Session() as session:
+                    # Get file size for progress tracking
+                    response = session.head(url, allow_redirects=True, timeout=30)
+                    response.raise_for_status()
+                    total_size = int(response.headers.get('content-length', 0))
                     
-                    logger.info(f"Successfully downloaded model to {downloaded_path}")
-                    self._send_progress(100, f"Download complete: {self.filename}")
-                    return Path(downloaded_path)
-                    
-                except Exception as hub_error:
-                    logger.error(f"Failed to download model using huggingface_hub: {str(hub_error)}")
-                    last_error = hub_error
+                    # Download file in chunks
+                    with session.get(url, stream=True, timeout=60) as r:
+                        r.raise_for_status()
                         
+                        # Ensure parent directory exists
+                        temp_path.parent.mkdir(parents=True, exist_ok=True)
+                        
+                        # Download to temporary file first
+                        with open(temp_path, 'wb') as f:
+                            downloaded_size = 0
+                            for chunk in r.iter_content(chunk_size=8192):
+                                if chunk:
+                                    f.write(chunk)
+                                    chunk_size = len(chunk)
+                                    downloaded_size += chunk_size
+                                    
+                                    # Send progress updates periodically (every ~5%)
+                                    if total_size > 0:
+                                        progress = (downloaded_size / total_size) * 100
+                                        if progress % 5 < (chunk_size / total_size) * 100:
+                                            self._send_progress(
+                                                progress,
+                                                f"Downloading {self.filename}: {progress:.1f}% ({downloaded_size / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB)"
+                                            )
+                    
+                    # Rename to final filename
+                    shutil.move(temp_path, model_path)
+                    logger.info(f"Successfully downloaded model to {model_path}")
+                    self._send_progress(100, f"Download complete: {self.filename}")
+                    return model_path
+                    
             except Exception as e:
+                logger.warning(f"Direct download failed: {str(e)}")
                 last_error = e
-                logger.warning(f"Download attempt {attempt}/{max_retries} failed: {str(e)}")
+                
+                # Only try huggingface_hub on the last attempt
+                if attempt == max_retries:
+                    logger.warning("Falling back to huggingface_hub...")
+                    self._send_progress(0, "Direct download failed, trying alternative method...")
+                    
+                    try:
+                        # Download model from Hugging Face
+                        downloaded_path = hf_hub_download(
+                            repo_id=self.repo_id,
+                            filename=self.filename,
+                            subfolder=self.subdirectory,
+                            local_dir=model_dir,
+                            local_dir_use_symlinks=False,
+                            resume_download=True,  # Resume partial downloads
+                            force_download=False    # Don't redownload if exists
+                        )
+                        
+                        logger.info(f"Successfully downloaded model to {downloaded_path}")
+                        self._send_progress(100, f"Download complete: {self.filename}")
+                        return Path(downloaded_path)
+                        
+                    except Exception as hub_error:
+                        logger.error(f"Failed to download model using huggingface_hub: {str(hub_error)}")
+                        last_error = hub_error
+                else:
+                    logger.warning(f"Download attempt {attempt}/{max_retries} failed, retrying...")
         
         # If we get here, all download attempts failed
         if last_error:
