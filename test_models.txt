@@ -1,0 +1,3 @@
+unsloth/gemma-3-4b-it-GGUF gemma-3-4b-it-UD-Q4_K_XL.gguf
+unsloth/gemma-3-1b-it-GGUF gemma-3-1b-it-UD-Q4_K_XL.gguf
+unsloth/gemma-2-it-GGUF gemma-2-2b-it.q4_k_m.gguf
