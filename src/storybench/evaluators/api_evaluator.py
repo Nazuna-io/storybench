@@ -157,11 +157,18 @@ class APIEvaluator(BaseEvaluator):
             if self.provider == "openai":
                 self.client = openai.AsyncOpenAI(api_key=self.api_keys.get("openai"))
                 # Test with a minimal request
-                await self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[{"role": "user", "content": "Test"}],
-                    max_tokens=1
-                )
+                if self.model_name.startswith("o3") or self.model_name.startswith("o4"):
+                    await self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[{"role": "user", "content": "Test"}],
+                        max_completion_tokens=10
+                    )
+                else:
+                    await self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[{"role": "user", "content": "Test"}],
+                        max_tokens=1
+                    )
                 
             elif self.provider == "anthropic":
                 self.client = anthropic.AsyncAnthropic(api_key=self.api_keys.get("anthropic"))
@@ -184,11 +191,18 @@ class APIEvaluator(BaseEvaluator):
                     base_url="https://api.deepinfra.com/v1/openai"
                 )
                 # Test with a minimal request
-                await self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[{"role": "user", "content": "Test"}],
-                    max_tokens=1
-                )
+                if self.model_name.startswith("o3") or self.model_name.startswith("o4"):
+                    await self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[{"role": "user", "content": "Test"}],
+                        max_completion_tokens=10
+                    )
+                else:
+                    await self.client.chat.completions.create(
+                        model=self.model_name,
+                        messages=[{"role": "user", "content": "Test"}],
+                        max_tokens=1
+                    )
                 
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
@@ -331,12 +345,21 @@ class APIEvaluator(BaseEvaluator):
     
     async def _generate_openai(self, prompt: str, **kwargs) -> str:
         """Generate response using OpenAI API."""
-        response = await self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=kwargs.get("temperature", 0.9),
-            max_tokens=kwargs.get("max_tokens", 4096)
-        )
+        
+        # Prepare request parameters
+        request_params = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 1.0
+        }
+        
+        # Use appropriate token parameter based on model
+        if self.model_name.startswith("o3") or self.model_name.startswith("o4"):
+            request_params["max_completion_tokens"] = kwargs.get("max_completion_tokens", kwargs.get("max_tokens", 4096))
+        else:
+            request_params["max_tokens"] = kwargs.get("max_tokens", 4096)
+        
+        response = await self.client.chat.completions.create(**request_params)
         return response.choices[0].message.content
     
     async def _generate_anthropic(self, prompt: str, **kwargs) -> str:
@@ -344,7 +367,7 @@ class APIEvaluator(BaseEvaluator):
         response = await self.client.messages.create(
             model=self.model_name,
             max_tokens=kwargs.get("max_tokens", 4096),
-            temperature=kwargs.get("temperature", 0.9),
+            temperature=1 if (self.model_name.startswith("o4")) else 1.0,
             messages=[{"role": "user", "content": prompt}]
         )
         return response.content[0].text
@@ -359,7 +382,7 @@ class APIEvaluator(BaseEvaluator):
         response = await self.client.chat.completions.create(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
-            temperature=kwargs.get("temperature", 0.9),
+            temperature=1 if (self.model_name.startswith("o4")) else 1.0,
             max_tokens=kwargs.get("max_tokens", 4096)
         )
         return response.choices[0].message.content

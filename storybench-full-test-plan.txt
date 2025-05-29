@@ -1,0 +1,56 @@
+﻿This test plan is for end to end testing of the storybench evaluation pipeline against 12 frontier models from four different API providers.
+
+
+Requirements
+* The project is located at /home/todd/storybench
+* An existing test script (may need modification) is called test_full_api_production.py
+* The project requires a venv which is already installed and setup, but needs to be activated
+* API keys and some endpoints (e.g. Directus and MongoDB) are in the .env file
+* All models must be run with a temperature of 1.0
+* All models must be run with max_tokens of 8192 because often responses to the creative prompts and evaluation prompts range from 800 to over 4000 tokens.
+* No truncation is allowed.  The system has been designed for this
+* The minimum context should be 32K tokens
+* Prompts should only come from Directus, not from hardcoding or local files.
+* Evaluation criteria and scoring guidelines should only come from Directus, not from hardcoding or local files.
+* All responses to prompts or evaluations will be stored in mongodb.  There will be no hardcoding or local files
+
+
+Data sources
+* Directus CMS has the creative prompts and the evaluation criteria and scoring.  There is already integration with Directus that should load the latest version of prompts and evaluation criteria/scoring.  Note that Directus is serverless, so it can take 60 seconds or more to spin up if it has been idle for more than 15 minutes, thus a retry mechanism is important.
+* MongoDB is the repository for all responses to prompts and evaluations
+
+
+Models by provider
+* Anthropic
+   * claude-opus-4-20250514
+   * claude-sonnet-4-20250514
+   * claude-3-7-sonnet-20250219
+* OpenAI
+   * gpt-4.1
+   * gpt-4o
+   * o4-mini
+* Google
+   * gemini-2.5-flash-preview-05-20
+   * gemini-2.5-pro-preview-05-06
+* Deepinfra:
+   * Qwen/Qwen3-235B-A22B
+   * meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+   * deepseek-ai/DeepSeek-R1
+   * deepseek-ai/DeepSeek-V3-0324
+
+
+Test flow
+1. Test API connectivity to each provider, directus, and mongodb.  If any APIs are not working, stop
+2. Test model names for validity via API provider.  If any of the 12 are not valid, stop
+3. Then, for each model
+   1. Load the latest prompts version from Directus
+   2. Run prompts by sequence
+   3. Reset context after sequence has run
+   4. Run the sequence and rest two more times (three runs of each sequence with context resets between run)
+   5. Do this for all sequences
+   6. This should result in 45 responses (5 sequences of 3 prompts each run 3 times each)
+   7. Store responses in MongoDB
+   8. Load the latest evaluation and scoring version from Directus
+   9. Run the evaluations and scoring against each set of 15 responses (15 per run x 3 runs)
+   10. Store the evaluations in MongoDB
+4. Connect to the next model and repeat the process until all models have completed.  If any models have error, skip that model and move on to the next model
