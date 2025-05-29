@@ -2,31 +2,44 @@
 
 A comprehensive evaluation pipeline for assessing the creative writing capabilities of frontier language models across diverse creative tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
-## 🎉 **BETA RELEASE v1.0** - Production-Ready Creative Writing Evaluation
+## 🎉 **PRODUCTION RELEASE v1.1** - Complete Analysis & Automated Reporting
 
-**Storybench has successfully completed comprehensive testing of 12 frontier models with groundbreaking results!**
+**Storybench has successfully completed comprehensive testing of 12 frontier models with professional-grade automated reporting!**
 
-### 🏆 **Major Achievement: Complete 12-Model Evaluation**
+### 🏆 **Major Achievement: Complete 12-Model Evaluation with Professional Analysis**
 
-We've successfully evaluated **540 creative responses** (45 per model) across **12 frontier models** from 4 major providers:
+We've successfully evaluated **541 creative responses** (45 per model) across **12 frontier models** from 4 major providers with **540 comprehensive evaluations** and automated report generation.
 
-**📊 Top Performers:**
-1. **🥇 Claude-3.7-Sonnet** - 4.21/5.0 (Creative Writing Champion)
-2. **🥈 Claude-Opus-4** - 4.20/5.0 (Technical Perfectionist) 
-3. **🥉 Gemini-2.5-Pro** - 4.18/5.0 (Reliable All-Rounder)
+**📊 Latest Results:**
+1. **🥇 Claude-Opus-4** - 4.52/5.0 (Creative Innovator)
+2. **🥈 Gemini-2.5-Pro** - 4.45/5.0 (Technical Perfectionist) 
+3. **🥉 Claude-3.7-Sonnet** - 4.25/5.0 (Reliable All-Rounder)
 
-**🔍 Key Discovery:** Claude-3.7-Sonnet outperforms newer Claude-4 models in creative writing, suggesting specialized optimization for creative tasks.
+**🔍 Key Discoveries:** 
+- **Consistency Issues**: All models show high variability across runs (0.8-1.1 std deviation)
+- **Provider Competition**: Google (4.33 avg) slightly edges Anthropic (4.33 avg)  
+- **Creativity Challenge**: Character development remains weakest area across all models
 
-### ✅ **Production-Validated Pipeline**
-- **540 Responses Generated** - 100% success rate across all models
-- **540 Evaluations Completed** - Full coverage with improved score extraction
+### ✅ **Production-Validated Pipeline with Automated Reporting**
+- **541 Responses Generated** - 100% success rate across all models
+- **540 Evaluations Completed** - 100% parsing success with robust score extraction
+- **Professional Reports** - Automated generation with examples and consistency analysis
 - **12 Models Tested** - Complete frontier model landscape coverage
 - **4 Providers Integrated** - Anthropic, OpenAI, Google, Deepinfra
 - **7 Evaluation Criteria** - Comprehensive creative writing assessment
-- **Robust Error Handling** - Automatic resume logic and skip-on-failure
+- **Criteria-Based Examples** - Best/worst examples for each criterion with explanations
+- **Consistency Analysis** - Reliability metrics across multiple runs
 - **MongoDB Integration** - Production-grade data storage and retrieval
 
 ### 🚀 **Enterprise-Ready Features**
+
+#### **📊 Automated Report Generation**
+- **Professional Format**: Matches industry-standard analysis reports
+- **Criteria Examples**: Best/worst examples for each of 7 criteria with evaluator explanations
+- **Consistency Analysis**: Performance reliability across multiple runs  
+- **Markdown Tables**: Properly formatted rankings and score matrices
+- **Provider Analysis**: Company-level performance comparison
+- **Use Case Recommendations**: Evidence-based model selection guidance
 
 #### **🤖 Model Support (12 Models)**
 - **Anthropic**: Claude-Opus-4, Claude-Sonnet-4, Claude-3.7-Sonnet
@@ -48,222 +61,273 @@ We've successfully evaluated **540 creative responses** (45 per model) across **
 - **Dialogue Quality** - Natural and engaging conversations
 - **Visual Imagination** - Vivid imagery and scene-setting
 - **Conceptual Depth** - Complex themes and philosophical content
-- **Adaptability** - Flexibility across formats and requirements
+- **Adaptability** - Format flexibility and prompt following
 
-### 🔧 **Technical Excellence**
+## 🚀 **Quick Start: Generate Professional Reports**
 
-#### **Robust Architecture**
-- **Resume Logic** - Automatically continues interrupted evaluations
-- **Error Recovery** - Skips failed models and continues pipeline
-- **Duplicate Prevention** - Intelligent cleanup of overlapping evaluations
-- **Score Extraction** - Advanced parsing with 100% success rate
-- **Database Integrity** - Comprehensive data validation and storage
-
-#### **Configuration Management**
-- **Environment Variables** - Secure API key management
-- **Directus Integration** - Dynamic prompt and criteria loading
-- **MongoDB Atlas** - Production-grade cloud database
-- **Temperature Control** - 1.0 for prompts, 0.3 for evaluation
-- **Token Management** - 8192 max tokens for complex responses
-
-### 📊 **Comprehensive Analysis Tools**
-
-#### **Performance Analytics**
-- **Model Rankings** - Overall and criterion-specific performance
-- **Provider Comparisons** - Cross-provider capability analysis  
-- **Use Case Recommendations** - Model selection for specific tasks
-- **Statistical Insights** - Performance patterns and trends
-
-#### **Specialized Reports**
-- **Creative Task Optimization** - Best models for specific creative needs
-- **Technical vs Creative Trade-offs** - Performance characteristic analysis
-- **Generation Comparison** - Claude-3 vs Claude-4 insights
-- **Cost-Performance Analysis** - Efficiency recommendations
-
-### 🎯 **Key Research Insights**
-
-1. **Specialized Training Matters** - Claude-3.7's creative dominance over newer models
-2. **Size ≠ Performance** - o4-mini competes with much larger models (3.99/5.0)
-3. **Provider Specialization** - Each provider shows distinct capability patterns
-4. **Creativity Ceiling** - Pure creativity remains challenging (max 3.87/5.0)
-5. **Technical Maturity** - Adaptability widely achieved (5 models at 5.0/5.0)
-
-## 🚀 Getting Started
-
-### Installation
-
+### **Generate Report from Current Data**
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/storybench.git
-cd storybench
+# Export complete evaluation data
+python3 export_complete_data.py
 
-# Set up virtual environment
-python -m venv venv-storybench
-source venv-storybench/bin/activate  # On Windows: venv-storybench\Scripts\activate
+# Generate professional report with examples and consistency analysis
+python3 professional_report_generator.py complete_storybench_data_[timestamp].json my_report.md
 
-# Install dependencies
+# Quick analysis (alternative)
+python3 simple_report_generator.py complete_storybench_data_[timestamp].json
+```
+
+### **Run New Evaluation & Generate Report**
+```bash
+# 1. Run evaluation pipeline (after updating prompts/criteria)
+python3 test_full_api_production.py
+
+# 2. Export new data
+python3 export_complete_data.py
+
+# 3. Generate updated report
+python3 professional_report_generator.py complete_storybench_data_[new_timestamp].json enhanced_report.md
+```
+
+### **Available Report Types**
+- **`professional_report_generator.py`** - Complete professional analysis (recommended)
+- **`simple_report_generator.py`** - Quick performance overview
+- **`response_analysis.py`** - Response-only analysis (no evaluation scores needed)
+
+## 📋 **What's in the Professional Reports**
+
+### **Core Analysis**
+- **Executive Summary** with key insights and discoveries
+- **Performance Rankings** with medals and provider information
+- **Detailed Score Matrix** showing all 7 criteria across 12 models
+- **Individual Model Analysis** with strengths, weaknesses, and use cases
+
+### **Advanced Features**
+- **Criteria-Based Examples**: For each of 7 criteria:
+  - Best example (highest scoring response + evaluator quote)
+  - Worst example (lowest scoring response + failure explanation)
+  - Model attribution and performance scores
+
+- **Consistency Analysis**: 
+  - Standard deviation across multiple runs per model
+  - Most/least consistent criteria identification  
+  - Reliability scores (0-5.0 scale)
+
+- **Provider Analysis**:
+  - Performance comparison by company
+  - Average scores and best models per provider
+  - Strategic insights for model selection
+
+## 🛠️ **Installation & Setup**
+
+### **Prerequisites**
+- Python 3.8+
+- MongoDB (local or Atlas)
+- API keys for model providers
+
+### **Install Dependencies**
+```bash
 pip install -r requirements.txt
 ```
 
-### Configuration
+### **Environment Setup**
+Create `.env` file:
+```env
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017
+# or MongoDB Atlas: mongodb+srv://user:pass@cluster.mongodb.net/
 
-1. **Environment Setup**:
+# API Keys
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
+DEEPINFRA_API_KEY=your_deepinfra_key
+
+# Directus (optional)
+DIRECTUS_URL=your_directus_url
+DIRECTUS_TOKEN=your_directus_token
+```
+
+## 🎯 **Core Evaluation Pipeline**
+
+### **Run Complete Evaluation**
 ```bash
-cp .env.example .env
-# Edit .env with your API keys:
-# - OPENAI_API_KEY=your_openai_key
-# - ANTHROPIC_API_KEY=your_anthropic_key
-# - GOOGLE_API_KEY=your_google_key
-# - DEEPINFRA_API_KEY=your_deepinfra_key
-# - MONGODB_URI=your_mongodb_connection_string
+# Full API production test (all 12 models)
+python3 test_full_api_production.py
+
+# Single model test
+python3 -m storybench.cli test --model claude-opus-4-20250514
+
+# Resume interrupted evaluation
+python3 resume_claude_sonnet.py  # (or specific model)
 ```
 
-2. **Database Setup**:
-   - Create MongoDB Atlas cluster (free tier available)
-   - Add connection string to `.env`
-   - Database and collections created automatically
-
-3. **API Keys**:
-   - OpenAI API key (for evaluation)
-   - Provider API keys (for model testing)
-   - All keys validated during setup
-
-### Quick Start
-
-#### **Run Production Test**
+### **Monitor Progress**
 ```bash
-# Validate environment
-python validate_test_readiness.py
+# Check evaluation status
+python3 validate_test_readiness.py
 
-# Run complete 12-model evaluation
-python test_full_api_production.py
-
-# Generate analysis report
-python corrected_analysis.py
+# View current results
+python3 corrected_analysis.py
 ```
 
-#### **Single Model Testing**
+## 📊 **Data Export & Analysis**
+
+### **Export Options**
 ```bash
-# Test specific model
-python -c "
-from src.storybench.evaluators.api_evaluator import APIEvaluator
-# Configure and test individual models
-"
+# Export complete dataset (responses + evaluations)
+python3 export_complete_data.py
+
+# Export specific evaluation batch  
+python3 -m storybench.cli export --export-dir ./analysis_data
+
+# Debug database collections
+python3 debug_collections.py
 ```
 
-#### **Web Interface** (In Development)
+### **Analysis Scripts**
 ```bash
-# Start web server
-python -m src.storybench.web.app
-# Open http://localhost:5000
+# Generate professional report with examples
+python3 professional_report_generator.py [data_file] [output_file]
+
+# Quick performance analysis
+python3 simple_report_generator.py [data_file] [output_file]
+
+# Response-only analysis (no scores needed)
+python3 response_analysis.py [data_file] [output_file]
+
+# Original corrected analysis
+python3 corrected_analysis.py
 ```
 
-## 📊 Example Results
+## 🏗️ **Architecture**
 
-### Top Model Performance
+### **Core Components**
+- **Response Generation**: Multi-provider API integration with robust error handling
+- **Evaluation Pipeline**: LLM-based assessment using Gemini-2.5-Pro as evaluator  
+- **Data Storage**: MongoDB with organized collections for responses and evaluations
+- **Report Generation**: Automated professional analysis with examples and consistency metrics
+- **Web Interface**: Vue.js frontend for monitoring and management (optional)
+
+### **Evaluation Process**
+1. **Prompt Sequences**: 5 creative writing sequences with 3 prompts each
+2. **Response Generation**: 3 runs per model per sequence (45 responses per model)
+3. **LLM Evaluation**: Gemini-2.5-Pro scores responses on 7 criteria (1-5 scale)
+4. **Score Extraction**: Robust parsing of evaluation text for numerical scores
+5. **Analysis & Reporting**: Automated generation of professional reports with examples
+
+### **File Structure**
 ```
-🥇 claude-3-7-sonnet-20250219    4.21/5.0  (Creative Champion)
-🥈 claude-opus-4-20250514        4.20/5.0  (Technical Excellence)  
-🥉 gemini-2.5-pro-preview-05-06  4.18/5.0  (Reliable All-Rounder)
+storybench/
+├── professional_report_generator.py    # Main report generator
+├── export_complete_data.py            # Data export with fixed collection names
+├── simple_report_generator.py         # Quick analysis option
+├── test_full_api_production.py        # Main evaluation pipeline
+├── corrected_analysis.py              # Original analysis script
+├── config/                            # Configuration files
+├── src/storybench/                    # Core application code
+├── frontend/                          # Vue.js web interface
+└── reports/                           # Generated analysis reports
 ```
 
-### Use Case Recommendations
-- **Creative Writing**: claude-3-7-sonnet-20250219
-- **Technical Content**: claude-opus-4-20250514  
-- **Commercial Projects**: gemini-2.5-pro-preview-05-06
-- **Visual Storytelling**: o4-mini
-- **Budget-Conscious**: gemini-2.5-flash-preview-05-20
+## 🔧 **Configuration**
 
-## 🔧 Architecture
+### **Model Configuration**
+Edit `config/test_models.json` to add/remove models or adjust parameters:
+```json
+{
+  "claude-opus-4-20250514": {
+    "provider": "anthropic",
+    "temperature": 1.0,
+    "max_tokens": 8192
+  }
+}
+```
 
-### Core Components
-- **Evaluators** - Model-specific API clients with unified interface
-- **Database** - MongoDB with response and evaluation collections
-- **Clients** - Directus CMS integration for dynamic content
-- **Analysis** - Comprehensive scoring and reporting tools
-- **Pipeline** - Robust orchestration with error handling
+### **Evaluation Criteria**
+Modify evaluation criteria in Directus CMS or update the evaluation prompts in `src/storybench/evaluators/`.
 
-### Data Flow
-1. **Prompts** loaded from Directus CMS
-2. **Responses** generated via model APIs
-3. **Evaluations** performed by Gemini-2.5-Pro
-4. **Storage** in MongoDB with full metadata
-5. **Analysis** with advanced score extraction
-6. **Reports** generated with comprehensive insights
+### **Report Configuration**
+Adjust report settings in `report_config.py`:
+```python
+CRITERIA_WEIGHTS = {
+    "creativity": 1.2,        # Higher weight for creativity
+    "coherence": 1.0,
+    # ... other criteria
+}
+```
 
-## 🧪 Evaluation Methodology
+## 📈 **Results & Insights**
 
-### Multi-Dimensional Assessment
-- **7 Criteria** evaluated independently
-- **5-Point Scale** with detailed rubrics
-- **Sequence Coherence** across multi-prompt tasks
-- **Context Preservation** between related prompts
-- **Gemini-2.5-Pro Evaluator** with 0.3 temperature for consistency
+### **Current Performance Leaders**
+- **Overall Best**: Claude-Opus-4 (4.52/5.0) - Excellent creativity and coherence
+- **Most Creative**: Claude-Opus-4 (4.80/5.0) - Original concepts and innovation
+- **Best Visual**: O4-Mini (4.53/5.0) - Outstanding imagery and description
+- **Most Reliable**: Meta-Llama (3.4/5.0 consistency) - Lower performance but consistent
 
-### Statistical Rigor
-- **45 Responses per Model** for statistical significance
-- **3 Runs per Sequence** to test consistency
-- **Context Resets** between runs to ensure independence
-- **100% Evaluation Coverage** with robust parsing
-- **Duplicate Prevention** and data integrity checks
+### **Key Findings**
+- **Consistency Challenge**: All models show high variability (0.8-1.1 std dev)
+- **Adaptability Strength**: Multiple models achieve perfect 5.0/5.0 adaptability
+- **Character Development Gap**: All models average ~3.5/5.0 in character depth
+- **Provider Competition**: Google and Anthropic tied at 4.33 average performance
 
-## 📈 Research Applications
+### **Research Applications**
+- **Model Selection**: Evidence-based recommendations for specific creative tasks
+- **Capability Gaps**: Identification of areas needing improvement across all models
+- **Consistency Analysis**: Understanding reliability patterns for production use
+- **Benchmark Dataset**: 541 high-quality creative responses for further research
 
-### Academic Research
-- **Model Comparison Studies** - Cross-provider capability analysis
-- **Creative AI Research** - Understanding creativity in language models
-- **Benchmark Development** - Standardized creative writing evaluation
-- **Training Optimization** - Insights for creative model development
+## 🤝 **Contributing**
 
-### Industry Applications  
-- **Model Selection** - Data-driven choice for creative applications
-- **Content Strategy** - Optimal model deployment for different tasks
-- **Cost Optimization** - Performance per dollar analysis
-- **Quality Assurance** - Automated creative content evaluation
+### **Adding New Models**
+1. Add model configuration to `config/test_models.json`
+2. Implement provider integration in `src/storybench/clients/`
+3. Run evaluation: `python3 test_full_api_production.py`
+4. Generate updated report: `python3 professional_report_generator.py`
 
-## 🤝 Contributing
+### **Enhancing Evaluation**
+1. Update evaluation criteria in Directus or evaluation prompts
+2. Run new evaluation pipeline  
+3. Export data: `python3 export_complete_data.py`
+4. Generate comparative report
 
-### Development Setup
+### **Report Customization**
+- Modify `professional_report_generator.py` for different report formats
+- Adjust `report_config.py` for criteria weights and formatting
+- Add new analysis dimensions in consistency analysis section
+
+## 🚨 **Troubleshooting**
+
+### **Common Issues**
+- **"No evaluations found"**: Use `debug_collections.py` to check database collections
+- **Broken markdown tables**: Ensure proper pipe alignment in report generators
+- **Missing API keys**: Check `.env` file and environment variable setup
+- **Evaluation parsing errors**: Review score extraction patterns in `parse_scores_from_evaluation()`
+
+### **Data Recovery**
 ```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
+# Export data from correct collections
+python3 export_complete_data.py
 
-# Run tests
-pytest tests/
+# Debug database state
+python3 debug_collections.py
 
-# Code formatting
-black src/ tests/
+# Resume interrupted evaluation
+python3 resume_claude_sonnet.py
 ```
 
-### Adding New Models
-1. Implement model client in `src/storybench/evaluators/`
-2. Add configuration to evaluation pipeline
-3. Update model lists and documentation
-4. Run validation tests
+## 📄 **License**
 
-### Adding New Evaluation Criteria
-1. Update evaluation prompt templates
-2. Modify score extraction patterns
-3. Add criterion to analysis tools
-4. Validate with test evaluations
+MIT License - see LICENSE file for details.
 
-## 📜 License
+## 🙏 **Acknowledgments**
 
-MIT License - See LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- **Directus CMS** - Dynamic content management
-- **MongoDB Atlas** - Reliable cloud database  
-- **Model Providers** - API access for comprehensive testing
-- **Research Community** - Inspiration and validation
+- **Anthropic** for Claude model access and API reliability
+- **Google** for Gemini evaluation model performance  
+- **OpenAI** for GPT model integration
+- **Deepinfra** for open-source model hosting
+- **MongoDB** for robust data storage and retrieval
 
 ---
 
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/storybench/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/storybench/discussions)
-- **Documentation**: See `/docs` directory for detailed guides
-
-**Storybench Beta v1.0** - Production-ready creative writing evaluation for the frontier model era! 🚀
+**Storybench v1.1** - Professional creative writing evaluation with automated reporting and consistency analysis. Ready for production use and research applications.
