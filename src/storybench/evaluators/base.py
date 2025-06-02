@@ -26,11 +26,15 @@ class BaseEvaluator(ABC):
         context_size = config.get('context_size', 32768)  # Default to 32K
         
         from ..unified_context_system import ContextConfig
+        from ..langchain_context_manager import ContextStrategy
         context_config = ContextConfig(
             max_context_tokens=context_size,
-            strategy='PRESERVE_ALL'  # No truncation policy
+            strategy=ContextStrategy.PRESERVE_ALL  # No truncation policy
         )
         self.context_manager = UnifiedContextManager(context_config)
+        
+        # Initialize generation history for context accumulation
+        self.generation_history = ""
         
     @abstractmethod
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
@@ -106,6 +110,13 @@ class BaseEvaluator(ABC):
             'max_context_tokens': self.context_manager.max_context_tokens,
             'strategy': 'PRESERVE_ALL'  # We enforce strict no-truncation
         }
+    
+    def reset_context(self):
+        """Reset the generation history/context.
+        
+        This is used between sequences to ensure clean context for coherence testing.
+        """
+        self.generation_history = ""
         
     def _create_response_dict(self, response_text: str, start_time: float, 
                              metadata: Optional[Dict] = None,

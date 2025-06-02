@@ -1,1 +1,1 @@
-# Storybench test package
+# Initialize tests module
