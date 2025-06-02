@@ -76,6 +76,7 @@ async def load_and_validate_models() -> Tuple[List[Dict[str, str]], Dict[str, st
         {"provider": "deepinfra", "model_name": "Qwen/Qwen3-235B-A22B"},
         {"provider": "deepinfra", "model_name": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"},
         {"provider": "deepinfra", "model_name": "deepseek-ai/DeepSeek-R1"},
+        {"provider": "deepinfra", "model_name": "deepseek-ai/DeepSeek-R1-0528"},
         {"provider": "deepinfra", "model_name": "deepseek-ai/DeepSeek-V3-0324"}
     ]
     

@@ -89,6 +89,7 @@ PROVIDER_CONTEXT_LIMITS = {
     },
     'deepinfra': {
         'deepseek-ai/DeepSeek-R1': 128000,
+        'deepseek-ai/DeepSeek-R1-0528': 128000,
         'deepseek-ai/DeepSeek-R1-Turbo': 128000,
         'meta-llama/Meta-Llama-3-70B-Instruct': 8192,
         'meta-llama/Meta-Llama-3-8B-Instruct': 8192,
@@ -385,4 +386,32 @@ class APIEvaluator(BaseEvaluator):
             temperature=1 if (self.model_name.startswith("o4")) else 1.0,
             max_tokens=kwargs.get("max_tokens", 4096)
         )
-        return response.choices[0].message.content
+        raw_content = response.choices[0].message.content
+        
+        # Filter thinking text for DeepSeek-R1 models
+        if "deepseek-ai/DeepSeek-R1" in self.model_name:
+            return self._filter_thinking_text(raw_content)
+        
+        return raw_content
+    
+    def _filter_thinking_text(self, content: str) -> str:
+        """Remove thinking/reasoning traces from DeepSeek-R1 model responses."""
+        import re
+        
+        # Remove content between <think> and </think> tags
+        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+        
+        # Remove content between <thinking> and </thinking> tags  
+        content = re.sub(r'<thinking>.*?</thinking>', '', content, flags=re.DOTALL)
+        
+        # Remove content between [Thinking] and [/Thinking] markers
+        content = re.sub(r'\[Thinking\].*?\[/Thinking\]', '', content, flags=re.DOTALL)
+        
+        # Remove content that starts with "I need to think about this..." patterns
+        content = re.sub(r'^(I need to think.*?)\n\n', '', content, flags=re.MULTILINE | re.DOTALL)
+        
+        # Clean up multiple newlines and trim whitespace
+        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+        content = content.strip()
+        
+        return content

@@ -12,11 +12,15 @@ import os
 import sys
 import asyncio
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from storybench.database.connection import get_database
+from storybench.database.connection import init_database, get_database
 from storybench.database.services.directus_evaluation_service import DirectusEvaluationService
 from storybench.clients.directus_client import DirectusClient
 
@@ -52,7 +56,7 @@ async def run_evaluations_with_directus():
     try:
         # Initialize database
         print("\n2. Connecting to database...")
-        database = get_database()
+        database = await init_database()
         print("✅ Database connected")
         
         # Initialize Directus client if available

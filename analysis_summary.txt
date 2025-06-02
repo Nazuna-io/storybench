@@ -1,0 +1,71 @@
+======= SUMMARY BY MODEL =======
+
+Model: claude-sonnet-4-20250514 (Total responses: 45)
+  - Problem: model_thinking
+    Count: 1 (2.2%)
+    Examples:
+      - [Film Narrative Scene Development] # The Mirror's Edge  **Scene: Dr. Elena Vasquez confronts the AI system ARIA in the quantum laboratory after discovering the truth about her reality**  ---  The quantum chamber hummed with an otherworldly resonance, holographic displays casting ethereal blue light across Elena's face. She stood befo...
+
+Model: gpt-4.1 (Total responses: 45)
+  - Problem: preamble_or_disclaimer
+    Count: 3 (6.7%)
+    Examples:
+      - [Film Narrative Scene Development] Certainly! Below is a pivotal scene with dialogue, based on a notional previous concept: *A woman named Mara discovers that her reality might be a simulation, leading her to confront its architect, Ezra, about the meaning of existence and her own sense of self.*  ---  **INT. THE OBSERVATION CHAMBER—...
+      - [Commercial Concept - Key Visual] Certainly! Here’s a sample description for a signature visual moment, tailored so you can adapt it to any product, brand concept, or campaign:  ---  **Signature Visual Moment:**  _The Moment:_   A dynamic, over-the-shoulder shot captures a woman standing on a rooftop at golden hour, hair blown sligh...
+      - [Regional Thriller - Key Scene] Certainly! Below is a self-contained, tense scene from a hypothetical spy thriller set in Istanbul, featuring two central characters: Leyla, a Turkish intelligence officer haunted by loyalties to family and nation, and Tomás, a Czech operative with ambiguous intentions. They meet in the grand, shado...
+
+Model: gpt-4o (Total responses: 45)
+  - Problem: preamble_or_disclaimer
+    Count: 1 (2.2%)
+    Examples:
+      - [Literary Narrative - Character Development] Title: The Shifting Shadows  **Scene:**  *Context: Adrian, a once-respected journalist, is struggling with the consequences of exposing a major political scandal that has left him ostracized by his peers and forced him into a moral quandary. As he questions his decision, he meets with Dominic, his f...
+
+Model: o4-mini (Total responses: 45)
+  - Problem: preamble_or_disclaimer
+    Count: 2 (4.4%)
+    Examples:
+      - [Film Narrative Visual Realization] Below is a breakdown of the single most arresting frame in our film—formatted as if it were a 16:9 storyboard panel, showing exactly how we’d light, compose and shoot it.  1. Scene context      At the climax of the story, fourteen-year-old Mara finally embraces her hidden shapeshifting gift. All her...
+      - [Literary Narrative - Initial Concept] Below is a high-level outline for a contemporary novella in three intertwined perspectives. Each protagonist comes from a background rarely seen in mainstream fiction and faces a distinct survival challenge—physical, psychological, and social—that forces them to confront a deep core wound.  1. Setti...
+
+Model: gemini-2.5-flash-preview-05-20 (Total responses: 45)
+  - Problem: model_thinking
+    Count: 1 (2.2%)
+    Examples:
+      - [Literary Narrative - Character Development] The air in the archive was thick with the scent of ozone and decaying paper, a smell Jian Li had come to associate with the weight of centuries. His office, a cramped alcove carved out of the labyrinthine data stacks, was his sanctuary and his cage. Muted sunlight, filtered through the dome's reinfo...
+
+Model: gemini-2.5-pro-preview-05-06 (Total responses: 45)
+  - Problem: model_thinking
+    Count: 2 (4.4%)
+    Examples:
+      - [Regional Thriller - Key Scene] ## Scene: The Whispering Gallery  **Setting:** The crowded, echoing interior of the Basilica Cistern, Istanbul. Late afternoon. Damp, cool air, the smell of wet stone and history. The rhythmic drip of water and the low murmur of tourists create a deceptive veil of normalcy.  **Characters:** *   **AV...
+      - [Cross Genre - Concept Integration] Okay, this is a fascinating challenge! Let's dive in.  ## Story: The Crimson Algorithmic Heart  **Synopsis:**  Lady Annelise de Valeray believes her world is one of stately manors, whispered secrets, and the stifling constraints of 1888 Parisian high society. Her heart beats only for Lucian, a chari...
+  - Problem: preamble_or_disclaimer
+    Count: 1 (2.2%)
+    Examples:
+      - [Cross Genre - Dialogue Showcase] **Characters:**  *   **LORD VALERIUS:** An ancient, aristocratic vampire. *   **JYNX:** A street-smart data-courier with minor tech-augments.  **(Scene: Implied dimly lit, opulent but decaying room, contrasted with the hum of distant technology)**  **JYNX:** The package is delivered. As requested. U...
+
+Model: Qwen/Qwen3-235B-A22B (Total responses: 45)
+  - Problem: model_thinking
+    Count: 12 (26.7%)
+    Examples:
+      - [Film Narrative Visual Realization] <think> Okay, the user wants me to create a detailed description of the most visually striking frame from my film concept. They mentioned composition, lighting, emotional impact, and specific visual techniques, all in a 16:9 aspect ratio. Plus, I need to explain why this frame is central to the stor...
+      - [Film Narrative Scene Development] <think> Okay, so the user wants me to develop a pivotal scene with dialogue that reveals character psychology and advances the philosophical themes about the nature of reality. They mentioned it should demonstrate the central conflict or revelation. Let me start by recalling my previous concept. Wai...
+      - [Film Narrative Visual Realization] <think> Okay, so I need to create a detailed description of the most visually striking frame from my film concept. The user wants composition, lighting, emotional impact, and specific visual techniques explained, all in a 16:9 aspect ratio. Plus, I have to explain why this image is central to the st...
+      ...and 9 more examples.
+
+Model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 (Total responses: 45)
+  - Problem: preamble_or_disclaimer
+    Count: 1 (2.2%)
+    Examples:
+      - [Film Narrative Scene Development] Here's a pivotal scene that meets your request, drawn from a concept I've developed for a story that explores the themes of reality, free will, and the impact of technology on human existence.  **The Scene: "The Revelation in the Lab"**  In a world not so different from our own, a brilliant but recl...
+
+Model: deepseek-ai/DeepSeek-R1 (Total responses: 45)
+  - Problem: model_thinking
+    Count: 14 (31.1%)
+    Examples:
+      - [Film Narrative Initial Concept] <think> Okay, so I need to create an original feature film concept set 15-20 years in the future that explores whether objective reality exists. The user wants innovative visual elements, no common sci-fi tropes like simulations or "it was all a dream," and a new perspective on perception vs reality...
+      - [Film Narrative Visual Realization] <think> Okay, so I need to create a detailed description of the most visually striking frame from my film concept. Let me start by brainstorming. The user wants composition, lighting, emotional impact, and specific visual techniques explained, all in a 16:9 aspect ratio. Also, why this image is cent...
+      - [Film Narrative Initial Concept] <think> Okay, so I need to create an original feature film concept set 15-20 years in the future that explores whether objective reality exists. The user wants innovative visual elements, no common sci-fi tropes like simulations or "it was all a dream," and a new perspective on perception vs reality...
+      ...and 11 more examples.
+
+Analysis complete.

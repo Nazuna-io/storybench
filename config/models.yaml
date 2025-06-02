@@ -28,6 +28,12 @@ models:
     model_name: "deepseek-ai/DeepSeek-R1"
     context_size: 128000
     
+  - name: "DeepSeek-R1-0528"
+    type: "api"
+    provider: "deepinfra"
+    model_name: "deepseek-ai/DeepSeek-R1-0528"
+    context_size: 128000
+    
   # Local GGUF Models (commented out for initial API focus)
   # - name: "Llama-7B-Chat"
   #   type: "local"
