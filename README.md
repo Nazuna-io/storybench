@@ -2,7 +2,7 @@
 
 A comprehensive evaluation pipeline for assessing the creative writing capabilities of frontier language models across diverse creative tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
-## 🎉 **PRODUCTION RELEASE v1.1** - Complete Analysis & Automated Reporting
+## 🎉 **PRODUCTION RELEASE v1.0** - Complete Analysis & Automated Reporting
 
 **Storybench has successfully completed comprehensive testing of 12 frontier models with professional-grade automated reporting!**
 
