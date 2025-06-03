@@ -99,17 +99,17 @@ class UnifiedContextManager(LangChainContextManager):
         }
     
     def validate_context_size_strict(self, text: str, context_name: str = "prompt") -> Dict[str, Any]:
-        """Validate text fits within context limits with strict enforcement.
+        """Validate text fits within context limits with flexible enforcement.
+        
+        For creative writing evaluations, this provides monitoring and warnings
+        but allows the model to handle its own context limits naturally.
         
         Args:
             text: The text to validate
             context_name: Descriptive name for logging (e.g., "prompt", "sequence_context")
             
         Returns:
-            Dictionary with context statistics
-            
-        Raises:
-            ContextLimitExceededError: If text exceeds limits
+            Dictionary with context statistics (never raises ContextLimitExceededError)
         """
         # Generate prompt fingerprint for traceability
         prompt_hash = hashlib.md5(text.encode('utf-8')).hexdigest()[:8]
@@ -123,21 +123,71 @@ class UnifiedContextManager(LangChainContextManager):
                    f"({stats['utilization']:.1%} utilization)")
         
         if not stats['fits']:
-            error_msg = (f"Context exceeds limit for {context_name}: "
-                        f"{stats['estimated_tokens']} tokens > {stats['max_tokens']} max. "
-                        f"Context length: {stats['characters']} characters. "
-                        f"Hash: {prompt_hash}. "
-                        f"Consider using a model with larger context window or reducing input size.")
-            logger.error(error_msg)
-            raise ContextLimitExceededError(error_msg)
+            # WARNING ONLY - do not raise exception for creative writing evaluations
+            # Models should handle their own context limits naturally
+            warning_msg = (f"Context approaching/exceeding estimated limit for {context_name}: "
+                          f"{stats['estimated_tokens']} tokens > {stats['max_tokens']} estimated max. "
+                          f"Context length: {stats['characters']} characters. "
+                          f"Hash: {prompt_hash}. "
+                          f"Model will handle context limit naturally - continuing evaluation.")
+            logger.warning(warning_msg)
+            
+            # Mark as over limit but don't fail
+            stats['over_limit_warning'] = True
+            stats['warning_message'] = warning_msg
+        else:
+            stats['over_limit_warning'] = False
         
         # Add fingerprint to stats for tracking
         stats['prompt_hash'] = prompt_hash
         stats['context_name'] = context_name
-        stats['utilization_percent'] = stats['utilization'] * 100  # Add percentage version
+        stats['utilization_percent'] = stats['utilization'] * 100
         
-        logger.debug(f"Context validation passed for {context_name} (hash: {prompt_hash})")
+        logger.debug(f"Context validation completed for {context_name} (hash: {prompt_hash})")
         return stats
+    
+    def monitor_sequence_context_growth(self, 
+                                       sequence_name: str,
+                                       prompt_index: int, 
+                                       accumulated_context: str) -> Dict[str, Any]:
+        """Monitor context growth within a sequence for creative writing evaluations.
+        
+        This provides detailed monitoring of how context accumulates within sequences
+        without enforcing artificial limits that would break creative continuity.
+        
+        Args:
+            sequence_name: Name of the current sequence
+            prompt_index: Index of the current prompt in sequence (0, 1, 2, etc.)
+            accumulated_context: Full accumulated context so far
+            
+        Returns:
+            Dictionary with detailed context growth analytics
+        """
+        analytics = self.get_context_analytics(accumulated_context)
+        
+        # Enhanced logging for sequence context monitoring
+        logger.info(f"Sequence context growth: {sequence_name} prompt {prompt_index + 1}: "
+                   f"{analytics['estimated_tokens']} tokens "
+                   f"({analytics['utilization_percent']:.1f}% of {analytics['max_tokens']} limit), "
+                   f"hash: {analytics['prompt_hash']}")
+        
+        # Add sequence-specific metadata
+        analytics.update({
+            'sequence_name': sequence_name,
+            'prompt_index': prompt_index,
+            'is_sequence_start': prompt_index == 0,
+            'context_growth_stage': f"prompt_{prompt_index + 1}"
+        })
+        
+        # Provide recommendations if getting close to limits
+        if analytics['utilization_percent'] > 80:
+            logger.warning(f"Sequence {sequence_name} context approaching 80% utilization "
+                          f"({analytics['utilization_percent']:.1f}%) - monitor for model performance")
+        elif analytics['utilization_percent'] > 95:
+            logger.warning(f"Sequence {sequence_name} context near capacity "
+                          f"({analytics['utilization_percent']:.1f}%) - model may truncate")
+        
+        return analytics
     
     def get_context_analytics(self, text: str) -> Dict[str, Any]:
         """Get detailed analytics about context usage for evaluation reports.

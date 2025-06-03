@@ -73,17 +73,32 @@ class BaseEvaluator(ABC):
     def validate_context_size(self, prompt: str) -> Dict[str, Any]:
         """Validate that prompt fits within context limits.
         
+        For creative writing evaluations, this monitors context size but allows
+        the model to handle its own limits naturally. No exceptions raised.
+        
         Args:
             prompt: The prompt text to validate
             
         Returns:
-            Dictionary with context statistics
-            
-        Raises:
-            ContextLimitExceededError: If prompt exceeds limits
+            Dictionary with context statistics (warnings instead of errors)
         """
-        # Delegate to unified context manager - single source of truth
+        # Use flexible validation that warns but doesn't fail
         return self.context_manager.validate_context_size_strict(prompt, f"evaluator_{self.name}")
+    
+    def monitor_sequence_context(self, sequence_name: str, prompt_index: int, accumulated_context: str) -> Dict[str, Any]:
+        """Monitor context growth within a sequence for creative writing.
+        
+        Args:
+            sequence_name: Name of the current sequence  
+            prompt_index: Index of current prompt in sequence
+            accumulated_context: Full accumulated context
+            
+        Returns:
+            Dictionary with sequence context analytics
+        """
+        return self.context_manager.monitor_sequence_context_growth(
+            sequence_name, prompt_index, accumulated_context
+        )
     
     def get_context_analytics(self, prompt: str) -> Dict[str, Any]:
         """Get detailed context analytics for evaluation reports.
