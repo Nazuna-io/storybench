@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime
 from bson import ObjectId
 
-from storybench.database.models import (
+from src.storybench.database.models import (
     Evaluation, 
     EvaluationStatus, 
     GlobalSettings,
