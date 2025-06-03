@@ -69,17 +69,17 @@ elif page_key == "rankings":
     from pages import rankings
     rankings.show()
 elif page_key == "criteria":
-    st.header("📈 Criteria Analysis")
-    st.info("Coming soon! This page will show box plots and heatmaps for evaluation criteria.")
+    from pages import criteria
+    criteria.show()
 elif page_key == "providers":
-    st.header("🏢 Provider Comparison") 
-    st.info("Coming soon! This page will compare performance by provider (Anthropic, OpenAI, etc.)")
+    from pages import providers
+    providers.show()
 elif page_key == "progress":
     from pages import progress
     progress.show()
 elif page_key == "explorer":
-    st.header("🔍 Data Explorer")
-    st.info("Coming soon! This page will provide interactive filtering and drill-down analysis.")
+    from pages import explorer
+    explorer.show()
 
 # Footer
 st.sidebar.markdown("---")
