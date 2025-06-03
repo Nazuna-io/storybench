@@ -296,9 +296,32 @@ class TestConfigLoader:
 class TestConvenienceFunctions:
     """Test convenience functions."""
     
-    def test_load_config_function(self, config_file):
+    @pytest.fixture
+    def temp_config(self):
+        """Create a minimal temp config for testing."""
+        config_data = {
+            "models": [
+                {
+                    "name": "test-model", 
+                    "provider": "openai", 
+                    "api_base": "test", 
+                    "max_tokens": 100,
+                    "enabled": True
+                }
+            ],
+            "evaluations": {"temperature": 0.7, "max_tokens": 100},
+            "pipeline": {"enabled": True},
+            "storage": {"enabled": True},
+            "dashboard": {"enabled": True}
+        }
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.dump(config_data, f)
+            yield f.name
+        Path(f.name).unlink()
+    
+    def test_load_config_function(self, temp_config):
         """Test load_config convenience function."""
-        loader = load_config(config_file)
+        loader = load_config(temp_config)
         assert isinstance(loader, ConfigLoader)
         assert len(loader.enabled_models) > 0
     

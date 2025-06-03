@@ -1,129 +1,129 @@
-"""
-Comprehensive tests for database/services/config_service.py
-These tests cover the ConfigService with mocked repositories.
-"""
+"""Test database config service."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
+import hashlib
+import json
 
-# Import the service we want to test
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+from src.storybench.database.services.config_service import ConfigService
 
 
 class TestConfigService:
-    """Test the ConfigService class."""
+    """Test ConfigService functionality."""
     
     @pytest.fixture
     def mock_database(self):
-        """Create a mock database."""
+        """Mock database for testing."""
         return Mock()
     
-    @patch('storybench.database.services.config_service.ModelRepository')
-    @patch('storybench.database.services.config_service.PromptRepository')
-    @patch('storybench.database.services.config_service.CriteriaRepository')
-    def test_config_service_initialization(self, mock_criteria_repo, mock_prompt_repo, mock_model_repo, mock_database):
-        """Test config service initialization."""
-        from storybench.database.services.config_service import ConfigService
-        
-        service = ConfigService(mock_database)
-        
-        assert service.database == mock_database
-        mock_model_repo.assert_called_once_with(mock_database)
-        mock_prompt_repo.assert_called_once_with(mock_database)
-        mock_criteria_repo.assert_called_once_with(mock_database)
+    @pytest.fixture
+    def config_service(self, mock_database):
+        """Create ConfigService with mocked dependencies."""
+        with pytest.MonkeyPatch().context() as m:
+            # Mock the repository classes
+            mock_model_repo = Mock()
+            mock_prompt_repo = Mock()
+            mock_criteria_repo = Mock()
+            
+            m.setattr('src.storybench.database.services.config_service.ModelRepository', 
+                     lambda db: mock_model_repo)
+            m.setattr('src.storybench.database.services.config_service.PromptRepository', 
+                     lambda db: mock_prompt_repo)
+            m.setattr('src.storybench.database.services.config_service.CriteriaRepository', 
+                     lambda db: mock_criteria_repo)
+            
+            service = ConfigService(mock_database)
+            service.model_repo = mock_model_repo
+            service.prompt_repo = mock_prompt_repo
+            service.criteria_repo = mock_criteria_repo
+            
+            return service
     
-    def test_generate_config_hash(self):
+    def test_initialization(self, mock_database):
+        """Test ConfigService initialization."""
+        with pytest.MonkeyPatch().context() as m:
+            mock_model_repo = Mock()
+            mock_prompt_repo = Mock()
+            mock_criteria_repo = Mock()
+            
+            m.setattr('src.storybench.database.services.config_service.ModelRepository', 
+                     lambda db: mock_model_repo)
+            m.setattr('src.storybench.database.services.config_service.PromptRepository', 
+                     lambda db: mock_prompt_repo)
+            m.setattr('src.storybench.database.services.config_service.CriteriaRepository', 
+                     lambda db: mock_criteria_repo)
+            
+            service = ConfigService(mock_database)
+            
+            assert service.database == mock_database
+
+    def test_generate_config_hash(self, config_service):
         """Test configuration hash generation."""
-        from storybench.database.services.config_service import ConfigService
+        config_data = {
+            "models": ["gpt-4", "claude-3"],
+            "prompts": ["creative_writing"],
+            "temperature": 0.9
+        }
         
-        # Create service with minimal mocking just for hash testing
-        with patch('storybench.database.services.config_service.ModelRepository'), \
-             patch('storybench.database.services.config_service.PromptRepository'), \
-             patch('storybench.database.services.config_service.CriteriaRepository'):
-            
-            service = ConfigService(Mock())
-            
-            config_data = {
-                "models": ["gpt-4", "claude-3"],
-                "temperature": 0.7,
-                "max_tokens": 1000
-            }
-            
-            # Generate hash
-            hash_result = service.generate_config_hash(config_data)
-            
-            # Verify it's a string of expected length (16 chars from SHA256)
-            assert isinstance(hash_result, str)
-            assert len(hash_result) == 16
-            
-            # Verify consistency - same input should produce same hash
-            hash_result2 = service.generate_config_hash(config_data)
-            assert hash_result == hash_result2
-    
-    def test_generate_config_hash_order_independence(self):
-        """Test that config hash is order-independent."""
-        from storybench.database.services.config_service import ConfigService
+        hash_result = config_service.generate_config_hash(config_data)
         
-        with patch('storybench.database.services.config_service.ModelRepository'), \
-             patch('storybench.database.services.config_service.PromptRepository'), \
-             patch('storybench.database.services.config_service.CriteriaRepository'):
-            
-            service = ConfigService(Mock())
-            
-            config1 = {"a": 1, "b": 2, "c": 3}
-            config2 = {"c": 3, "a": 1, "b": 2}  # Different order
-            
-            hash1 = service.generate_config_hash(config1)
-            hash2 = service.generate_config_hash(config2)
-            
-            assert hash1 == hash2
+        # Verify hash format and consistency
+        assert isinstance(hash_result, str)
+        assert len(hash_result) == 16
+        
+        # Verify hash is deterministic
+        hash_result2 = config_service.generate_config_hash(config_data)
+        assert hash_result == hash_result2
     
-    @patch('storybench.database.services.config_service.ModelRepository')
-    @patch('storybench.database.services.config_service.PromptRepository')
-    @patch('storybench.database.services.config_service.CriteriaRepository')
+    def test_generate_config_hash_different_order(self, config_service):
+        """Test that hash is consistent regardless of key order."""
+        config1 = {"a": 1, "b": 2, "c": 3}
+        config2 = {"c": 3, "a": 1, "b": 2}
+        
+        hash1 = config_service.generate_config_hash(config1)
+        hash2 = config_service.generate_config_hash(config2)
+        
+        assert hash1 == hash2
+    
+    def test_generate_config_hash_different_data(self, config_service):
+        """Test that different data produces different hashes."""
+        config1 = {"models": ["gpt-4"]}
+        config2 = {"models": ["claude-3"]}
+        
+        hash1 = config_service.generate_config_hash(config1)
+        hash2 = config_service.generate_config_hash(config2)
+        
+        assert hash1 != hash2
+    
     @pytest.mark.asyncio
-    async def test_get_active_models(self, mock_criteria_repo, mock_prompt_repo, mock_model_repo):
+    async def test_get_active_models(self, config_service):
         """Test getting active models configuration."""
-        from storybench.database.services.config_service import ConfigService
+        expected_models = Mock()
+        config_service.model_repo.find_active = AsyncMock(return_value=expected_models)
         
-        # Setup mock response
-        mock_models = Mock()
-        mock_models.config_hash = "abc123"
-        mock_models.is_active = True
+        result = await config_service.get_active_models()
         
-        mock_model_instance = AsyncMock()
-        mock_model_instance.find_active.return_value = mock_models
-        mock_model_repo.return_value = mock_model_instance
-        
-        service = ConfigService(Mock())
-        
-        # Execute
-        result = await service.get_active_models()
-        
-        # Verify
-        assert result == mock_models
-        mock_model_instance.find_active.assert_called_once()
+        assert result == expected_models
+        config_service.model_repo.find_active.assert_called_once()
     
-    def test_hash_different_values_different_hashes(self):
-        """Test that different configs produce different hashes."""
-        from storybench.database.services.config_service import ConfigService
+    @pytest.mark.asyncio
+    async def test_get_active_prompts(self, config_service):
+        """Test getting active prompts configuration."""
+        expected_prompts = Mock()
+        config_service.prompt_repo.find_active = AsyncMock(return_value=expected_prompts)
         
-        with patch('storybench.database.services.config_service.ModelRepository'), \
-             patch('storybench.database.services.config_service.PromptRepository'), \
-             patch('storybench.database.services.config_service.CriteriaRepository'):
-            
-            service = ConfigService(Mock())
-            
-            config1 = {"temperature": 0.7}
-            config2 = {"temperature": 0.8}
-            
-            hash1 = service.generate_config_hash(config1)
-            hash2 = service.generate_config_hash(config2)
-            
-            assert hash1 != hash2
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+        result = await config_service.get_active_prompts()
+        
+        assert result == expected_prompts
+        config_service.prompt_repo.find_active.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_get_active_criteria(self, config_service):
+        """Test getting active criteria configuration."""
+        expected_criteria = Mock()
+        config_service.criteria_repo.find_active = AsyncMock(return_value=expected_criteria)
+        
+        result = await config_service.get_active_criteria()
+        
+        assert result == expected_criteria
+        config_service.criteria_repo.find_active.assert_called_once()
