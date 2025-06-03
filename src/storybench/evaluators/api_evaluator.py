@@ -226,7 +226,13 @@ class APIEvaluator(BaseEvaluator):
         try:
             # STRICT CONTEXT VALIDATION - No truncation allowed
             context_stats = self.validate_context_size(prompt)
-            logger.debug(f"Context validation passed for {self.name}: {context_stats}")
+            
+            # Get detailed analytics for evaluation reports
+            context_analytics = self.get_context_analytics(prompt)
+            logger.info(f"Context validation passed for {self.name}: "
+                       f"hash={context_analytics['prompt_hash']}, "
+                       f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                       f"utilization={context_analytics['utilization_percent']:.1f}%")
             
             max_retries = kwargs.get("max_retries", 3)
             base_delay = 1  # seconds
@@ -246,7 +252,7 @@ class APIEvaluator(BaseEvaluator):
                     else:
                         raise ValueError(f"Unsupported provider: {self.provider}")
                     
-                    # Success - return response with context stats
+                    # Success - return response with enhanced context analytics
                     metadata = {
                         "model_name": self.model_name,
                         "provider": self.provider,
@@ -257,7 +263,7 @@ class APIEvaluator(BaseEvaluator):
                         response_text, 
                         start_time, 
                         metadata=metadata,
-                        context_stats=context_stats
+                        context_stats=context_analytics
                     )
 
                 except OPENAI_NON_RETRYABLE_ERRORS as e:

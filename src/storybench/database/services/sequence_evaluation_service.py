@@ -167,6 +167,32 @@ class SequenceEvaluationService:
             # For many models, prepending system prompt to user prompt is a common approach.
             full_prompt_for_evaluator = f"{system_prompt_content}\n\n{user_prompt_content}"
             
+            # CRITICAL: Pre-evaluation context size validation for entire sequence
+            try:
+                context_analytics = self.evaluator.get_context_analytics(full_prompt_for_evaluator)
+                logger.info(f"Sequence evaluation context validation: "
+                           f"sequence={responses[0].sequence}, "
+                           f"model={responses[0].model_name}, "
+                           f"responses_count={len(responses)}, "
+                           f"hash={context_analytics['prompt_hash']}, "
+                           f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                           f"utilization={context_analytics['utilization_percent']:.1f}%")
+                
+                if not context_analytics['fits']:
+                    # This is critical - if sequence context exceeds limits, evaluation will fail
+                    error_msg = (f"Sequence evaluation context exceeds limits: "
+                               f"sequence={responses[0].sequence}, "
+                               f"model={responses[0].model_name}, "
+                               f"responses={len(responses)}, "
+                               f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                               f"hash={context_analytics['prompt_hash']}")
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"Context validation failed for sequence evaluation: {e}")
+                raise
+            
             evaluator_call_settings = {
                 "temperature": 0.3, # Consistent with original settings
                 "max_tokens": 4096  # Consistent with original settings

@@ -1,6 +1,7 @@
 """Unified context management with single source of truth for limits."""
 
 import logging
+import hashlib
 from typing import Dict, Any, Optional
 from pathlib import Path
 
@@ -95,6 +96,68 @@ class UnifiedContextManager(LangChainContextManager):
             "fits": fits,
             "utilization": estimated_tokens / self.max_context_tokens,
             "characters": len(text)
+        }
+    
+    def validate_context_size_strict(self, text: str, context_name: str = "prompt") -> Dict[str, Any]:
+        """Validate text fits within context limits with strict enforcement.
+        
+        Args:
+            text: The text to validate
+            context_name: Descriptive name for logging (e.g., "prompt", "sequence_context")
+            
+        Returns:
+            Dictionary with context statistics
+            
+        Raises:
+            ContextLimitExceededError: If text exceeds limits
+        """
+        # Generate prompt fingerprint for traceability
+        prompt_hash = hashlib.md5(text.encode('utf-8')).hexdigest()[:8]
+        
+        # Check context size
+        stats = self.check_context_size(text)
+        
+        # Log context validation attempt
+        logger.info(f"Context validation for {context_name} (hash: {prompt_hash}): "
+                   f"{stats['estimated_tokens']}/{stats['max_tokens']} tokens "
+                   f"({stats['utilization']:.1%} utilization)")
+        
+        if not stats['fits']:
+            error_msg = (f"Context exceeds limit for {context_name}: "
+                        f"{stats['estimated_tokens']} tokens > {stats['max_tokens']} max. "
+                        f"Context length: {stats['characters']} characters. "
+                        f"Hash: {prompt_hash}. "
+                        f"Consider using a model with larger context window or reducing input size.")
+            logger.error(error_msg)
+            raise ContextLimitExceededError(error_msg)
+        
+        # Add fingerprint to stats for tracking
+        stats['prompt_hash'] = prompt_hash
+        stats['context_name'] = context_name
+        
+        logger.debug(f"Context validation passed for {context_name} (hash: {prompt_hash})")
+        return stats
+    
+    def get_context_analytics(self, text: str) -> Dict[str, Any]:
+        """Get detailed analytics about context usage for evaluation reports.
+        
+        Args:
+            text: The text to analyze
+            
+        Returns:
+            Detailed analytics dictionary
+        """
+        stats = self.check_context_size(text)
+        prompt_hash = hashlib.md5(text.encode('utf-8')).hexdigest()[:8]
+        
+        return {
+            **stats,
+            'prompt_hash': prompt_hash,
+            'remaining_tokens': stats['max_tokens'] - stats['estimated_tokens'],
+            'utilization_percent': stats['utilization'] * 100,
+            'word_count': len(text.split()),
+            'line_count': text.count('\n') + 1,
+            'efficiency_ratio': len(text) / stats['estimated_tokens'] if stats['estimated_tokens'] > 0 else 0
         }
     
     def get_max_context_tokens(self) -> int:

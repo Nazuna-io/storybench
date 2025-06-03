@@ -224,7 +224,13 @@ class LocalEvaluator(BaseEvaluator):
         try:
             # STRICT CONTEXT VALIDATION - No truncation allowed
             context_stats = self.validate_context_size(prompt)
-            logger.debug(f"Context validation passed: {context_stats}")
+            
+            # Get detailed analytics for evaluation reports
+            context_analytics = self.get_context_analytics(prompt)
+            logger.info(f"Context validation passed for {self.name}: "
+                       f"hash={context_analytics['prompt_hash']}, "
+                       f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                       f"utilization={context_analytics['utilization_percent']:.1f}%")
             
             # Extract generation parameters, using self.model_parameters as defaults
             llm_params = {
@@ -244,7 +250,10 @@ class LocalEvaluator(BaseEvaluator):
                 try:
                     # Log generation attempt details
                     max_gen_tokens = llm_params.get("max_tokens", 2048)
-                    logger.debug(f"Generation attempt {attempt + 1}/{max_retries + 1}: {context_stats['estimated_tokens']} prompt tokens, max {max_gen_tokens} generation tokens")
+                    logger.debug(f"Generation attempt {attempt + 1}/{max_retries + 1}: "
+                               f"{context_analytics['estimated_tokens']} prompt tokens, "
+                               f"max {max_gen_tokens} generation tokens, "
+                               f"hash={context_analytics['prompt_hash']}")
                     
                     # Generate response using LangChain wrapper
                     response_text = self.llm(prompt, **llm_params)
@@ -283,7 +292,7 @@ class LocalEvaluator(BaseEvaluator):
                         generated_text, 
                         start_time, 
                         metadata=metadata,
-                        context_stats=context_stats
+                        context_stats=context_analytics
                     )
                     
                 except Exception as e:

@@ -82,23 +82,19 @@ class BaseEvaluator(ABC):
         Raises:
             ContextLimitExceededError: If prompt exceeds limits
         """
-        # Check context size using unified system - this will raise error if too large
-        estimated_tokens = self.context_manager._estimate_tokens(prompt)
+        # Delegate to unified context manager - single source of truth
+        return self.context_manager.validate_context_size_strict(prompt, f"evaluator_{self.name}")
+    
+    def get_context_analytics(self, prompt: str) -> Dict[str, Any]:
+        """Get detailed context analytics for evaluation reports.
         
-        if estimated_tokens > self.context_manager.max_context_tokens:
-            raise ContextLimitExceededError(
-                f"Context exceeds maximum context size: {estimated_tokens} tokens > {self.context_manager.max_context_tokens} max. "
-                f"Prompt length: {len(prompt)} characters. "
-                f"Consider using a model with larger context window or reducing prompt size."
-            )
-        
-        # Return context statistics
-        return {
-            'estimated_tokens': estimated_tokens,
-            'max_context_tokens': self.context_manager.max_context_tokens,
-            'remaining_tokens': self.context_manager.max_context_tokens - estimated_tokens,
-            'utilization_percent': (estimated_tokens / self.context_manager.max_context_tokens) * 100
-        }
+        Args:
+            prompt: The prompt text to analyze
+            
+        Returns:
+            Dictionary with detailed context analytics
+        """
+        return self.context_manager.get_context_analytics(prompt)
     
     def get_context_limits(self) -> Dict[str, int]:
         """Get context limits for this evaluator.
