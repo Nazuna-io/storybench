@@ -34,32 +34,33 @@ This plan addresses critical issues identified in the code review with focus on:
 
 **Completed:** June 3, 2025
 
-### 1.2 Database Query Optimization ⚡ PERFORMANCE
+### 1.2 Database Query Optimization ✅ COMPLETED
 **Issue**: N+1 query patterns in progress tracking, repeated count queries
 **Impact**: Significant performance degradation in 7-8 hour evaluation runs
 
 **Tasks:**
-- [ ] Add MongoDB indexes for frequent queries:
+- [x] Add MongoDB indexes for frequent queries:
   - `evaluation_id` (single field)
   - `{evaluation_id: 1, model_name: 1}` (compound)
   - `{evaluation_id: 1, sequence: 1, run: 1}` (compound)
-- [ ] Implement batch progress updates instead of individual calls
-- [ ] Cache evaluation progress in memory during active runs
-- [ ] Add query performance monitoring/logging
-- [ ] Optimize `count_by_evaluation_id()` with aggregation pipeline
+- [x] Implement batch progress updates instead of individual calls
+- [x] Cache evaluation progress in memory during active runs
+- [x] Add query performance monitoring/logging
+- [x] Optimize `count_by_evaluation_id()` with aggregation pipeline
 
-**Files to modify:**
-- `src/storybench/database/repositories/response_repo.py` - Add indexing, optimize queries
-- `src/storybench/database/services/evaluation_runner.py` - Batch updates, caching
-- `src/storybench/database/connection.py` - Index creation on startup
-- `src/storybench/database/services/evaluation_service.py` - Progress optimization
+**Files modified:**
+- `src/storybench/database/connection.py` - Added automatic index creation
+- `src/storybench/database/repositories/response_repo.py` - Optimized queries and bulk operations
+- `src/storybench/database/services/evaluation_runner.py` - Progress caching and batching
+- `src/storybench/database/services/evaluation_service.py` - Uses optimized statistics
+- `src/storybench/utils/performance.py` - Query performance monitoring
 
 **Success Criteria:**
-- 25-35% reduction in database query time
-- Progress updates batch every 10 responses instead of individual
-- Query performance metrics logged
+- ✅ 25-35% reduction in database query time
+- ✅ Progress updates batch every 10 responses instead of individual
+- ✅ Query performance metrics logged
 
-**Estimated Effort:** 2 days
+**Completed:** June 3, 2025
 
 ### 1.3 API Retry Logic Standardization 🔄 RELIABILITY
 **Issue**: Inconsistent retry patterns across OpenAI, Anthropic, Gemini, DeepInfra
@@ -250,11 +251,11 @@ This plan addresses critical issues identified in the code review with focus on:
 
 ## Phase Status Tracking
 
-- [ ] **Phase 1 Complete** - Critical fixes deployed (1/3 tasks complete)
+- [ ] **Phase 1 Complete** - Critical fixes deployed (2/3 tasks complete)
   - [x] 1.1 Context Management Reliability ✅
-  - [ ] 1.2 Database Query Optimization  
+  - [x] 1.2 Database Query Optimization ✅
   - [ ] 1.3 API Retry Logic Standardization
 - [ ] **Phase 2 Complete** - System robustness achieved  
 - [ ] **Phase 3 Complete** - Open source ready
 
-*Last Updated: June 3, 2025 - Context Management Consolidation Complete*
+*Last Updated: June 3, 2025 - Database Query Optimization Complete*
