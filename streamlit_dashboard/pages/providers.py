@@ -61,6 +61,100 @@ def create_provider_comparison_chart(performance_df):
     
     fig.update_layout(height=400)
     return fig, provider_scores
+
+def create_provider_criteria_radar(provider_scores, selected_providers):
+    """Create radar chart comparing providers across criteria."""
+    criteria_cols = ['creativity', 'coherence', 'character_depth', 'dialogue_quality', 
+                    'visual_imagination', 'conceptual_depth', 'adaptability']
+    available_criteria = [col for col in criteria_cols if col in provider_scores.columns]
+    
+    if not available_criteria or not selected_providers:
+        return None
+    
+    fig = go.Figure()
+    colors = px.colors.qualitative.Set1
+    
+    for i, provider in enumerate(selected_providers):
+        if provider in provider_scores.index:
+            scores = provider_scores.loc[provider, available_criteria]
+            criteria = [col.replace('_', ' ').title() for col in available_criteria]
+            
+            # Close the radar chart
+            criteria_closed = criteria + [criteria[0]]
+            values_closed = list(scores.values) + [scores.values[0]]
+            
+            color = colors[i % len(colors)]
+            
+            fig.add_trace(go.Scatterpolar(
+                r=values_closed,
+                theta=criteria_closed,
+                fill='toself',
+                name=provider,
+                line=dict(width=2, color=color),
+                fillcolor=color.replace('rgb', 'rgba').replace(')', ', 0.1)')
+            ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[1, 5],
+                tickvals=[1, 2, 3, 4, 5]
+            )
+        ),
+        showlegend=True,
+        title="Provider Performance Comparison",
+        height=500
+    )
+    
+    return fig
+
+def show():
+    """Display the provider comparison page."""
+    st.header("🏢 Provider Comparison")
+    
+    # Initialize data service
+    data_service = DataService()
+    
+    # Get performance data
+    performance_df = data_service.get_model_performance_data()
+    
+    if performance_df.empty:
+        st.warning("No performance data available. Please run evaluations first.")
+        return
+    
+    # Get available criteria
+    criteria_cols = ['creativity', 'coherence', 'character_depth', 'dialogue_quality', 
+                    'visual_imagination', 'conceptual_depth', 'adaptability']
+    available_criteria = [col for col in criteria_cols if col in performance_df.columns]
+    
+    if not available_criteria:
+        st.error("No evaluation criteria found in the data.")
+        return
+    
+    # Add provider information
+    performance_df['provider'] = performance_df['model'].apply(extract_provider_from_model)
+    
+    # Provider overview
+    st.subheader("📊 Provider Overview")
+    
+    provider_stats = performance_df.groupby('provider').agg({
+        'model': 'nunique',
+        'response_id': 'count'
+    }).rename(columns={'model': 'models', 'response_id': 'responses'})
+    
+    # Display provider stats
+    for provider in provider_stats.index:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(f"**{provider}**", "Provider")
+        with col2:
+            st.metric("Models", provider_stats.loc[provider, 'models'])
+        with col3:
+            st.metric("Responses", provider_stats.loc[provider, 'responses'])
+        st.write("")
+    
+    # Overall comparison
     st.subheader("🏆 Overall Performance Comparison")
     
     comparison_fig, provider_scores = create_provider_comparison_chart(performance_df)
@@ -115,37 +209,6 @@ def create_provider_comparison_chart(performance_df):
                     if provider in selected_providers:
                         st.write(f"{i}. {provider}: {score:.2f}")
                 st.write("")
-    
-    # Statistical comparison
-    st.subheader("📈 Statistical Comparison")
-    
-    # Create comparison table
-    comparison_stats = []
-    for provider in available_providers:
-        provider_data = performance_df[performance_df['provider'] == provider]
-        
-        if not provider_data.empty:
-            stats = {
-                'Provider': provider,
-                'Models': len(provider_data['model'].unique()),
-                'Total Responses': len(provider_data),
-                'Avg Overall Score': provider_data[available_criteria].mean().mean(),
-                'Score Std Dev': provider_data[available_criteria].values.flatten().std()
-            }
-            
-            # Best and worst criteria
-            criteria_means = provider_data[available_criteria].mean()
-            stats['Best Criterion'] = criteria_means.idxmax().replace('_', ' ').title()
-            stats['Best Score'] = criteria_means.max()
-            stats['Worst Criterion'] = criteria_means.idxmin().replace('_', ' ').title()
-            stats['Worst Score'] = criteria_means.min()
-            
-            comparison_stats.append(stats)
-    
-    if comparison_stats:
-        comparison_df = pd.DataFrame(comparison_stats)
-        comparison_df = comparison_df.round(3)
-        st.dataframe(comparison_df, use_container_width=True)
     
     # Market insights
     st.subheader("💡 Market Insights")
