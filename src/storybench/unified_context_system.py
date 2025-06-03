@@ -134,6 +134,7 @@ class UnifiedContextManager(LangChainContextManager):
         # Add fingerprint to stats for tracking
         stats['prompt_hash'] = prompt_hash
         stats['context_name'] = context_name
+        stats['utilization_percent'] = stats['utilization'] * 100  # Add percentage version
         
         logger.debug(f"Context validation passed for {context_name} (hash: {prompt_hash})")
         return stats
