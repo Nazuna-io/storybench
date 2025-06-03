@@ -85,7 +85,34 @@ This plan addresses critical issues identified in the code review with focus on:
 
 **Estimated Effort:** 1-2 days
 
-## Phase 2: System Robustness (Week 2)
+## Phase 2: System Robustness & Performance (Week 2)
+
+### 2.0 Sequence-Level Parallelization ⚡ HIGH IMPACT
+**Issue**: Sequential execution of independent sequences wastes API concurrency potential
+**Impact**: 7-8 hour evaluation runs could be reduced to under 1 hour
+
+**Tasks:**
+- [ ] Design sequence worker architecture with isolated context management
+- [ ] Implement concurrent sequence execution with asyncio/threading
+- [ ] Add intelligent rate limiting per API provider (OpenAI: 10-20 concurrent, Anthropic: 8-15 concurrent)
+- [ ] Create thread-safe progress aggregation and reporting
+- [ ] Implement graceful degradation and error isolation per sequence
+- [ ] Add adaptive concurrency control based on API response times
+- [ ] Update resume functionality for parallel execution state
+
+**Files to modify:**
+- `src/storybench/database/services/evaluation_runner.py` - Parallel orchestration
+- `src/storybench/evaluators/` - Context isolation per sequence worker
+- `src/storybench/utils/` (new) - Concurrency and rate limiting utilities
+- `src/storybench/cli.py` - Parallel evaluation support
+
+**Success Criteria:**
+- 5-15x speedup depending on number of sequences and models
+- Zero cross-sequence context contamination
+- Reliable error isolation per sequence worker
+- Graceful handling of API rate limits
+
+**Estimated Effort:** 4-5 days
 
 ### 2.1 Evaluation State Management 💾 RELIABILITY
 **Issue**: Resume functionality relies on counting responses, may miss partial work
@@ -255,7 +282,10 @@ This plan addresses critical issues identified in the code review with focus on:
   - [x] 1.1 Context Management Reliability ✅
   - [x] 1.2 Database Query Optimization ✅
   - [ ] 1.3 API Retry Logic Standardization
-- [ ] **Phase 2 Complete** - System robustness achieved  
+- [ ] **Phase 2 Complete** - System robustness & performance achieved  
+  - [ ] 2.0 Sequence-Level Parallelization ⚡ (HIGH IMPACT: 5-15x speedup)
+  - [ ] 2.1 Evaluation State Management
+  - [ ] 2.2 Configuration Validation & Consolidation
 - [ ] **Phase 3 Complete** - Open source ready
 
-*Last Updated: June 3, 2025 - Database Query Optimization Complete*
+*Last Updated: June 3, 2025 - Added Phase 2.0 Sequence Parallelization*
