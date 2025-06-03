@@ -2,11 +2,18 @@
 
 A comprehensive evaluation pipeline for assessing the creative writing capabilities of frontier language models across diverse creative tasks including storytelling, screenwriting, advertising concepts, and cross-genre narratives.
 
-## 🎉 **NEW IN v1.5** - Automated Pipeline & Configuration Management
+## 🎉 **NEW IN v1.5** - Complete Automation & Interactive Dashboard
 
-**StoryBench v1.5 brings major improvements in automation, configuration management, and ease of use!**
+**StoryBench v1.5 brings major improvements in automation, interactive visualization, and production-ready evaluation workflows!**
 
 ### 🚀 **What's New in v1.5**
+
+#### **📊 Interactive Streamlit Dashboard**
+- **Real-time Monitoring**: Live progress tracking of evaluation runs
+- **Performance Analysis**: Interactive radar charts and model rankings
+- **Statistical Insights**: Comprehensive criteria analysis with visualizations
+- **Model Comparison**: Side-by-side performance profiling
+- **Cost Tracking**: Monitor API usage and evaluation costs
 
 #### **🔧 YAML Configuration Management**
 - **Easy Model Addition**: Just edit `config/models.yaml` - no code changes needed!
@@ -17,7 +24,7 @@ A comprehensive evaluation pipeline for assessing the creative writing capabilit
 - **Single Command**: Run entire evaluation with `python run_automated_evaluation.py`
 - **Smart Resume**: Automatically skip completed evaluations
 - **Force Rerun**: Option to re-evaluate specific models
-- **Progress Tracking**: Real-time progress with time estimates
+- **Progress Tracking**: Real-time progress with JSON status files
 
 #### **🔌 LiteLLM Integration**
 - **Unified API Access**: Single interface for all providers (OpenAI, Anthropic, Google, DeepInfra)
@@ -25,20 +32,16 @@ A comprehensive evaluation pipeline for assessing the creative writing capabilit
 - **Cost Tracking**: Monitor API usage and costs
 - **Backwards Compatible**: Existing code continues to work unchanged
 
-#### **📊 Coming Soon: Streamlit Dashboard**
-- Real-time evaluation monitoring
-- Interactive visualizations
-- Model performance comparisons
-- Export capabilities
-
 ### 🏆 **Latest Evaluation Results**
 
-We've successfully evaluated **541 creative responses** (45 per model) across **12 frontier models** from 4 major providers:
+We've successfully evaluated **913 creative responses** across **13 frontier models** from 4 major providers with **900 completed LLM evaluations**:
 
-**📊 Top Performers:**
-1. **🥇 Claude-Opus-4** - 4.52/5.0 (Creative Innovator)
-2. **🥈 Gemini-2.5-Pro** - 4.45/5.0 (Technical Perfectionist) 
-3. **🥉 Claude-3.7-Sonnet** - 4.25/5.0 (Reliable All-Rounder)
+**📊 Current Top Performers:**
+1. **🥇 Claude-Opus-4** - Leading creative innovation
+2. **🥈 Multiple Strong Performers** - Claude Sonnet, GPT-4 variants, Gemini series
+3. **🥉 Specialized Models** - DeepSeek, Qwen, Llama variants
+
+*View detailed rankings and performance analysis in the interactive dashboard*
 
 ### ✅ **Production-Ready Features**
 
@@ -73,6 +76,10 @@ We've successfully evaluated **541 creative responses** (45 per model) across **
 git clone https://github.com/yourusername/storybench.git
 cd storybench
 
+# Create virtual environment
+python -m venv venv-storybench
+source venv-storybench/bin/activate  # Linux/Mac
+
 # Install dependencies
 pip install -r requirements.txt
 
@@ -83,6 +90,32 @@ cp config/models.example.yaml config/models.yaml
 cp .env.example .env
 # Edit .env with your API keys
 ```
+
+### **🎯 Complete Workflow**
+
+1. **Configure Models**: Edit `config/models.yaml` to enable/disable models
+2. **Set API Keys**: Add credentials to `.env` file
+3. **Run Evaluations**: `python run_automated_evaluation.py`
+4. **View Results**: Launch dashboard with `streamlit run streamlit_dashboard/app.py`
+
+### **📊 Interactive Dashboard**
+
+Launch the comprehensive evaluation dashboard:
+
+```bash
+cd streamlit_dashboard
+streamlit run app.py
+```
+
+**Dashboard Features:**
+- **📈 Overview**: Key metrics, top performers, and evaluation progress
+- **🏆 Rankings**: Model performance comparison with interactive radar charts  
+- **📊 Criteria Analysis**: Box plots and statistical insights across evaluation criteria
+- **🏢 Provider Comparison**: Performance analysis by company (Anthropic, OpenAI, etc.)
+- **⚡ Progress**: Real-time monitoring of evaluation runs
+- **🔍 Data Explorer**: Interactive filtering and drill-down analysis
+
+Access at `http://localhost:8501` after launching
 
 ### **Configuration**
 
