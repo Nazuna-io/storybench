@@ -37,12 +37,14 @@ class EvaluationService:
         return await self.evaluation_repo.find_incomplete()
         
     async def get_evaluation_progress(self, evaluation_id: ObjectId) -> Dict[str, Any]:
-        """Get detailed progress information for an evaluation."""
+        """Get detailed progress information for an evaluation with enhanced statistics."""
         evaluation = await self.evaluation_repo.find_by_id(evaluation_id)
         if not evaluation:
             return None
             
-        completed_count = await self.response_repo.count_by_evaluation_id(evaluation_id)
+        # Use optimized statistics query for comprehensive information
+        stats = await self.response_repo.get_evaluation_statistics(evaluation_id)
+        completed_count = stats["total_count"]
         
         return {
             "evaluation_id": str(evaluation_id),
@@ -54,7 +56,13 @@ class EvaluationService:
             "current_sequence": evaluation.current_sequence,
             "current_run": evaluation.current_run,
             "started_at": evaluation.started_at,
-            "completed_at": evaluation.completed_at
+            "completed_at": evaluation.completed_at,
+            # Enhanced statistics from optimized query
+            "model_count": stats["model_count"],
+            "sequence_count": stats["sequence_count"],
+            "avg_generation_time": stats["avg_generation_time"],
+            "total_generation_time": stats["total_generation_time"],
+            "by_model_count": stats["by_model_count"]
         }
         
     async def save_response(self, evaluation_id: ObjectId, 
@@ -85,9 +93,10 @@ class EvaluationService:
                                        current_model: str = None,
                                        current_sequence: str = None,
                                        current_run: int = None) -> bool:
-        """Update evaluation progress indicators."""
-        # Count completed tasks
-        completed_count = await self.response_repo.count_by_evaluation_id(evaluation_id)
+        """Update evaluation progress indicators with optimized query."""
+        # Use optimized statistics query instead of simple count
+        stats = await self.response_repo.get_evaluation_statistics(evaluation_id)
+        completed_count = stats["total_count"]
         
         return await self.evaluation_repo.update_progress(
             evaluation_id, 
