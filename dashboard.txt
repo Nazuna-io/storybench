@@ -1,0 +1,18 @@
+4. Explore the Different Pages:
+
+📊 Overview - Quick metrics and top performers
+🏆 Model Rankings - Interactive radar charts comparing models
+📈 Criteria Analysis - Box plots and heatmaps for evaluation criteria
+🏢 Provider Comparison - Performance analysis by company (Anthropic, OpenAI, etc.)
+⚡ Real-Time Progress - Batch monitoring (will show CLI integration instructions)
+🔍 Data Explorer - Interactive filtering and drill-down analysis
+
+🎨 What You'll See
+The dashboard will load your evaluation data and show:
+
+570 total responses from 12 models
+555 evaluations across 7 criteria
+Interactive radar charts showing model performance
+Provider comparison between Anthropic, OpenAI, Google, Deepinfra
+Criteria heatmaps showing strengths/weaknesses
+Real-time metrics and filtering capabilities
