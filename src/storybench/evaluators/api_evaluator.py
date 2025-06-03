@@ -1,8 +1,7 @@
-"""Enhanced API-based LLM evaluator with unified context management."""
+"""Enhanced API-based LLM evaluator with unified context management and retry logic."""
 
 import asyncio
 import time
-import random # For jitter
 import logging
 from typing import Dict, Any, Optional, Tuple, Type
 
@@ -13,57 +12,9 @@ from google.api_core import exceptions as google_exceptions
 
 from .base import BaseEvaluator
 from ..unified_context_system import ContextLimitExceededError
+from ..utils.retry_handler import retry_handler
 
 logger = logging.getLogger(__name__)
-
-# Define retryable exceptions for each provider
-OPENAI_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
-    openai.RateLimitError,
-    openai.APITimeoutError,
-    openai.APIConnectionError,
-    openai.InternalServerError,
-)
-
-ANTHROPIC_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
-    anthropic.RateLimitError,
-    anthropic.APITimeoutError,
-    anthropic.APIConnectionError,
-    anthropic.InternalServerError,
-)
-
-GEMINI_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = (
-    google_exceptions.DeadlineExceeded,
-    google_exceptions.ServiceUnavailable,
-    google_exceptions.ResourceExhausted,
-)
-
-# Non-retryable API errors
-OPENAI_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
-    openai.AuthenticationError,
-    openai.PermissionDeniedError,
-    openai.NotFoundError,
-    openai.BadRequestError,
-    openai.UnprocessableEntityError,
-)
-
-ANTHROPIC_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
-    anthropic.AuthenticationError,
-    anthropic.PermissionDeniedError,
-    anthropic.NotFoundError,
-    anthropic.BadRequestError,
-)
-
-GEMINI_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = (
-    google_exceptions.PermissionDenied,
-    google_exceptions.NotFound,
-    google_exceptions.InvalidArgument,
-    google_exceptions.FailedPrecondition,
-    google_exceptions.Unauthenticated,
-)
-
-# DeepInfra uses OpenAI-compatible API, so we reuse OpenAI exceptions
-DEEPINFRA_RETRYABLE_EXCEPTIONS: Tuple[Type[Exception], ...] = OPENAI_RETRYABLE_EXCEPTIONS
-DEEPINFRA_NON_RETRYABLE_ERRORS: Tuple[Type[Exception], ...] = OPENAI_NON_RETRYABLE_ERRORS
 
 # Default context limits for different providers (tokens)
 PROVIDER_CONTEXT_LIMITS = {
@@ -333,9 +284,21 @@ class APIEvaluator(BaseEvaluator):
             # Re-raise context errors without modification
             raise
         except Exception as e:
-            error_msg = f"Generation failed for {self.name}: {str(e)}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            logger.error(f"Failed to generate response for {self.name}: {type(e).__name__} - {e}")
+            raise
+    
+    async def _generate_with_provider(self, prompt: str, **kwargs) -> str:
+        """Route to appropriate provider-specific generation method."""
+        if self.provider == "openai":
+            return await self._generate_openai(prompt, **kwargs)
+        elif self.provider == "anthropic":
+            return await self._generate_anthropic(prompt, **kwargs)
+        elif self.provider == "gemini":
+            return await self._generate_gemini(prompt, **kwargs)
+        elif self.provider == "deepinfra":
+            return await self._generate_deepinfra(prompt, **kwargs)
+        else:
+            raise ValueError(f"Unsupported provider: {self.provider}")
     
     async def cleanup(self) -> None:
         """Clean up API connections."""
