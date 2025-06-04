@@ -82,9 +82,23 @@ class DataService:
             st.error(f"Error getting database stats: {e}")
             return {}
     
-    def extract_scores_from_evaluation(self, evaluation_text: str) -> Dict[str, float]:
-        """Extract numerical scores from evaluation text."""
+    def extract_scores_from_evaluation(self, evaluation_text: str = None, eval_doc: dict = None) -> Dict[str, float]:
+        """Extract numerical scores from evaluation text or structured criteria_results."""
         scores = {}
+        
+        # New format: structured criteria_results (preferred)
+        if eval_doc and 'criteria_results' in eval_doc:
+            for criterion_eval in eval_doc['criteria_results']:
+                criterion_name = criterion_eval.get('criterion_name')
+                score = criterion_eval.get('score')
+                if criterion_name and score is not None:
+                    scores[criterion_name] = float(score)
+            return scores
+        
+        # Old format: parse from evaluation_text (fallback)
+        if not evaluation_text:
+            return scores
+            
         criteria = ['creativity', 'coherence', 'character_depth', 'dialogue_quality', 
                    'visual_imagination', 'conceptual_depth', 'adaptability']
         
@@ -140,7 +154,9 @@ class DataService:
                 
                 eval_doc = eval_map[response_id]
                 evaluation_text = eval_doc.get('evaluation_text', '')
-                scores = self.extract_scores_from_evaluation(evaluation_text)
+                
+                # Use new extraction method that handles both formats
+                scores = self.extract_scores_from_evaluation(evaluation_text, eval_doc)
                 
                 if scores:  # Only include if we extracted scores
                     row = {
