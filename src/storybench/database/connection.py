@@ -111,7 +111,7 @@ class DatabaseConnection:
                     
     async def _create_indexes(self):
         """Create performance-critical indexes for evaluation queries."""
-        if not self.database:
+        if self.database is None:
             return
             
         try:

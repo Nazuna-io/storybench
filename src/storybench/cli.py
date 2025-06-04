@@ -765,6 +765,158 @@ async def _sync_prompts_async(version, list_versions, test_connection):
         click.echo(f"❌ Error: {e}")
 
 
+@cli.command('parallel')
+@click.option('--config', '-c', default='config/models.yaml', help='Path to models config')
+@click.option('--prompts', '-p', default='config/prompts.json', help='Path to prompts config')
+@click.option('--models', '-m', help='Comma-separated list of specific models to run')
+@click.option('--sequences', '-s', help='Comma-separated list of specific sequences to run')
+@click.option('--runs', '-r', default=3, help='Number of runs per sequence (default: 3)')
+@click.option('--max-concurrent', default=5, help='Max concurrent sequences (default: 5)')
+@click.option('--dry-run', is_flag=True, help='Validate config without running')
+def parallel_evaluation(config, prompts, models, sequences, runs, max_concurrent, dry_run):
+    """
+    Run parallel evaluation with 5x speedup via sequence-level parallelization.
+    
+    Phase 2.0 feature: Runs 5 sequences concurrently per model for dramatic
+    performance improvement while maintaining context isolation.
+    """
+    click.echo("🚀 StoryBench Phase 2.0 - Parallel Evaluation")
+    click.echo("=" * 60)
+    
+    async def run_parallel():
+        try:
+            # Load configuration
+            import yaml
+            with open(config, 'r') as f:
+                config_data = yaml.safe_load(f)
+            
+            with open(prompts, 'r') as f:
+                prompts_data = json.load(f)
+            
+            # Filter models if specified
+            all_models = []
+            for provider, provider_models in config_data['models'].items():
+                for model in provider_models:
+                    if model.get('enabled', True):
+                        model['provider'] = provider
+                        all_models.append(model)
+            
+            if models:
+                model_names = [m.strip() for m in models.split(',')]
+                all_models = [m for m in all_models if m['name'] in model_names]
+            
+            # Filter sequences if specified
+            if sequences:
+                sequence_names = [s.strip() for s in sequences.split(',')]
+                prompts_data = {k: v for k, v in prompts_data.items() if k in sequence_names}
+            
+            click.echo(f"Configuration loaded:")
+            click.echo(f"  📊 Models: {len(all_models)}")
+            click.echo(f"  📝 Sequences: {len(prompts_data)}")
+            click.echo(f"  🔄 Runs per sequence: {runs}")
+            click.echo(f"  ⚡ Max concurrent sequences: {max_concurrent}")
+            click.echo(f"  📈 Total API calls: {len(all_models) * len(prompts_data) * 3 * runs}")
+            
+            if dry_run:
+                click.echo("\n✅ Dry run successful - configuration valid")
+                return
+            
+            # Check API keys
+            api_keys = _get_api_keys()
+            missing_keys = []
+            for model in all_models:
+                provider = model['provider']
+                if provider == 'openai' and not api_keys['OPENAI_API_KEY']:
+                    missing_keys.append('OPENAI_API_KEY')
+                elif provider == 'anthropic' and not api_keys['ANTHROPIC_API_KEY']:
+                    missing_keys.append('ANTHROPIC_API_KEY')
+                elif provider == 'google' and not api_keys['GOOGLE_API_KEY']:
+                    missing_keys.append('GOOGLE_API_KEY')
+                # Add other providers as needed
+            
+            if missing_keys:
+                click.echo(f"❌ Missing API keys: {', '.join(set(missing_keys))}")
+                return
+            
+            # Initialize database
+            click.echo("\n🔌 Connecting to database...")
+            from .database.connection import init_database
+            database = await init_database()
+            click.echo("✅ Database connected")
+            
+            # Initialize parallel evaluation runner
+            click.echo("⚡ Initializing parallel evaluation runner...")
+            runner = DatabaseEvaluationRunner(database, enable_parallel=True)
+            runner.parallel_runner.max_concurrent_sequences = max_concurrent
+            click.echo("✅ Parallel runner ready")
+            
+            # Start evaluation
+            click.echo("\n🚀 Starting parallel evaluation...")
+            evaluation = await runner.start_evaluation(
+                models=[m['name'] for m in all_models],
+                sequences=prompts_data,
+                criteria={"parallel_test": True},
+                global_settings={"num_runs": runs}
+            )
+            
+            evaluation_id = str(evaluation.id)
+            click.echo(f"📋 Evaluation ID: {evaluation_id}")
+            
+            # Create evaluator factory
+            def create_evaluator(model_config):
+                from .evaluators.api_evaluator import APIEvaluator
+                provider = model_config['provider']
+                
+                if provider == 'openai':
+                    return APIEvaluator(model_config['model_id'], api_keys['OPENAI_API_KEY'], 'openai')
+                elif provider == 'anthropic':
+                    return APIEvaluator(model_config['model_id'], api_keys['ANTHROPIC_API_KEY'], 'anthropic')
+                elif provider == 'google':
+                    return APIEvaluator(model_config['model_id'], api_keys['GOOGLE_API_KEY'], 'google')
+                else:
+                    raise ValueError(f"Unsupported provider: {provider}")
+            
+            # Run parallel evaluation
+            start_time = datetime.now()
+            results = await runner.run_parallel_evaluation(
+                evaluation_id=evaluation_id,
+                models=all_models,
+                sequences=prompts_data,
+                num_runs=runs,
+                evaluator_factory=create_evaluator
+            )
+            
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            
+            # Results summary
+            click.echo("\n" + "=" * 60)
+            click.echo("🎉 PARALLEL EVALUATION COMPLETE")
+            click.echo("=" * 60)
+            
+            if results.get('success', False):
+                click.echo(f"✅ Evaluation completed successfully!")
+                click.echo(f"⏱️  Duration: {duration:.1f} seconds ({duration/60:.1f} minutes)")
+                click.echo(f"👥 Workers: {results['successful_workers']}/{results['total_workers']} successful")
+                
+                if 'performance_metrics' in results:
+                    metrics = results['performance_metrics']
+                    click.echo(f"📊 Throughput: {metrics.get('average_throughput_per_minute', 0):.1f} prompts/min")
+                    if metrics.get('parallelization_speedup', 0) > 0:
+                        click.echo(f"🚀 Speedup: {metrics['parallelization_speedup']:.1f}x vs sequential")
+                
+                click.echo(f"\n💾 Results saved to evaluation ID: {evaluation_id}")
+            else:
+                click.echo(f"❌ Evaluation failed: {results.get('error', 'Unknown error')}")
+            
+        except Exception as e:
+            click.echo(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    asyncio.run(run_parallel())
+
+
 if __name__ == '__main__':
     cli()
 

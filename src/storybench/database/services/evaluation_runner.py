@@ -10,13 +10,14 @@ from bson import ObjectId
 from ..models import Evaluation, Response, EvaluationStatus, ResponseStatus, GlobalSettings
 from ..repositories import EvaluationRepository, ResponseRepository
 from ..services.config_service import ConfigService
+from ...parallel import ParallelSequenceEvaluationRunner
 
 logger = logging.getLogger(__name__)
 
 class DatabaseEvaluationRunner:
     """Database-backed evaluation runner with real-time progress tracking and caching."""
     
-    def __init__(self, database: AsyncIOMotorDatabase):
+    def __init__(self, database: AsyncIOMotorDatabase, enable_parallel: bool = True):
         """Initialize the evaluation runner."""
         self.database = database
         self.evaluation_repo = EvaluationRepository(database)
@@ -27,6 +28,15 @@ class DatabaseEvaluationRunner:
         self._progress_cache = {}
         self._batch_updates = []
         self._batch_update_threshold = 10  # Batch every 10 updates
+        
+        # Phase 2.0: Parallel execution capability
+        self.enable_parallel = enable_parallel
+        if enable_parallel:
+            self.parallel_runner = ParallelSequenceEvaluationRunner(
+                database=database,
+                evaluation_runner=self,
+                max_concurrent_sequences=5  # 5 sequences can run in parallel
+            )
         
     async def start_evaluation(self, 
                              models: List[str],
@@ -211,8 +221,7 @@ class DatabaseEvaluationRunner:
                 "sequence_count": stats["sequence_count"],
                 "avg_generation_time": stats["avg_generation_time"],
                 "total_generation_time": stats["total_generation_time"],
-                "by_model_count": stats["by_model_count"]
-            }
+                "by_model_count": stats["by_model_count"],
                 "started_at": evaluation.started_at.isoformat(),
                 "completed_at": evaluation.completed_at.isoformat() if evaluation.completed_at else None
             }
@@ -337,6 +346,73 @@ class DatabaseEvaluationRunner:
         except Exception as e:
             logger.error(f"Failed to finalize evaluation {evaluation_id}: {e}")
             return False
+    
+    async def run_parallel_evaluation(self,
+                                    evaluation_id: str,
+                                    models: List[Dict[str, Any]],
+                                    sequences: Dict[str, List[Dict[str, str]]],
+                                    num_runs: int,
+                                    evaluator_factory,
+                                    progress_callback=None) -> Dict[str, Any]:
+        """
+        Run evaluation using parallel sequence execution.
+        
+        Phase 2.0 feature: 5x speedup by running sequences in parallel.
+        - 5 sequences run concurrently per model
+        - Context isolated between sequences
+        - Context accumulates within each sequence run
+        """
+        
+        if not self.enable_parallel:
+            raise NotImplementedError("Parallel execution not enabled. Set enable_parallel=True")
+        
+        logger.info(f"Starting parallel evaluation for evaluation_id: {evaluation_id}")
+        logger.info(f"Scale: {len(models)} models × {len(sequences)} sequences × 3 prompts × {num_runs} runs")
+        
+        try:
+            results = await self.parallel_runner.run_parallel_evaluation(
+                evaluation_id=evaluation_id,
+                models=models,
+                sequences=sequences,
+                num_runs=num_runs,
+                evaluator_factory=evaluator_factory,
+                progress_callback=progress_callback
+            )
+            
+            # Update evaluation status based on results
+            eval_obj_id = ObjectId(evaluation_id)
+            if results.get("success", False):
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.COMPLETED.value}
+                )
+                logger.info(f"Parallel evaluation {evaluation_id} completed successfully")
+            else:
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.FAILED.value}
+                )
+                logger.error(f"Parallel evaluation {evaluation_id} failed")
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Parallel evaluation failed: {e}")
+            # Mark evaluation as failed
+            try:
+                eval_obj_id = ObjectId(evaluation_id)
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.FAILED.value}
+                )
+            except:
+                pass  # Don't mask original error
+            
+            return {
+                "success": False,
+                "error": str(e),
+                "evaluation_id": evaluation_id
+            }
             
     import traceback
     from datetime import datetime

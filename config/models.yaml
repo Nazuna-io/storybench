@@ -83,6 +83,12 @@ models:
       max_tokens: 128000
       enabled: true
       notes: "DeepSeek V3"
+      
+    - name: qwen-qvq-72b
+      model_id: Qwen/QVQ-72B-Preview
+      max_tokens: 32768
+      enabled: true
+      notes: "NEW MODEL - Qwen QVQ 72B Preview for testing"
 
 # Evaluation settings - how responses are evaluated
 evaluation:
