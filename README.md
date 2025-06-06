@@ -29,10 +29,14 @@ A high-performance evaluation pipeline for assessing the creative writing capabi
 - **Error Isolation**: Failed sequences don't impact other parallel workers
 - **Adaptive Concurrency**: Dynamic scaling based on API response times
 
-### **🗄️ Advanced Analytics
+### **📊 Advanced Analytics
 - **Targeted Data**: Experiment and system design focus only on the most insightful data
 - **Comprehenaive Analytics**: Model profiles, comparisons, raking, and statistical analysis
 - **Fun Visualizations**: Heatmaps, statistical plots, and radar charts to visualize results
+
+<img width="682" alt="Screenshot 2025-06-06 at 10 57 04" src="https://github.com/user-attachments/assets/ac47350d-8368-43b9-9383-b90b4413af4d" />
+<img width="845" alt="Screenshot 2025-06-06 at 10 57 44" src="https://github.com/user-attachments/assets/f0aedc78-3aaf-40fc-bb91-bbc03813a293" />
+
 
 ### ⚡ **Phase 1 Foundation (COMPLETE)**
 
