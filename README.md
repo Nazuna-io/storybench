@@ -1,8 +1,8 @@
-# StoryBench v1.5 🚀 **PHASE 2 COMPLETE - PARALLEL EVALUATION SYSTEM**
+# StoryBench v1.5 🚀**
 
 A high-performance evaluation pipeline for assessing the creative writing capabilities of frontier language models with **5x speedup** through parallel sequence execution.
 
-## 🎉 **StoryBench v1.5 - PRODUCTION-READY PARALLEL SYSTEM** 
+## 🎉 **StoryBench v1.5 ** 
 
 **Phase 2 Sequence-Level Parallelization Complete! StoryBench v1.5 now delivers 5x performance improvement with full Directus integration and MongoDB optimization.**
 
