@@ -97,3 +97,8 @@ tests/reports/
 
 # Documentation
 docs/_build/
+
+# Evaluation scripts for specific tasks (usually one-time use)
+evaluate_qvq_*.py
+evaluate_*_responses.py
+*_evaluation_*.py
