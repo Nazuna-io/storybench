@@ -26,20 +26,25 @@ services:
       retries: 3
       start_period: 40s
 
-  frontend:
+  dashboard:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
-    container_name: storybench-frontend
+      dockerfile: Dockerfile.dashboard
+    container_name: storybench-dashboard
+    environment:
+      - PYTHONPATH=/app/src
+      - MONGODB_URI=${MONGODB_URI}
+    volumes:
+      - ./streamlit_dashboard:/app/streamlit_dashboard:ro
+      - ./src:/app/src:ro
+      - ./.env:/app/.env:ro
     ports:
-      - "80:80"
-    depends_on:
-      - backend
+      - "8501:8501"
     networks:
       - storybench-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8501/"]
       interval: 30s
       timeout: 10s
       retries: 3

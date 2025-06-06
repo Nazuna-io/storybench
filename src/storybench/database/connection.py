@@ -80,6 +80,9 @@ class DatabaseConnection:
                 self.database = self.client[database_name]
                 logger.info(f"Database object created for: {database_name}")
                 
+                # Create indexes for performance optimization
+                await self._create_indexes()
+                
                 logger.info(f"Successfully connected to MongoDB database: {database_name}")
                 return self.database
                 
@@ -106,6 +109,52 @@ class DatabaseConnection:
                     logger.error("Failed to connect to MongoDB after all retries due to unexpected error")
                     raise ConnectionFailure(f"Unable to connect to MongoDB: {e}")
                     
+    async def _create_indexes(self):
+        """Create performance-critical indexes for evaluation queries."""
+        if self.database is None:
+            return
+            
+        try:
+            logger.info("Creating database indexes for performance optimization...")
+            
+            # Responses collection indexes - critical for evaluation progress tracking
+            responses_collection = self.database.responses
+            
+            # Single field index for evaluation_id (most common query)
+            await responses_collection.create_index("evaluation_id", background=True)
+            logger.info("✅ Created index: responses.evaluation_id")
+            
+            # Compound indexes for common query patterns
+            await responses_collection.create_index([
+                ("evaluation_id", 1), 
+                ("model_name", 1)
+            ], background=True)
+            logger.info("✅ Created compound index: responses.evaluation_id+model_name")
+            
+            await responses_collection.create_index([
+                ("evaluation_id", 1), 
+                ("sequence", 1), 
+                ("run", 1)
+            ], background=True)
+            logger.info("✅ Created compound index: responses.evaluation_id+sequence+run")
+            
+            # Evaluations collection indexes
+            evaluations_collection = self.database.evaluations
+            
+            # Index for evaluation status queries
+            await evaluations_collection.create_index("status", background=True)
+            logger.info("✅ Created index: evaluations.status")
+            
+            # Index for evaluation config hash (for finding similar evaluations)
+            await evaluations_collection.create_index("config_hash", background=True)
+            logger.info("✅ Created index: evaluations.config_hash")
+            
+            logger.info("Database indexes created successfully")
+            
+        except Exception as e:
+            # Don't fail connection if index creation fails - it's an optimization
+            logger.warning(f"Index creation failed (non-critical): {e}")
+    
     async def disconnect(self):
         """Close the MongoDB connection."""
         if self.client:

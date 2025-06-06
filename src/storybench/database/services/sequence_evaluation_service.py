@@ -167,6 +167,33 @@ class SequenceEvaluationService:
             # For many models, prepending system prompt to user prompt is a common approach.
             full_prompt_for_evaluator = f"{system_prompt_content}\n\n{user_prompt_content}"
             
+            # Monitor sequence evaluation context (but don't fail on size)
+            try:
+                context_analytics = self.evaluator.get_context_analytics(full_prompt_for_evaluator)
+                logger.info(f"Sequence evaluation context monitoring: "
+                           f"sequence={responses[0].sequence}, "
+                           f"model={responses[0].model_name}, "
+                           f"responses_count={len(responses)}, "
+                           f"hash={context_analytics['prompt_hash']}, "
+                           f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                           f"utilization={context_analytics['utilization_percent']:.1f}%")
+                
+                if not context_analytics['fits']:
+                    # WARNING ONLY - let the model handle its own context limits
+                    logger.warning(f"Sequence evaluation context large but proceeding: "
+                                 f"sequence={responses[0].sequence}, "
+                                 f"model={responses[0].model_name}, "
+                                 f"responses={len(responses)}, "
+                                 f"tokens={context_analytics['estimated_tokens']}/{context_analytics['max_tokens']}, "
+                                 f"hash={context_analytics['prompt_hash']}. "
+                                 f"Model will handle context naturally.")
+                else:
+                    logger.debug(f"Sequence evaluation context within estimated limits")
+                    
+            except Exception as e:
+                logger.warning(f"Context monitoring failed for sequence evaluation (non-fatal): {e}")
+                # Continue with evaluation even if monitoring fails
+            
             evaluator_call_settings = {
                 "temperature": 0.3, # Consistent with original settings
                 "max_tokens": 4096  # Consistent with original settings

@@ -1,0 +1,205 @@
+# StoryBench Model Configuration Example
+# Copy this file to config/models.yaml and customize for your needs
+
+# Model definitions organized by provider
+models:
+  # Anthropic models
+  anthropic:
+    - name: claude-opus-4
+      model_id: claude-opus-4-20250514
+      max_tokens: 200000
+      enabled: true
+      notes: "Most creative, highest quality"
+      
+    - name: claude-sonnet-4  
+      model_id: claude-sonnet-4-20250514
+      max_tokens: 200000
+      enabled: true
+      notes: "Balanced performance"
+      
+    - name: claude-3.7-sonnet
+      model_id: claude-3-7-sonnet-20250219
+      max_tokens: 200000
+      enabled: true
+      notes: "Previous generation, still capable"
+      
+  # OpenAI models
+  openai:
+    - name: gpt-4.1
+      model_id: gpt-4.1
+      max_tokens: 128000
+      enabled: true
+      notes: "Latest GPT-4 variant"
+      
+    - name: gpt-4o
+      model_id: gpt-4o
+      max_tokens: 128000
+      enabled: true
+      notes: "Optimized GPT-4"
+      
+    - name: o4-mini
+      model_id: o4-mini
+      max_tokens: 128000
+      enabled: true
+      notes: "Smaller, faster variant"
+      
+  # Google models
+  google:
+    - name: gemini-2.5-flash
+      model_id: gemini-2.5-flash-preview-05-20
+      max_tokens: 1000000
+      enabled: true
+      notes: "Fast, large context"
+      
+    - name: gemini-2.5-pro
+      model_id: gemini-2.5-pro-preview-05-06
+      max_tokens: 1000000
+      enabled: true
+      notes: "Highest quality Gemini"
+      
+  # DeepInfra models
+  deepinfra:
+    - name: qwen3-235b
+      model_id: Qwen/Qwen3-235B-A22B
+      max_tokens: 32768
+      enabled: true
+      notes: "Large open model"
+      
+    - name: llama-4-maverick
+      model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      max_tokens: 128000
+      enabled: true
+      notes: "Meta's latest"
+      
+    - name: deepseek-r1
+      model_id: deepseek-ai/DeepSeek-R1
+      max_tokens: 128000
+      enabled: true
+      notes: "DeepSeek reasoning model"
+      
+    - name: deepseek-v3
+      model_id: deepseek-ai/DeepSeek-V3-0324
+      max_tokens: 128000
+      enabled: true
+      notes: "DeepSeek v3"
+
+# Evaluation pipeline configuration
+evaluation:
+  # Model used for evaluating responses
+  evaluator_model: gemini-2.5-pro-preview-05-06
+  evaluator_provider: google
+  
+  # Temperature settings
+  temperature_generation: 1.0  # For creative responses
+  temperature_evaluation: 0.3  # For consistent evaluation
+  
+  # Retry configuration
+  max_retries: 3
+  retry_delay: 5  # seconds
+  retry_backoff: 2.0  # exponential backoff multiplier
+  
+  # Request limits
+  requests_per_minute: 60  # Rate limiting
+  concurrent_requests: 1   # Parallel API calls
+  
+  # Timeouts (seconds)
+  request_timeout: 300     # 5 minutes per request
+  total_timeout: 3600      # 1 hour total per model
+
+# Pipeline behavior configuration
+pipeline:
+  # Evaluation structure
+  runs_per_sequence: 3
+  sequences_to_evaluate: all  # or list: ["film_narrative", "literary_narrative"]
+  
+  # Context handling
+  reset_context_between_sequences: true
+  preserve_context_within_sequence: true
+  
+  # Checkpointing
+  save_checkpoints: true
+  checkpoint_interval: 5  # Save every N responses
+  checkpoint_directory: ./checkpoints
+  
+  # Error handling
+  continue_on_error: true
+  max_consecutive_errors: 3
+  
+  # Logging
+  log_level: INFO  # DEBUG, INFO, WARNING, ERROR
+  log_file: ./logs/evaluation.log
+
+# Output configuration
+output:
+  # What to include in responses
+  include_timestamps: true
+  include_usage_stats: true
+  include_context_stats: true
+  
+  # Export options
+  export_format: json  # json, csv, parquet
+  export_directory: ./exports
+  
+  # Report generation
+  generate_report_on_completion: true
+  report_format: markdown
+
+# Database configuration
+storage:
+  # MongoDB collections
+  responses_collection: responses
+  evaluations_collection: response_llm_evaluations
+  
+  # Metadata fields to include
+  metadata_fields:
+    - model_name
+    - provider
+    - prompt_version
+    - criteria_version
+    - pipeline_version
+    - timestamp
+    - git_commit
+    
+  # Indexing for performance
+  create_indexes: true
+  index_fields:
+    - model_name
+    - timestamp
+    - sequence_name
+
+# Dashboard configuration
+dashboard:
+  # Server settings
+  port: 8501
+  host: 0.0.0.0
+  
+  # Features
+  enable_real_time: true
+  refresh_interval: 5  # seconds
+  
+  # Data limits
+  max_responses_displayed: 1000
+  enable_caching: true
+  cache_ttl: 300  # seconds
+
+# Notification configuration (optional)
+notifications:
+  enabled: false
+  
+  # Email notifications
+  email:
+    enabled: false
+    smtp_server: smtp.gmail.com
+    smtp_port: 587
+    from_address: storybench@example.com
+    to_addresses:
+      - admin@example.com
+    
+  # Webhook notifications
+  webhook:
+    enabled: false
+    url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    events:
+      - evaluation_complete
+      - error_threshold_exceeded
+      - pipeline_complete

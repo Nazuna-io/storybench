@@ -26,11 +26,15 @@ class BaseEvaluator(ABC):
         context_size = config.get('context_size', 32768)  # Default to 32K
         
         from ..unified_context_system import ContextConfig
+        from ..langchain_context_manager import ContextStrategy
         context_config = ContextConfig(
             max_context_tokens=context_size,
-            strategy='PRESERVE_ALL'  # No truncation policy
+            strategy=ContextStrategy.PRESERVE_ALL  # No truncation policy
         )
         self.context_manager = UnifiedContextManager(context_config)
+        
+        # Initialize generation history for context accumulation
+        self.generation_history = ""
         
     @abstractmethod
     async def generate_response(self, prompt: str, **kwargs) -> Dict[str, Any]:
@@ -69,32 +73,43 @@ class BaseEvaluator(ABC):
     def validate_context_size(self, prompt: str) -> Dict[str, Any]:
         """Validate that prompt fits within context limits.
         
+        For creative writing evaluations, this monitors context size but allows
+        the model to handle its own limits naturally. No exceptions raised.
+        
         Args:
             prompt: The prompt text to validate
             
         Returns:
-            Dictionary with context statistics
-            
-        Raises:
-            ContextLimitExceededError: If prompt exceeds limits
+            Dictionary with context statistics (warnings instead of errors)
         """
-        # Check context size using unified system - this will raise error if too large
-        estimated_tokens = self.context_manager._estimate_tokens(prompt)
+        # Use flexible validation that warns but doesn't fail
+        return self.context_manager.validate_context_size_strict(prompt, f"evaluator_{self.name}")
+    
+    def monitor_sequence_context(self, sequence_name: str, prompt_index: int, accumulated_context: str) -> Dict[str, Any]:
+        """Monitor context growth within a sequence for creative writing.
         
-        if estimated_tokens > self.context_manager.max_context_tokens:
-            raise ContextLimitExceededError(
-                f"Context exceeds maximum context size: {estimated_tokens} tokens > {self.context_manager.max_context_tokens} max. "
-                f"Prompt length: {len(prompt)} characters. "
-                f"Consider using a model with larger context window or reducing prompt size."
-            )
+        Args:
+            sequence_name: Name of the current sequence  
+            prompt_index: Index of current prompt in sequence
+            accumulated_context: Full accumulated context
+            
+        Returns:
+            Dictionary with sequence context analytics
+        """
+        return self.context_manager.monitor_sequence_context_growth(
+            sequence_name, prompt_index, accumulated_context
+        )
+    
+    def get_context_analytics(self, prompt: str) -> Dict[str, Any]:
+        """Get detailed context analytics for evaluation reports.
         
-        # Return context statistics
-        return {
-            'estimated_tokens': estimated_tokens,
-            'max_context_tokens': self.context_manager.max_context_tokens,
-            'remaining_tokens': self.context_manager.max_context_tokens - estimated_tokens,
-            'utilization_percent': (estimated_tokens / self.context_manager.max_context_tokens) * 100
-        }
+        Args:
+            prompt: The prompt text to analyze
+            
+        Returns:
+            Dictionary with detailed context analytics
+        """
+        return self.context_manager.get_context_analytics(prompt)
     
     def get_context_limits(self) -> Dict[str, int]:
         """Get context limits for this evaluator.
@@ -106,6 +121,13 @@ class BaseEvaluator(ABC):
             'max_context_tokens': self.context_manager.max_context_tokens,
             'strategy': 'PRESERVE_ALL'  # We enforce strict no-truncation
         }
+    
+    def reset_context(self):
+        """Reset the generation history/context.
+        
+        This is used between sequences to ensure clean context for coherence testing.
+        """
+        self.generation_history = ""
         
     def _create_response_dict(self, response_text: str, start_time: float, 
                              metadata: Optional[Dict] = None,

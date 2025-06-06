@@ -1,51 +1,146 @@
-version: 1
-global_settings:
-  temperature: 1.0
-  max_tokens: 8192
-  num_runs: 3
-  vram_limit_percent: 80
+# StoryBench Model Configuration
+# Version: 1.5
+# Last Updated: June 2025
 
+# Model definitions organized by provider
 models:
-  # API Models
-  - name: "GPT-4o"
-    type: "api"
-    provider: "openai"
-    model_name: "gpt-4o"
+  # Anthropic Claude models
+  anthropic:
+    - name: claude-opus-4
+      model_id: claude-opus-4-20250514
+      max_tokens: 200000
+      enabled: true
+      notes: "Latest Opus - highest creativity and quality"
+      
+    - name: claude-sonnet-4  
+      model_id: claude-sonnet-4-20250514
+      max_tokens: 200000
+      enabled: true
+      notes: "Latest Sonnet - balanced performance"
+      
+    - name: claude-3.7-sonnet
+      model_id: claude-3-7-sonnet-20250219
+      max_tokens: 200000
+      enabled: true
+      notes: "Previous generation Sonnet"
+      
+  # OpenAI GPT models
+  openai:
+    - name: gpt-4.1
+      model_id: gpt-4.1
+      max_tokens: 128000
+      enabled: true
+      notes: "Latest GPT-4 variant"
+      
+    - name: gpt-4o
+      model_id: gpt-4o
+      max_tokens: 128000
+      enabled: true
+      notes: "GPT-4 optimized variant"
+      
+    - name: o4-mini
+      model_id: o4-mini
+      max_tokens: 128000
+      enabled: true
+      notes: "Smaller o-series model - requires max_completion_tokens"
+      
+  # Google Gemini models
+  google:
+    - name: gemini-2.5-flash
+      model_id: gemini-2.5-flash-preview-05-20
+      max_tokens: 1000000
+      enabled: true
+      notes: "Fast Gemini with massive context"
     
-  - name: "Claude-4-Sonnet"
-    type: "api"
-    provider: "anthropic"
-    model_name: "claude-sonnet-4-20250514"
-    
-  - name: "Gemini-2.5-Pro"
-    type: "api"
-    provider: "gemini"
-    model_name: "gemini-2.5-pro-preview-05-06"
-    
-  - name: "DeepSeek-R1"
-    type: "api"
-    provider: "deepinfra"
-    model_name: "deepseek-ai/DeepSeek-R1"
-    context_size: 128000
-    
-  - name: "DeepSeek-R1-0528"
-    type: "api"
-    provider: "deepinfra"
-    model_name: "deepseek-ai/DeepSeek-R1-0528"
-    context_size: 128000
-    
-  # Local GGUF Models (commented out for initial API focus)
-  # - name: "Llama-7B-Chat"
-  #   type: "local"
-  #   repo_id: "TheBloke/Llama-2-7B-Chat-GGUF"
-  #   filename: "llama-2-7b-chat.Q8_0.gguf"
-    
-  # - name: "CodeLlama-Instruct"
-  #   type: "local"
-  #   repo_id: "TheBloke/CodeLlama-7B-Instruct-GGUF"
-  #   subdirectory: "8bit"
+    - name: gemini-2.5-pro
+      model_id: gemini-2.5-pro-preview-05-06
+      max_tokens: 1000000
+      enabled: true
+      notes: "Most capable Gemini - used for evaluation"
+      
+  # DeepInfra hosted models
+  deepinfra:
+    - name: qwen3-235b
+      model_id: Qwen/Qwen3-235B-A22B
+      max_tokens: 32768
+      enabled: true
+      notes: "Large Qwen model"
+      
+    - name: llama-4-maverick
+      model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+      max_tokens: 128000
+      enabled: true
+      notes: "Meta's Llama 4 variant"
+      
+    - name: deepseek-r1
+      model_id: deepseek-ai/DeepSeek-R1
+      max_tokens: 128000
+      enabled: true
+      notes: "DeepSeek reasoning model"
+      
+    - name: deepseek-v3
+      model_id: deepseek-ai/DeepSeek-V3-0324
+      max_tokens: 128000
+      enabled: true
+      notes: "DeepSeek V3"
+      
+    - name: qwen-qvq-72b
+      model_id: Qwen/QVQ-72B-Preview
+      max_tokens: 32768
+      enabled: true
+      notes: "NEW MODEL - Qwen QVQ 72B Preview for testing"
 
+# Evaluation settings - how responses are evaluated
 evaluation:
-  auto_evaluate: false
-  evaluator_models: ["claude-3-sonnet", "gemini-pro"]
-  max_retries: 5
+  evaluator_model: gemini-2.5-pro-preview-05-06
+  evaluator_provider: google
+  temperature_generation: 1.0
+  temperature_evaluation: 0.3
+  max_retries: 3
+  retry_delay: 5
+  retry_backoff: 2.0
+  requests_per_minute: 60
+  concurrent_requests: 1
+  request_timeout: 300
+  total_timeout: 3600
+
+# Pipeline configuration - how evaluation runs
+pipeline:
+  runs_per_sequence: 3
+  sequences_to_evaluate: all
+  reset_context_between_sequences: true
+  preserve_context_within_sequence: true
+  save_checkpoints: true
+  checkpoint_interval: 5
+  checkpoint_directory: ./checkpoints
+  continue_on_error: true
+  max_consecutive_errors: 3
+  log_level: INFO
+  log_file: ./logs/evaluation.log
+
+# Database configuration
+storage:
+  responses_collection: responses
+  evaluations_collection: response_llm_evaluations
+  metadata_fields:
+    - model_name
+    - provider
+    - prompt_version
+    - criteria_version
+    - pipeline_version
+    - timestamp
+  create_indexes: true
+  index_fields:
+    - model_name
+    - timestamp
+    - sequence_name
+
+# Dashboard configuration
+dashboard:
+  port: 8501
+  host: 0.0.0.0
+  enable_real_time: true
+  refresh_interval: 5
+  max_responses_displayed: 1000
+  enable_caching: true
+  cache_ttl: 300

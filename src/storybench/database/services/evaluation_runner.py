@@ -10,18 +10,33 @@ from bson import ObjectId
 from ..models import Evaluation, Response, EvaluationStatus, ResponseStatus, GlobalSettings
 from ..repositories import EvaluationRepository, ResponseRepository
 from ..services.config_service import ConfigService
+from ...parallel import ParallelSequenceEvaluationRunner
 
 logger = logging.getLogger(__name__)
 
 class DatabaseEvaluationRunner:
-    """Database-backed evaluation runner with real-time progress tracking."""
+    """Database-backed evaluation runner with real-time progress tracking and caching."""
     
-    def __init__(self, database: AsyncIOMotorDatabase):
+    def __init__(self, database: AsyncIOMotorDatabase, enable_parallel: bool = True):
         """Initialize the evaluation runner."""
         self.database = database
         self.evaluation_repo = EvaluationRepository(database)
         self.response_repo = ResponseRepository(database)
         self.config_service = ConfigService(database)
+        
+        # Progress caching to reduce database queries during active evaluations
+        self._progress_cache = {}
+        self._batch_updates = []
+        self._batch_update_threshold = 10  # Batch every 10 updates
+        
+        # Phase 2.0: Parallel execution capability
+        self.enable_parallel = enable_parallel
+        if enable_parallel:
+            self.parallel_runner = ParallelSequenceEvaluationRunner(
+                database=database,
+                evaluation_runner=self,
+                max_concurrent_sequences=5  # 5 sequences can run in parallel
+            )
         
     async def start_evaluation(self, 
                              models: List[str],
@@ -112,31 +127,81 @@ class DatabaseEvaluationRunner:
             raise
         
     async def _update_evaluation_progress(self, evaluation_id: ObjectId, model_name: str, sequence: str, run: int):
-        """Update evaluation progress after saving a response."""
+        """Update evaluation progress with batching and caching."""
         try:
-            # Count completed responses for this evaluation
-            completed_count = await self.response_repo.count_by_evaluation_id(evaluation_id)
+            eval_id_str = str(evaluation_id)
             
-            # Update evaluation with new progress
-            await self.evaluation_repo.update_progress(
-                evaluation_id,
-                completed_count,
-                current_model=model_name,
-                current_sequence=sequence,
-                current_run=run
-            )
+            # Update cache
+            if eval_id_str not in self._progress_cache:
+                self._progress_cache[eval_id_str] = 0
+            self._progress_cache[eval_id_str] += 1
             
+            # Add to batch updates
+            self._batch_updates.append({
+                "evaluation_id": evaluation_id,
+                "model_name": model_name,
+                "sequence": sequence,
+                "run": run,
+                "timestamp": datetime.utcnow()
+            })
+            
+            # Flush batch if threshold reached
+            if len(self._batch_updates) >= self._batch_update_threshold:
+                await self._flush_batch_updates()
+                
         except Exception as e:
             logger.error(f"Failed to update evaluation progress: {e}")
             
+    async def _flush_batch_updates(self):
+        """Flush batched progress updates to database."""
+        if not self._batch_updates:
+            return
+            
+        try:
+            logger.debug(f"Flushing {len(self._batch_updates)} batched progress updates")
+            
+            # Group updates by evaluation_id and get latest for each
+            latest_updates = {}
+            for update in self._batch_updates:
+                eval_id = str(update["evaluation_id"])
+                if eval_id not in latest_updates or update["timestamp"] > latest_updates[eval_id]["timestamp"]:
+                    latest_updates[eval_id] = update
+            
+            # Apply updates using cached counts instead of database queries
+            for eval_id, update in latest_updates.items():
+                completed_count = self._progress_cache.get(eval_id, 0)
+                
+                await self.evaluation_repo.update_progress(
+                    update["evaluation_id"],
+                    completed_count,
+                    current_model=update["model_name"],
+                    current_sequence=update["sequence"],
+                    current_run=update["run"]
+                )
+            
+            # Clear batch
+            self._batch_updates.clear()
+            logger.debug("Batch updates flushed successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to flush batch updates: {e}")
+            # Clear batch even on error to prevent accumulation
+            self._batch_updates.clear()
+            
     async def get_evaluation_progress(self, evaluation_id: ObjectId) -> Dict[str, Any]:
-        """Get current progress for an evaluation."""
+        """Get current progress using optimized statistics query."""
         try:
             evaluation = await self.evaluation_repo.find_by_id(evaluation_id)
             if not evaluation:
                 return None
-                
-            completed_count = await self.response_repo.count_by_evaluation_id(evaluation_id)
+            
+            # Use optimized statistics query instead of simple count
+            stats = await self.response_repo.get_evaluation_statistics(evaluation_id)
+            completed_count = stats["total_count"]
+            
+            # Update cache
+            eval_id_str = str(evaluation_id)
+            self._progress_cache[eval_id_str] = completed_count
             
             progress_percent = (completed_count / evaluation.total_tasks * 100) if evaluation.total_tasks > 0 else 0
             
@@ -149,6 +214,14 @@ class DatabaseEvaluationRunner:
                 "current_model": evaluation.current_model,
                 "current_sequence": evaluation.current_sequence,
                 "current_run": evaluation.current_run,
+                "started_at": evaluation.started_at,
+                "completed_at": evaluation.completed_at,
+                # Additional statistics from optimized query
+                "model_count": stats["model_count"],
+                "sequence_count": stats["sequence_count"],
+                "avg_generation_time": stats["avg_generation_time"],
+                "total_generation_time": stats["total_generation_time"],
+                "by_model_count": stats["by_model_count"],
                 "started_at": evaluation.started_at.isoformat(),
                 "completed_at": evaluation.completed_at.isoformat() if evaluation.completed_at else None
             }
@@ -252,6 +325,94 @@ class DatabaseEvaluationRunner:
         except Exception as e:
             logger.error(f"Failed to find running evaluations: {e}")
             return []
+            
+    async def finalize_evaluation(self, evaluation_id: ObjectId) -> bool:
+        """Finalize evaluation and flush any remaining updates."""
+        try:
+            # Flush any remaining batch updates
+            await self._flush_batch_updates()
+            
+            # Clear cache for this evaluation
+            eval_id_str = str(evaluation_id)
+            if eval_id_str in self._progress_cache:
+                del self._progress_cache[eval_id_str]
+            
+            # Update evaluation status to completed
+            await self.evaluation_repo.update_status(evaluation_id, EvaluationStatus.COMPLETED)
+            
+            logger.info(f"Evaluation {evaluation_id} finalized successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to finalize evaluation {evaluation_id}: {e}")
+            return False
+    
+    async def run_parallel_evaluation(self,
+                                    evaluation_id: str,
+                                    models: List[Dict[str, Any]],
+                                    sequences: Dict[str, List[Dict[str, str]]],
+                                    num_runs: int,
+                                    evaluator_factory,
+                                    progress_callback=None) -> Dict[str, Any]:
+        """
+        Run evaluation using parallel sequence execution.
+        
+        Phase 2.0 feature: 5x speedup by running sequences in parallel.
+        - 5 sequences run concurrently per model
+        - Context isolated between sequences
+        - Context accumulates within each sequence run
+        """
+        
+        if not self.enable_parallel:
+            raise NotImplementedError("Parallel execution not enabled. Set enable_parallel=True")
+        
+        logger.info(f"Starting parallel evaluation for evaluation_id: {evaluation_id}")
+        logger.info(f"Scale: {len(models)} models × {len(sequences)} sequences × 3 prompts × {num_runs} runs")
+        
+        try:
+            results = await self.parallel_runner.run_parallel_evaluation(
+                evaluation_id=evaluation_id,
+                models=models,
+                sequences=sequences,
+                num_runs=num_runs,
+                evaluator_factory=evaluator_factory,
+                progress_callback=progress_callback
+            )
+            
+            # Update evaluation status based on results
+            eval_obj_id = ObjectId(evaluation_id)
+            if results.get("success", False):
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.COMPLETED.value}
+                )
+                logger.info(f"Parallel evaluation {evaluation_id} completed successfully")
+            else:
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.FAILED.value}
+                )
+                logger.error(f"Parallel evaluation {evaluation_id} failed")
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Parallel evaluation failed: {e}")
+            # Mark evaluation as failed
+            try:
+                eval_obj_id = ObjectId(evaluation_id)
+                await self.evaluation_repo.update_by_id(
+                    eval_obj_id,
+                    {"status": EvaluationStatus.FAILED.value}
+                )
+            except:
+                pass  # Don't mask original error
+            
+            return {
+                "success": False,
+                "error": str(e),
+                "evaluation_id": evaluation_id
+            }
             
     import traceback
     from datetime import datetime
